@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.pytest_cache/
+
+# 외부 데이터 원본과 로컬 DB는 올리지 않는다
+rag/raw/
+chroma_db/
+*.sqlite3
