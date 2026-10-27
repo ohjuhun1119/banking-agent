@@ -19,6 +19,24 @@
     <button data-tab="chat">채팅</button>
   </nav>
 
+  <div id="settings">
+    <label>검색 방식
+      <select id="mode">
+        <option value="dense">벡터</option>
+        <option value="bm25">키워드 (BM25)</option>
+        <option value="hybrid">하이브리드 (벡터 + BM25)</option>
+      </select>
+    </label>
+    <label>리랭킹
+      <select id="rerank">
+        <option value="none">없음</option>
+        <option value="cross">교차 인코더 (bge-reranker)</option>
+        <option value="llm">LLM (느림)</option>
+      </select>
+    </label>
+    <span id="settings-note" class="muted"></span>
+  </div>
+
   <main>
     <section id="tab-search">
       <form id="search-form">

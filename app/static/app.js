@@ -27,12 +27,33 @@ const short = (id) => id
   .replace("hana-deposit-sheet__", "설명서:").replace("hana-deposit-terms__", "특약:")
   .replace("hana-deposit-basic-terms__", "기본:").replace("hana-lumpsum-terms__", "거치식:");
 
+// ---------- 검색 설정 (검색 방식 · 리랭킹): 검색 · 일괄 확인 · 채팅 탭이 함께 쓴다 ----------
+let STATUS = null;
+function initSettings(s) {
+  if (!initSettings.done) { $("#mode").value = s.defaults.mode; $("#rerank").value = s.defaults.rerank; initSettings.done = true; }
+  const notes = [];
+  if (!s.bm25) notes.push("키워드 인덱스 없음 (python rag/ingest.py 다시 실행)");
+  if (!s.rerank_available.cross) notes.push("교차 인코더는 pip install fastembed 가 필요해요");
+  $("#settings-note").textContent = notes.join(" · ");
+}
+const searchSettings = () => ({ mode: $("#mode").value, rerank: $("#rerank").value });
+function scoreLine(sc) {
+  if (!sc) return "";
+  const p = [];
+  if (sc.dense_rank != null) p.push(`벡터 ${sc.dense_rank}위`);
+  if (sc.bm25_rank != null) p.push(`키워드 ${sc.bm25_rank}위 (${sc.bm25})`);
+  if (sc.rrf != null) p.push(`RRF ${sc.rrf}`);
+  if (sc.rerank != null) p.push(`리랭크 ${sc.rerank}`);
+  return p.join(" · ");
+}
+
 // ---------- 상태 표시줄 ----------
 async function loadStatus() {
   const box = $("#status");
   box.replaceChildren();
   try {
     const s = await api("/api/status");
+    STATUS = s; initSettings(s);
     box.append(
       h("span", { class: "pill " + (s.chunks ? "ok" : "bad") }, `청크 ${s.chunks}개`),
       h("span", { class: "pill " + (s.index ? "ok" : "bad") }, s.index == null ? "인덱스 없음" : `인덱스 ${s.index}개`),
@@ -99,6 +120,7 @@ function resultCard(r) {
     ),
     h("div", { class: "source" }, sourceLine(r.source)),
     h("div", { class: "ver" }, versionLine(r.source)),
+    scoreLine(r.scores) ? h("div", { class: "ver" }, scoreLine(r.scores)) : null,
     textBlock(r.text),
   );
 }
@@ -112,12 +134,17 @@ async function runSearch(question) {
     const data = await api("/api/search", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: question, product: $("#product").value || null,
-                             chunk_types: ctype ? [ctype] : null, k: Number($("#k").value) || 5 }),
+                             chunk_types: ctype ? [ctype] : null, k: Number($("#k").value) || 5, ...searchSettings() }),
     });
     const ms = Math.round(performance.now() - t0);
     if (data.status === "error") { msg.className = "msg err"; msg.textContent = data.message; return; }
     if (data.status === "not_found") { msg.textContent = `결과 없음 (not_found) · ${ms}ms`; return; }
-    msg.textContent = `${data.results.length}개 결과 · ${ms}ms`;
+    const m = data.ms || {};
+    const parts = [`임베딩 ${m.embed}ms`];
+    if (m.dense != null) parts.push(`벡터 ${m.dense}ms`);
+    if (m.bm25 != null) parts.push(`키워드 ${m.bm25}ms`);
+    if (m.rerank != null) parts.push(`리랭크 ${m.rerank}ms`);
+    msg.textContent = `${data.results.length}개 결과 (${data.mode}${data.rerank ? " + " + data.rerank : ""}) · ${parts.join(" · ")} · 총 ${ms}ms`;
     data.results.forEach((r) => box.append(resultCard(r)));
   } catch (e) {
     msg.className = "msg err"; msg.textContent = e.message;
@@ -156,13 +183,16 @@ async function runCheck() {
   const msg = $("#check-msg"), sum = $("#check-summary"), tbl = $("#check-table");
   msg.className = "msg"; msg.textContent = "질문을 검색하는 중..."; sum.replaceChildren(); tbl.replaceChildren();
   try {
-    const data = await api("/api/check?k=" + (Number($("#ck").value) || 5));
-    msg.textContent = "";
+    const sset = searchSettings();
+    const data = await api(`/api/check?k=${Number($("#ck").value) || 5}&mode=${sset.mode}&rerank=${sset.rerank}`);
+    msg.textContent = `검색 방식 ${data.mode} · 리랭킹 ${data.rerank}`;
     const s = data.summary;
     Object.entries(s.groups).forEach(([g, v]) => sum.append(h("div", { class: "sbox" },
       h("b", {}, `${g} (${v.n}문항)`), h("span", {}, `1위 ${v.top1}/${v.n}`), h("div", { class: "muted" }, `3위 안 ${v.top3}/${v.n} · MRR ${v.mrr}`))));
     sum.append(h("div", { class: "sbox" }, h("b", {}, "함정 청크가 앞선 질문"), h("span", {}, `${s.traps}개`),
       h("div", { class: "muted" }, "약정금리 이자계산 문장 등")));
+    if (s.latency) sum.append(h("div", { class: "sbox" }, h("b", {}, "검색 시간 (중앙값)"), h("span", {}, `${s.latency.median_total}ms`),
+      h("div", { class: "muted" }, `최대 ${s.latency.max_total}ms` + (s.latency.median_rerank != null ? ` · 리랭크 ${s.latency.median_rerank}ms` : ""))));
     const nd = s.no_answer_distances.filter((d) => d != null);
     sum.append(h("div", { class: "sbox" }, h("b", {}, "답 없는 질문의 가장 가까운 거리"), h("span", {}, nd.map((d) => d.toFixed(2)).join(" / ") || "-"),
       h("div", { class: "muted" }, s.limit == null ? "not_found 기준을 정할 때 사용" : `거리 한도 ${s.limit}: ${s.no_answer_rejected}/${nd.length}개 거부`)));
@@ -172,7 +202,7 @@ async function runCheck() {
         h("td", {}, r.group),
         h("td", {}, r.question),
         h("td", { class: "mark " + mark[1] }, mark[0]),
-        h("td", {}, r.has_answer ? (r.rank ? `${r.rank}위` : `${data.k}위 밖`) : (s.limit == null ? "-" : (r.rejected ? "한도로 거부" : "한도 통과"))),
+        h("td", {}, r.has_answer ? (r.rank ? `${r.rank}위` : `${data.k}위 밖`) : (r.nearest == null ? "결과 없음" : (s.limit == null ? "-" : (r.rejected ? "한도로 거부" : "한도 통과")))),
         h("td", {}, r.trapped ? "함정 앞섬" : ""),
         h("td", {}, r.top.map((t) => `${t.short} (${t.distance.toFixed(2)})`).join("  ·  ")));
     });
@@ -238,7 +268,7 @@ async function sendChat(question) {
   try {
     const res = await fetch("/api/chat/stream", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }), signal: chatAbort.signal,
+      body: JSON.stringify({ question, ...searchSettings() }), signal: chatAbort.signal,
     });
     if (!res.ok) throw new Error(`요청 실패 (${res.status})`);
     const reader = res.body.getReader();

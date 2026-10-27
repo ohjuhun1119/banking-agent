@@ -1,0 +1,1842 @@
+{
+ "meta": {
+  "k": 5,
+  "mode": "hybrid",
+  "rerank": "cross",
+  "rerank_model": "BAAI/bge-reranker-v2-m3-int8",
+  "rerank_top": 10,
+  "rerank_blend": "replace",
+  "rerank_with_hint": true,
+  "chunks_sha": "2ad76905112d",
+  "index": 62,
+  "hints": 4,
+  "embed_model": "bge-m3",
+  "limit": 0.6,
+  "saved_at": "2026-10-27T20:39:43"
+ },
+ "summary": {
+  "k": 5,
+  "groups": {
+   "중도해지": {
+    "n": 10,
+    "top1": 10,
+    "top3": 10,
+    "top5": 10,
+    "mrr": 1.0
+   },
+   "기타": {
+    "n": 9,
+    "top1": 9,
+    "top3": 9,
+    "top5": 9,
+    "mrr": 1.0
+   },
+   "검증-중도해지": {
+    "n": 8,
+    "top1": 7,
+    "top3": 7,
+    "top5": 7,
+    "mrr": 0.88
+   },
+   "검증-기타": {
+    "n": 3,
+    "top1": 3,
+    "top3": 3,
+    "top5": 3,
+    "mrr": 1.0
+   }
+  },
+  "traps": 1,
+  "no_answer_distances": [
+   0.4107,
+   0.4237,
+   0.6881
+  ],
+  "limit": 0.6,
+  "no_answer_rejected": 1
+ },
+ "rows": [
+  {
+   "group": "중도해지",
+   "question": "정기예금 중도해지하면 이율이 어떻게 돼요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.2333,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "short": "특약:art9",
+     "distance": 0.3541,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3925,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.2333
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.3541
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3925
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.3553
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4223
+    }
+   ],
+   "nearest": 0.2333,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지하면 이자 얼마 받아요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.2751,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4255,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.4026,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.2751
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4255
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4026
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.3833
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.3894
+    }
+   ],
+   "nearest": 0.2751,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3322,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "short": "특약:art9",
+     "distance": 0.412,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.3902,
+     "chunk_type": "일부해지"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3322
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.412
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.3902
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4644
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4463
+    }
+   ],
+   "nearest": 0.3322,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "1년짜리 예금을 8개월 만에 깨면 이율은 어떻게 계산해요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.354,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.3743,
+     "chunk_type": "이자계산_일반"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.396,
+     "chunk_type": "만기후금리"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.354
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.3743
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.396
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art7",
+     "distance": 0.4396
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.4655
+    }
+   ],
+   "nearest": 0.354,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "만기 전에 해지하면 손해인가요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3687,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.3678,
+     "chunk_type": "일부해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "short": "특약:art9",
+     "distance": 0.3914,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3687
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.3678
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.3914
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.3727
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.472
+    }
+   ],
+   "nearest": 0.3687,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "6개월 안에 해지하면 이자를 거의 못 받나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3687,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4233,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__dormant",
+     "short": "설명서:dormant",
+     "distance": 0.4816,
+     "chunk_type": "휴면예금"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3687
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4233
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__dormant",
+     "distance": 0.4816
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4492
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.4291
+    }
+   ],
+   "nearest": 0.3687,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지금리 차등율이 뭐예요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.2663,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.4989,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4958,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.2663
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4989
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4958
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.4197
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.4087
+    }
+   ],
+   "nearest": 0.2663,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "경과율은 어떻게 계산해요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.4908,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.4948,
+     "chunk_type": "이자계산_일반"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__glossary_elapsed",
+     "short": "설명서:glossary_elapsed",
+     "distance": 0.4192,
+     "chunk_type": "용어"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.4908
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4948
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__glossary_elapsed",
+     "distance": 0.4192
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.5227
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.6029
+    }
+   ],
+   "nearest": 0.4908,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지 이율은 소수점 몇째 자리까지 적용돼요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3652,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "short": "특약:art9",
+     "distance": 0.4361,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.4349,
+     "chunk_type": "일부해지"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3652
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.4361
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.4349
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.5173
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.5309
+    }
+   ],
+   "nearest": 0.3652,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "중도해지",
+   "question": "급전이 필요해서 예금을 중간에 깼는데 이자는 얼마나 나와요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3617,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3374,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.366,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3617
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3374
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.366
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.4063
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9-2",
+     "distance": 0.4401
+    }
+   ],
+   "nearest": 0.3617,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "만기가 지난 뒤에 찾으면 이자를 더 주나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.3016,
+     "chunk_type": "만기후금리"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3206,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.3477,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__after_maturity"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.3016
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3206
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.3477
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.3853
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art12",
+     "distance": 0.4648
+    }
+   ],
+   "nearest": 0.3016,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "예금 일부만 먼저 해지할 수 있나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.2243,
+     "chunk_type": "일부해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "short": "특약:art9",
+     "distance": 0.2754,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art10",
+     "short": "기본:art10",
+     "distance": 0.36,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__partial_withdrawal",
+    "hana-deposit-terms__art9"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.2243
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.2754
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art10",
+     "distance": 0.36
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.3374
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "distance": 0.4204
+    }
+   ],
+   "nearest": 0.2243,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "만기 때 자동으로 다시 예치하려면 어떻게 해요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "short": "설명서:renewal",
+     "distance": 0.3772,
+     "chunk_type": "재예치"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "short": "특약:art10",
+     "distance": 0.3981,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4462,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__renewal",
+    "hana-deposit-terms__art10"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.3772
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "distance": 0.3981
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4462
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.4473
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4374
+    }
+   ],
+   "nearest": 0.3772,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "만기일이 공휴일이면 해지는 어떻게 되나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "short": "설명서:cancel_method",
+     "distance": 0.3621,
+     "chunk_type": "계약해지방법"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4838,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "short": "특약:art10",
+     "distance": 0.4857,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__cancel_method"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.3621
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4838
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "distance": 0.4857
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.4468
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.4234
+    }
+   ],
+   "nearest": 0.3621,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "오래 거래 안 한 계좌는 휴면예금이 되나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9-2",
+     "short": "기본:art9-2",
+     "distance": 0.3556,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__dormant",
+     "short": "설명서:dormant",
+     "distance": 0.3643,
+     "chunk_type": "휴면예금"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "short": "설명서:renewal",
+     "distance": 0.499,
+     "chunk_type": "재예치"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-basic-terms__art9-2",
+    "hana-deposit-sheet__dormant"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9-2",
+     "distance": 0.3556
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__dormant",
+     "distance": 0.3643
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.499
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art7",
+     "distance": 0.5044
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.4751
+    }
+   ],
+   "nearest": 0.3556,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "이 예금은 예금자보호가 되나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "short": "설명서:deposit_protection",
+     "distance": 0.2779,
+     "chunk_type": "예금자보호"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art1",
+     "short": "거치식:art1",
+     "distance": 0.4286,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art1",
+     "short": "특약:art1",
+     "distance": 0.4725,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__deposit_protection"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "distance": 0.2779
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art1",
+     "distance": 0.4286
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art1",
+     "distance": 0.4725
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__addenda",
+     "distance": 0.4528
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9-2",
+     "distance": 0.4617
+    }
+   ],
+   "nearest": 0.2779,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "최소 가입금액이 얼마예요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-terms__art5",
+     "short": "특약:art5",
+     "distance": 0.3738,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.5141,
+     "chunk_type": "일부해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__overview",
+     "short": "설명서:overview",
+     "distance": 0.4845,
+     "chunk_type": "상품개요"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__overview",
+    "hana-deposit-terms__art5"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-terms__art5",
+     "distance": 0.3738
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.5141
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__overview",
+     "distance": 0.4845
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.5449
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art2",
+     "distance": 0.5305
+    }
+   ],
+   "nearest": 0.3738,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "이자는 어떻게 계산해요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.317,
+     "chunk_type": "이자계산_일반"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.3262,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3192,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__interest_calc",
+    "hana-deposit-terms__art7"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.317
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.3262
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3192
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.3815
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art7",
+     "distance": 0.4057
+    }
+   ],
+   "nearest": 0.317,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "기타",
+   "question": "비과세종합저축으로 가입할 수 있나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__tax",
+     "short": "설명서:tax",
+     "distance": 0.3459,
+     "chunk_type": "세제혜택"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "short": "특약:art10",
+     "distance": 0.4782,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "short": "설명서:renewal",
+     "distance": 0.4539,
+     "chunk_type": "재예치"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__tax"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__tax",
+     "distance": 0.3459
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "distance": 0.4782
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.4539
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art2",
+     "distance": 0.524
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art5",
+     "distance": 0.558
+    }
+   ],
+   "nearest": 0.3459,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "계약 기간이 끝나기 전에 돈을 찾으면 이자가 어떻게 되나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3692,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "short": "거치식:art4",
+     "distance": 0.3412,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.3639,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3692
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.3412
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.3639
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3214
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.3786
+    }
+   ],
+   "nearest": 0.3692,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "예치한 지 3개월 됐는데 인출하면 이율이 몇 퍼센트인가요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.4623,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.3747,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3308,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.4623
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.3747
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3308
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.4348
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.5047
+    }
+   ],
+   "nearest": 0.4623,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "10개월 넣어뒀다가 해약하면 이자율은요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.438,
+     "chunk_type": "만기후금리"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.422,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.4301,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.438
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.422
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.4301
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4187
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.4706
+    }
+   ],
+   "nearest": 0.438,
+   "rank": null,
+   "trapped": true,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "만기를 채우지 않고 해지할 때 적용되는 금리를 알려주세요",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3122,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.3695,
+     "chunk_type": "만기후금리"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.4032,
+     "chunk_type": "이자계산_일반"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3122
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.3695
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4032
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.3684
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.3791
+    }
+   ],
+   "nearest": 0.3122,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "일찍 해약하면 약정금리 그대로 받나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3457,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.4535,
+     "chunk_type": "이자계산_일반"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.4546,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3457
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4535
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4546
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.413
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.4397
+    }
+   ],
+   "nearest": 0.3457,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "가입한 지 얼마나 됐는지에 따라 해지 이율이 달라지나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3155,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.4319,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.4308,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3155
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.4319
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.4308
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.458
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4462
+    }
+   ],
+   "nearest": 0.3155,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "중도해지 이율은 가입할 때 금리를 기준으로 계산하나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.2491,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.4281,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "short": "설명서:interest_calc",
+     "distance": 0.4119,
+     "chunk_type": "이자계산_일반"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.2491
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4281
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4119
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.403
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3965
+    }
+   ],
+   "nearest": 0.2491,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "한 달도 안 돼서 해지하면 이자를 얼마나 주나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.2917,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3699,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "short": "특약:art6",
+     "distance": 0.383,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__early_termination"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.2917
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3699
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.383
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.3899
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__cancel_method",
+     "distance": 0.3677
+    }
+   ],
+   "nearest": 0.2917,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-기타",
+   "question": "원금 중 일부만 빼서 쓸 수 있나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "short": "설명서:partial_withdrawal",
+     "distance": 0.376,
+     "chunk_type": "일부해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "short": "설명서:deposit_protection",
+     "distance": 0.4523,
+     "chunk_type": "예금자보호"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "short": "설명서:payment_restriction",
+     "distance": 0.3975,
+     "chunk_type": "원금이자지급제한"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__partial_withdrawal",
+    "hana-deposit-terms__art9"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+     "distance": 0.376
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "distance": 0.4523
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "distance": 0.3975
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art9",
+     "distance": 0.3954
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "distance": 0.4634
+    }
+   ],
+   "nearest": 0.376,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-기타",
+   "question": "만기 후에 한참 뒤에 가면 이자가 줄어드나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.314,
+     "chunk_type": "만기후금리"
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "short": "거치식:art3",
+     "distance": 0.3578,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.3757,
+     "chunk_type": "중도해지"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__after_maturity"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.314
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3578
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.3757
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art4",
+     "distance": 0.3904
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art6",
+     "distance": 0.4054
+    }
+   ],
+   "nearest": 0.314,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "검증-기타",
+   "question": "이 상품은 5천만 원 넣어도 원금이 보호되나요?",
+   "has_answer": true,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "short": "설명서:deposit_protection",
+     "distance": 0.3537,
+     "chunk_type": "예금자보호"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "short": "설명서:payment_restriction",
+     "distance": 0.5215,
+     "chunk_type": "원금이자지급제한"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "short": "설명서:renewal",
+     "distance": 0.548,
+     "chunk_type": "재예치"
+    }
+   ],
+   "answer_ids": [
+    "hana-deposit-sheet__deposit_protection"
+   ],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__deposit_protection",
+     "distance": 0.3537
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "distance": 0.5215
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.548
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__overview",
+     "distance": 0.5484
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.5412
+    }
+   ],
+   "nearest": 0.3537,
+   "rank": 1,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "없음",
+   "question": "세후 이자는 얼마예요?",
+   "has_answer": false,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.4107,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.4348,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "short": "설명서:after_maturity",
+     "distance": 0.4124,
+     "chunk_type": "만기후금리"
+    }
+   ],
+   "answer_ids": [],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.4107
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.4348
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.4124
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.4976
+    },
+    {
+     "chunk_id": "hana-lumpsum-terms__art3",
+     "distance": 0.3936
+    }
+   ],
+   "nearest": 0.4107,
+   "rank": null,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "없음",
+   "question": "대출 금리는 얼마예요?",
+   "has_answer": false,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "short": "설명서:early_termination",
+     "distance": 0.4237,
+     "chunk_type": "중도해지"
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__rates",
+     "short": "설명서:rates",
+     "distance": 0.4712,
+     "chunk_type": "금리"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.4544,
+     "chunk_type": "약관_조"
+    }
+   ],
+   "answer_ids": [],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__early_termination",
+     "distance": 0.4237
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__rates",
+     "distance": 0.4712
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.4544
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__interest_calc",
+     "distance": 0.4454
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__after_maturity",
+     "distance": 0.4413
+    }
+   ],
+   "nearest": 0.4237,
+   "rank": null,
+   "trapped": false,
+   "rejected": false
+  },
+  {
+   "group": "없음",
+   "question": "오늘 서울 날씨 어때요?",
+   "has_answer": false,
+   "top": [
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "short": "설명서:renewal",
+     "distance": 0.6881,
+     "chunk_type": "재예치"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "short": "기본:art9",
+     "distance": 0.6933,
+     "chunk_type": "약관_조"
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__addenda",
+     "short": "기본:addenda",
+     "distance": 0.688,
+     "chunk_type": "약관_부칙"
+    }
+   ],
+   "answer_ids": [],
+   "results": [
+    {
+     "chunk_id": "hana-deposit-sheet__renewal",
+     "distance": 0.6881
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__art9",
+     "distance": 0.6933
+    },
+    {
+     "chunk_id": "hana-deposit-basic-terms__addenda",
+     "distance": 0.688
+    },
+    {
+     "chunk_id": "hana-deposit-terms__art10",
+     "distance": 0.6886
+    },
+    {
+     "chunk_id": "hana-deposit-sheet__payment_restriction",
+     "distance": 0.7047
+    }
+   ],
+   "nearest": 0.6881,
+   "rank": null,
+   "trapped": false,
+   "rejected": true
+  }
+ ]
+}

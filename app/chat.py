@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "rag"))        # rag/ 스크립트가 'from search import ...' 방식이라 경로를 추가한다
 
+from rerank import RerankError  # noqa: E402
 from search import search_terms  # noqa: E402
 
 CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen2.5:7b")
@@ -83,14 +84,17 @@ def _llm_tokens(messages: list[dict]):
         raise RuntimeError("Ollama에 연결할 수 없습니다. Ollama 앱이 켜져 있는지 확인하세요.") from e
 
 
-def answer_events(question: str, product: str | None = None, k: int = 5):
+def answer_events(question: str, product: str | None = None, k: int = 5, mode: str | None = None, rerank: str | None = None):
     """(이벤트 이름, 데이터) 쌍을 순서대로 내보내는 제너레이터."""
     t0 = time.perf_counter()
     ms = lambda: int((time.perf_counter() - t0) * 1000)       # noqa: E731
 
     yield "status", {"stage": "search", "message": "약관 검색 중"}
     try:
-        res = search_terms(question, product=product, k=k)
+        res = search_terms(question, product=product, k=k, mode=mode, rerank=rerank)
+    except RerankError as e:
+        yield "error", {"message": str(e)}
+        return
     except SystemExit as e:                                   # vectorstore가 Ollama 문제를 SystemExit로 알린다
         yield "error", {"message": str(e)}
         return

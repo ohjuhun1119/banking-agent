@@ -12,6 +12,13 @@ EMBED_MODEL = os.environ.get("EMBED_MODEL", "bge-m3")
 EMBED_BACKEND = os.environ.get("EMBED_BACKEND", "ollama")     # "fake"는 배선 점검용 (실제 검색 품질과 무관)
 CHROMA_DIR = Path(__file__).resolve().parent / "chroma_db"    # .gitignore의 chroma_db/ 에 해당
 COLLECTION = "hana_terms"
+
+
+def bm25_path() -> Path:
+    """키워드(BM25) 인덱스 파일. CHROMA_DIR을 호출 시점에 읽어서 시험에서 임시 폴더로 바꿀 수 있다."""
+    return CHROMA_DIR / "bm25.json"
+
+
 BATCH = 16
 
 
