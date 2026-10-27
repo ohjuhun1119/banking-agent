@@ -70,14 +70,8 @@ flowchart TD
 - 기본금리는 신규일 당시 고시된 계약기간별 기본금리이며, 가입 시 앱에 표시된 적용금리와 다를 수 있습니다 (쿠폰 우대금리는 중도해지 시 미적용).
 
 ## 데이터와 청킹
-### 처리 흐름
-rag/raw/*.pdf
-  → extract_text.py : PDF를 텍스트로 변환 (rag/extracted/)  
-  → build_chunks.py : 청킹과 메타데이터를 묶어 실행 (rag/chunks/chunks.jsonl)  
-        ├ chunking.py    : 조 단위 청킹, 머리말(심의번호·제정일) 해석, 부칙 분리  
-        └ fix_spacing.py : 띄어쓰기 복원  
-  → inspect_chunks.py : 결과 확인  
-하나은행 상품공시실에서 내려받은 문서 4종을 **구조 기반**으로 청킹했습니다. 고정 길이로 자르면 중도해지 표나 조항이 중간에서 끊겨, 근거(조항)를 보여주려면 조 단위가 필요하기 때문입니다.  
+
+하나은행 상품공시실에서 내려받은 문서 4종을 **구조 기반**으로 청킹했습니다. 고정 길이로 자르면 중도해지 표나 조항이 중간에서 끊겨, 근거(조항)를 보여주려면 조 단위가 필요하기 때문입니다.
 
 | 문서 | 버전 정보 | 청킹 방식 | 청크 수 |
 | --- | --- | --- | --- |
@@ -94,6 +88,7 @@ rag/raw/*.pdf
 - **메타데이터**: 상품명, 문서 종류와 제목, 심의번호 · 심의일, 제정/개정일, 적용일(`effective_date`), 기준일, 조항, 쪽, 출처 파일, 수집일.
 - **추출 잡음 정리**: 쪽마다 반복되는 머리글과 쪽번호 제거, 원문에 없는 글자(쪽 번호 혼입) 제거, 특수 공백 정리.
 - **띄어쓰기 복원** (`rag/fix_spacing.py`): PDF 추출에서 붙거나 벌어진 띄어쓰기를 Kiwi로 고치되, 복합어가 쪼개지지 않도록 조사/어미 경계에서만 공백을 넣고, 다른 분석이 그 자리를 한 단어로 보면 쪼개지 않습니다. 변경 내역은 `rag/chunks/spacing_changes.txt`에 전/후로 남깁니다. 원문 오탈자와 일부 붙은 글자는 그대로 남습니다.
+- **검색용 설명**(`hint`): 사용자가 쓰는 말(깨다, 중간에 해지)과 문서 용어(중도해지)를 잇기 위해 핵심 청크 몇 개에 임베딩 전용 설명을 붙일 수 있습니다. 임베딩에만 쓰고 근거로 보여주는 본문에는 넣지 않으며, 효과는 일괄 확인(33문항)의 전/후 순위로 판단합니다.
 
 ## 진행 현황
 
@@ -157,6 +152,23 @@ python rag/build_chunks.py     # -> rag/chunks/chunks.jsonl, 점검 보고서 �
 python rag/inspect_chunks.py hana-deposit-terms   # 청크 확인 (chunk_id 일부로 검색)
 ```
 
+확인 화면 (청크 탐색, 검색 결과, 33개 질문 일괄 확인 (튜닝용 22 + 검증용 11)):
+
+```bash
+ollama pull bge-m3             # 임베딩 모델 (한 번만)
+python rag/ingest.py           # 청크를 임베딩해 Chroma(rag/chroma_db)에 적재
+uvicorn app.api:app --reload   # 브라우저에서 http://127.0.0.1:8000
+```
+
+띄어쓰기 복원 시험 (정상 표기가 바뀌지 않는지, 실제 약관 문단에서 단어가 쪼개지지 않는지):
+
+```bash
+pip install pytest
+pytest tests/test_fix_spacing.py
+```
+
+청크 탭은 `chunks.jsonl`만 있으면 바로 열리고, 검색과 일괄 확인 탭은 `ingest.py`를 실행한 뒤에 동작합니다.
+
 ## 레포 구조
 
 ```text
@@ -165,25 +177,33 @@ banking-agent/
 │   ├── day1_hello_graph.py
 │   ├── day1_tool_check.py
 │   └── day1_tool_loop.py
+├── app/
+│   ├── api.py               # FastAPI 확인 화면 서버 (청크 · 검색 · 일괄 확인 API)
+│   └── static/              # index.html, style.css, app.js
 ├── rag/
 │   ├── extract_text.py      # PDF -> 텍스트 (쪽 표시 포함)
 │   ├── chunking.py          # 조 단위 청킹, 머리말 파싱
 │   ├── fix_spacing.py       # 띄어쓰기 복원
 │   ├── build_chunks.py      # 문서 4종 -> chunks.jsonl + 점검 보고서
 │   ├── inspect_chunks.py    # 청크 확인용
+│   ├── vectorstore.py       # 임베딩(Ollama bge-m3)과 Chroma 접근
+│   ├── ingest.py            # 청크 -> 임베딩 -> Chroma 적재
+│   ├── search.py            # search_terms(): 약관 검색
+│   ├── check_search.py      # 33개 질문으로 검색 순위 점검
 │   ├── manual/              # 상품설명서 청크 (파일은 git 제외, FORMAT.md만 포함)
 │   ├── raw/                 # 원문 PDF (git 제외)
 │   ├── extracted/           # 추출 텍스트 (git 제외)
 │   └── chunks/              # 생성물 (chunks.jsonl, spacing_changes.txt, git 제외)
+├── tests/
+│   └── test_fix_spacing.py  # 띄어쓰기 복원 회귀 시험
 ├── requirements.txt
 ├── .gitignore
 └── README.md
 
 # 구현 예정
-├── app/                     # graph.py, state.py, validators.py, tools/, api.py
-├── rag/ingest.py            # 3일차: 청크 -> 임베딩 -> Chroma
+├── app/                     # graph.py, state.py, validators.py, tools/ (구현 예정)
 ├── eval/                    # questions.jsonl, run_eval.py
-├── tests/
+├── tests/                   # 계산 도구 시험 등 추가 예정
 └── docker-compose.yml
 ```
 

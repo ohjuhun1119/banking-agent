@@ -205,10 +205,15 @@ def parse_header(header: str) -> dict:
 
 
 def embedding_text(chunk: dict) -> str:
-    """임베딩에 넣을 문장: 문서명과 조항 제목을 머리에 붙여 검색이 문맥을 알게 한다."""
+    """임베딩에 넣을 문장: 문서명과 조항 제목을 머리에 붙여 검색이 문맥을 알게 한다.
+
+    chunk 메타데이터에 hint(검색용 설명)가 있으면 그것도 붙인다. 사용자가 쓰는 말(깨다, 중간에 해지, 손해)과
+    문서의 용어(중도해지)를 이어 주려는 용도이며, 임베딩에만 쓰고 저장하는 본문(근거)에는 넣지 않는다.
+    """
     m = chunk["metadata"]
     where = m.get("article") or m.get("section") or ""
-    return f"[{m.get('doc_title', '')} | {where}]\n{chunk['text']}"
+    hint = f"검색용 설명: {m['hint']}\n" if m.get("hint") else ""
+    return f"[{m.get('doc_title', '')} | {where}]\n{hint}{chunk['text']}"
 
 
 def check_article_sequence(chunks) -> list[str]:

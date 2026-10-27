@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>금융 상담 Agent · 확인 화면</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>금융 상담 Agent <span>확인 화면</span></h1>
+    <div id="status" class="pills"></div>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="search" class="active">검색</button>
+    <button data-tab="chunks">청크</button>
+    <button data-tab="check">일괄 확인</button>
+    <button disabled title="6~8일차에 에이전트를 연결하면 열립니다">채팅 (준비 중)</button>
+  </nav>
+
+  <main>
+    <section id="tab-search">
+      <form id="search-form">
+        <input id="q" type="text" placeholder="질문을 입력하세요. 예: 중도해지하면 이자 얼마 받아요?" autocomplete="off" required>
+        <button type="submit">검색</button>
+      </form>
+      <div class="filters">
+        <label>상품 <select id="product"><option value="">전체</option></select></label>
+        <label>청크 종류 <select id="ctype"><option value="">전체</option></select></label>
+        <label>개수 <input id="k" type="number" min="1" max="20" value="5"></label>
+      </div>
+      <div id="examples" class="chips"></div>
+      <div id="search-msg" class="msg"></div>
+      <div id="results"></div>
+    </section>
+
+    <section id="tab-chunks" hidden>
+      <div class="filters">
+        <label>검색어 <input id="cq" type="text" placeholder="본문 · 조항 · id"></label>
+        <label>문서 <select id="cdoc"><option value="">전체</option></select></label>
+        <label>청크 종류 <select id="ctype2"><option value="">전체</option></select></label>
+        <span id="ctotal" class="muted"></span>
+      </div>
+      <div class="split">
+        <ul id="chunk-list"></ul>
+        <article id="chunk-detail"><p class="muted">왼쪽에서 청크를 고르면 메타데이터와 본문이 보입니다.</p></article>
+      </div>
+    </section>
+
+    <section id="tab-check" hidden>
+      <div class="filters">
+        <label>상위 <input id="ck" type="number" min="1" max="20" value="5"> 개까지 확인</label>
+        <button id="run-check">질문 일괄 실행</button>
+      </div>
+      <div id="check-msg" class="msg"></div>
+      <div id="check-summary"></div>
+      <div id="check-table"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
