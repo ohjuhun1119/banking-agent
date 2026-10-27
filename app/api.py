@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,8 @@ sys.path.insert(0, str(ROOT / "rag"))        # rag/ 스크립트가 'from search
 import check_search  # noqa: E402
 import vectorstore  # noqa: E402
 from search import search_terms  # noqa: E402
+
+from app import chat  # noqa: E402
 
 CHUNKS = ROOT / "rag" / "chunks" / "chunks.jsonl"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -54,6 +56,7 @@ def status():
         except Exception:
             index_count = None
     return {"chunks": len(load_chunks()), "index": index_count, "hints": hints,
+            "chat_model": chat.CHAT_MODEL if chat.CHAT_BACKEND != "fake" else "fake(테스트)",
             "embed_backend": vectorstore.EMBED_BACKEND, "embed_model": vectorstore.EMBED_MODEL}
 
 
@@ -130,3 +133,17 @@ def api_check(k: int = Query(5, ge=1, le=20)):
     except SystemExit as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"k": k, "rows": rows, "summary": check_search.summarize(rows, k)}
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(min_length=1)
+    product: str | None = None
+    k: int = Field(5, ge=1, le=10)
+
+
+@app.post("/api/chat/stream")
+def chat_stream(req: ChatRequest):
+    """검색 -> 근거 전송 -> 답변을 토큰 단위로 스트리밍(SSE). 동기 제너레이터라 스레드풀에서 돌아 서버가 막히지 않는다."""
+    events = chat.answer_events(req.question, req.product or None, req.k)
+    return StreamingResponse(chat.sse(events), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

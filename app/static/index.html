@@ -16,7 +16,7 @@
     <button data-tab="search" class="active">검색</button>
     <button data-tab="chunks">청크</button>
     <button data-tab="check">일괄 확인</button>
-    <button disabled title="6~8일차에 에이전트를 연결하면 열립니다">채팅 (준비 중)</button>
+    <button data-tab="chat">채팅</button>
   </nav>
 
   <main>
@@ -56,6 +56,16 @@
       <div id="check-msg" class="msg"></div>
       <div id="check-summary"></div>
       <div id="check-table"></div>
+    </section>
+
+    <section id="tab-chat" hidden>
+      <div id="chat-log"><p class="muted">약관에 대해 물어보세요. 근거 카드가 먼저 나타나고, 이어서 답변이 생성되는 대로 흘러나옵니다.</p></div>
+      <form id="chat-form">
+        <input id="chat-q" type="text" placeholder="예: 만기 전에 해지하면 이율이 어떻게 돼요?" autocomplete="off" required>
+        <button type="submit" id="chat-send">보내기</button>
+        <button type="button" id="chat-stop" class="secondary" hidden>중지</button>
+      </form>
+      <p class="muted small">지금은 약관 근거로 규칙만 설명합니다 (이자 계산은 4~7일차에 도구로 연결). 답변은 참고용이니 아래 근거 카드를 함께 확인하세요.</p>
     </section>
   </main>
 

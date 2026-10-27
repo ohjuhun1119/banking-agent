@@ -38,6 +38,7 @@ async function loadStatus() {
       h("span", { class: "pill " + (s.index ? "ok" : "bad") }, s.index == null ? "인덱스 없음" : `인덱스 ${s.index}개`),
       h("span", { class: "pill" }, s.embed_backend === "fake" ? "임베딩 fake(테스트)" : `임베딩 ${s.embed_model}`),
       h("span", { class: "pill" }, s.hints == null ? "검색용 설명 -" : `검색용 설명 ${s.hints}개 적용`),
+      h("span", { class: "pill" }, `답변 모델 ${s.chat_model}`),
     );
     return s;
   } catch (e) {
@@ -50,7 +51,7 @@ $("#tabs").addEventListener("click", (ev) => {
   const name = ev.target.dataset && ev.target.dataset.tab;
   if (!name) return;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b === ev.target));
-  ["search", "chunks", "check"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
+  ["search", "chunks", "check", "chat"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
 });
 
 // ---------- 공통: 선택 상자 채우기 ----------
@@ -181,6 +182,95 @@ async function runCheck() {
   }
 }
 $("#run-check").addEventListener("click", runCheck);
+
+
+// ---------- 채팅 탭 (SSE 스트리밍) ----------
+// POST 요청이라 EventSource를 못 쓰고, fetch의 ReadableStream으로 직접 읽어 "event:/data:" 블록을 해석한다.
+let chatAbort = null;
+
+function parseSSE(block) {
+  let name = "message";
+  const data = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith("event:")) name = line.slice(6).trim();
+    else if (line.startsWith("data:")) data.push(line.slice(5).trim());
+  }
+  return data.length ? { name, data: JSON.parse(data.join("\n")) } : null;
+}
+
+function sourceCards(results) {
+  const box = h("details", { class: "chat-sources", open: true }, h("summary", {}, `근거 ${results.length}개`));
+  results.forEach((r, i) => {
+    const card = resultCard(r);
+    card.querySelector(".rank").replaceWith(h("span", { class: "src-num" }, `[${i + 1}]`));
+    box.append(card);
+  });
+  return box;
+}
+
+async function sendChat(question) {
+  const log = $("#chat-log"), send = $("#chat-send"), stop = $("#chat-stop");
+  if (log.querySelector(":scope > p.muted")) log.replaceChildren();
+  const status = h("div", { class: "chat-status muted" }, "요청 중...");
+  const answer = h("div", { class: "msg-bot streaming" });
+  const timing = h("div", { class: "muted small" });
+  const sources = h("div");
+  log.append(h("div", { class: "msg-user" }, question), h("div", { class: "bot-wrap" }, status, answer, timing, sources));
+  send.disabled = true; stop.hidden = false;
+  chatAbort = new AbortController();
+  const scroll = () => { if (answer.scrollIntoView) answer.scrollIntoView({ block: "nearest" }); };   // 스크롤 실패가 답변 출력을 끊지 않게
+
+  const handlers = {
+    status: (d) => { status.textContent = d.message; },
+    sources: (d) => { sources.replaceChildren(d.results.length ? sourceCards(d.results) : ""); },
+    token: (d) => { answer.append(document.createTextNode(d.text)); scroll(); },
+    done: (d) => {
+      status.textContent = "완료";
+      const parts = [`검색 ${d.search_ms}ms`];
+      if (d.first_token_ms != null) parts.push(`첫 글자 ${d.first_token_ms}ms`);
+      parts.push(`전체 ${d.elapsed_ms}ms`);
+      if (d.model) parts.push(d.model);
+      timing.textContent = parts.join(" · ");
+    },
+    error: (d) => { status.className = "chat-status err"; status.textContent = d.message; },
+  };
+
+  try {
+    const res = await fetch("/api/chat/stream", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }), signal: chatAbort.signal,
+    });
+    if (!res.ok) throw new Error(`요청 실패 (${res.status})`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {          // 이벤트 하나는 빈 줄로 끝난다
+        const ev = parseSSE(buf.slice(0, idx));
+        buf = buf.slice(idx + 2);
+        if (ev && handlers[ev.name]) handlers[ev.name](ev.data);
+      }
+    }
+  } catch (e) {
+    status.className = "chat-status err";
+    status.textContent = e.name === "AbortError" ? "중지했어요" : e.message;
+  } finally {
+    answer.classList.remove("streaming");
+    send.disabled = false; stop.hidden = true; chatAbort = null;
+  }
+}
+$("#chat-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const q = $("#chat-q").value.trim();
+  if (!q || chatAbort) return;
+  $("#chat-q").value = "";
+  sendChat(q);
+});
+$("#chat-stop").addEventListener("click", () => { if (chatAbort) chatAbort.abort(); });
 
 // ---------- 시작 ----------
 (async function init() {
