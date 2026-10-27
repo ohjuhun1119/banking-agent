@@ -8,11 +8,12 @@ Kiwi의 띄어쓰기 교정(kiwi.space)을 그대로 쓰면 '중도 해지 금�
   빼기  3) 어미가 단독으로 떨어져 있을 때 (용언 줄기 + 공백 + 어미)        예) 거부하 거나 -> 거부하거나
 
 그 밖에 규칙 기반 정리: 숫자 사이 군더더기 공백(제 1 항, 0 원), 목록 번호(1.입출금), 약관 핵심 용어 안의 공백(거 래처).
-추가 안전장치: Kiwi의 다른 분석(상위 5개)이 그 자리를 한 단어 안쪽으로 보면(내점할, 사유해제시, 같아서) 쪼개지 않고,
+추가 안전장치: 붙어 있는 단어 하나만 따로 분석해, Kiwi의 다른 분석(상위 5개)이 그 자리를 단어 안쪽으로 보면(내점할, 사유해제시, 같아서) 쪼개지 않고,
 붙여 쓴 법령명(금융실명거래및비밀보장에관한법률)은 건드리지 않는다.
 줄을 100자 안팎 구간으로 나눠 처리하므로, 특이한 글자가 있어도 그 구간만 건너뛴다 (건너뛴 구간 수는 STATS로 센다).
 """
 import re
+from collections import Counter
 from functools import lru_cache
 
 STATS = {"windows": 0, "failed": 0}
@@ -61,6 +62,37 @@ def rule_fixes(text: str) -> str:
     return text
 
 
+@lru_cache(maxsize=8192)
+def _boundary_ok(word: str, off: int) -> bool:
+    """공백 없이 붙은 한 덩어리(word)의 off 위치에 공백을 넣어도 되는가.
+
+    구간 전체가 아니라 그 덩어리만 따로 분석한다. 구간 전체를 분석하면 다른 자리의 애매함이 상위 분석을
+    채워서, 이 자리를 한 단어로 보는 분석(예: 사유해제시)이 순위 밖으로 밀려나 걸러내지 못한다.
+    """
+    results = _kiwi().analyze(word, top_n=TOP_N)
+    if not results:
+        return False
+    tokens, best = results[0]
+    by_start = {t.start: t for t in tokens}
+    by_end = {t.start + t.len: t for t in tokens}
+    prev, nxt = by_end.get(off), by_start.get(off)
+    if not (prev and nxt):
+        return False
+    rule = (prev.tag.startswith(PREV_OK) and nxt.tag.startswith(NEXT_OK)) \
+        or (nxt.form in SEPARATE_WORDS and prev.tag.startswith(("N", "SN", "XSN")))
+    if not rule:
+        return False
+    # 글자 하나가 두 형태소로 합쳐진 곳(내=나+의, 해=하+어)은 단어 한가운데일 가능성이 높다. 관형사형 어미(할=하+ㄹ)는 예외
+    spans = Counter((t.start, t.start + t.len) for t in tokens)
+    if spans[(prev.start, prev.start + prev.len)] > 1 and not prev.tag.startswith(("ETM", "ETN")):
+        return False
+    # 보조용언(놓아두고, 새어나가)은 붙여 써도 맞는 표기가 많아 건드리지 않는다. 부정(아니/않/못)만 띄운다
+    if nxt.tag == "VX" and not nxt.form.startswith(("아니", "않", "못")):
+        return False
+    # 다른 분석이 이 자리를 단어 안쪽으로 보면서 최선과 비슷한 점수라면 쪼개지 않는다
+    return not any(sc >= best - MIN_GAP and not any(t.start == off for t in toks) for toks, sc in results[1:])
+
+
 def _nonspace(s: str):
     return [(i, ch) for i, ch in enumerate(s) if not ch.isspace()]
 
@@ -79,10 +111,6 @@ def _fix_window(text: str) -> str:
     by_start = {t.start: t for t in tokens}
     by_end = {t.start + t.len: t for t in tokens}
 
-    def compound_possible(j: int) -> bool:
-        """j 위치를 단어 안쪽으로 보는 분석이 최선과 MIN_GAP 이내로 경쟁하는가."""
-        return any(sc >= best - MIN_GAP and not any(t.start == j for t in toks) for toks, sc in results[1:])
-
     def inside_law_name(j: int) -> bool:
         lo = text.rfind(" ", 0, j) + 1
         hi = text.find(" ", j)
@@ -94,13 +122,11 @@ def _fix_window(text: str) -> str:
         new_gap = b[k][0] - b[k - 1][0] > 1
         j = a[k][0]
         if new_gap and not orig_gap:                 # Kiwi: 여기에 공백을 넣자
-            prev, nxt = by_end.get(j), by_start.get(j)
-            if not (prev and nxt):
-                continue
-            if (prev.tag.startswith(PREV_OK) and nxt.tag.startswith(NEXT_OK)) \
-                    or (nxt.form in SEPARATE_WORDS and prev.tag.startswith(("N", "SN", "XSN"))):
-                if not compound_possible(j) and not inside_law_name(j):
-                    insert_at.add(j)
+            lo = text.rfind(" ", 0, j) + 1
+            hi = text.find(" ", j)
+            word = text[lo:hi if hi != -1 else len(text)]
+            if _boundary_ok(word, j - lo) and not inside_law_name(j):
+                insert_at.add(j)
         elif orig_gap and not new_gap:               # Kiwi: 여기 공백은 빼자
             prev, nxt = by_end.get(a[k - 1][0] + 1), by_start.get(j)
             if prev and nxt and nxt.tag.startswith("E") and prev.tag.startswith(("V", "XS")):
