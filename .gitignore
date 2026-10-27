@@ -9,3 +9,8 @@ __pycache__/
 rag/raw/
 chroma_db/
 *.sqlite3
+rag/extracted/
+rag/raw/
+rag/extracted/
+rag/chunks/
+rag/manual/hana_deposit_product_sheet.md

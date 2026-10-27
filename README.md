@@ -69,11 +69,31 @@ flowchart TD
 - 이자는 신규일부터 해지일 **전일**까지의 일수로 계산하고 원 미만은 절사합니다.
 - 기본금리는 신규일 당시 고시된 계약기간별 기본금리이며, 가입 시 앱에 표시된 적용금리와 다를 수 있습니다 (쿠폰 우대금리는 중도해지 시 미적용).
 
+## 데이터와 청킹
+
+하나은행 상품공시실에서 내려받은 문서 4종을 **구조 기반**으로 청킹했습니다. 고정 길이로 자르면 중도해지 표나 조항이 중간에서 끊겨, 근거(조항)를 보여주려면 조 단위가 필요하기 때문입니다.
+
+| 문서 | 버전 정보 | 청킹 방식 | 청크 수 |
+| --- | --- | --- | --- |
+| 『하나의 정기예금』 요약 상품설명서 | 심의필 제2025-설명서-199호 (2025-08-22), 2025-09-01 현재 | 항목 단위로 손질 (`rag/manual/`) | 17 |
+| 『하나의 정기예금』 특약 | 2021-12-03 제정, 심의필 제2021-약관-528호 (2021-11-22) | 조 단위 자동 | 10 |
+| 거치식예금 약관 | 2016-06-07 개정, 심사필 2021-약관-122호 (2021-03-22) | 조 단위 자동 | 4 |
+| 예금거래 기본약관 | 심의필 제2024-약관-153호 (2024-12-24), 부칙 11 기준 2025-02-26부터 적용 | 조 단위 자동 + 전문 + 부칙 | 31 |
+
+합계 62개 청크입니다. 원문 PDF(`rag/raw/`), 추출 텍스트(`rag/extracted/`), 생성된 청크(`rag/chunks/`), 손으로 정리한 상품설명서 청크 파일(`rag/manual/hana_deposit_product_sheet.md`)에는 문서 본문이 들어 있어 git에 올리지 않습니다. 직접 실행하려면 PDF를 내려받고, 상품설명서 청크 파일은 `rag/manual/FORMAT.md`의 형식대로 만들어 주세요.
+
+- **조 단위, 긴 조는 항 단위로**: 900자를 넘는 조만 ①②③ 항 단위로 나누고, 나뉜 청크에는 조 제목을 붙입니다.
+- **중도해지는 한 청크**: 산출근거 문장, 구간표, 차등율 · 경과율 주석, 절사 규칙은 계산에 한꺼번에 필요해서 한 청크로 합쳤습니다. 상품설명서에 같은 표가 두 번 나오는 것도 하나로 정리했습니다.
+- **청크 종류**(`chunk_type`)로 구분합니다: `중도해지`, `이자계산_일반`(약정금리 문장), `만기후금리`, `일부해지`, `재예치`, `약관_조`, `약관_전문`, `약관_부칙` 등. 중도해지 질문에서 일반 이자계산 문장이 근거로 잘못 쓰이는지 평가 때 확인합니다.
+- **메타데이터**: 상품명, 문서 종류와 제목, 심의번호 · 심의일, 제정/개정일, 적용일(`effective_date`), 기준일, 조항, 쪽, 출처 파일, 수집일.
+- **추출 잡음 정리**: 쪽마다 반복되는 머리글과 쪽번호 제거, 원문에 없는 글자(쪽 번호 혼입) 제거, 특수 공백 정리.
+- **띄어쓰기 복원** (`rag/fix_spacing.py`): PDF 추출에서 붙거나 벌어진 띄어쓰기를 Kiwi로 고치되, 복합어가 쪼개지지 않도록 조사/어미 경계에서만 공백을 넣고, 다른 분석이 그 자리를 한 단어로 보면 쪼개지 않습니다. 변경 내역은 `rag/chunks/spacing_changes.txt`에 전/후로 남깁니다. 원문 오탈자와 일부 붙은 글자는 그대로 남습니다.
+
 ## 진행 현황
 
 **1주차: 기초 · 도구**
 - [x] 1일차: 환경 세팅, Tool Calling 지원 확인, LangGraph 기초
-- [ ] 2일차: 약관 데이터 준비 (상품설명서 · 약관 수집, 청킹, 메타데이터)
+- [x] 2일차: 약관 데이터 준비 (상품설명서 · 약관 수집, 청킹, 메타데이터)
 - [ ] 3일차: 약관 검색 도구 (기본 RAG)
 - [ ] 4일차: 중도해지 이자 계산 도구 + 단위 테스트
 - [ ] 5일차: Tool Calling 연결, 도구 설명 문구별 선택 결과 비교
@@ -123,6 +143,14 @@ python scripts/day1_tool_check.py    # Tool Calling 확인
 python scripts/day1_tool_loop.py     # agent ⇄ tools 반복 (선택)
 ```
 
+약관 청킹 (원문 PDF 4개를 `rag/raw/`에 넣은 뒤):
+
+```bash
+python rag/extract_text.py     # PDF -> rag/extracted/*.txt
+python rag/build_chunks.py     # -> rag/chunks/chunks.jsonl, 점검 보고서 출력
+python rag/inspect_chunks.py hana-deposit-terms   # 청크 확인 (chunk_id 일부로 검색)
+```
+
 ## 레포 구조
 
 ```text
@@ -131,13 +159,23 @@ banking-agent/
 │   ├── day1_hello_graph.py
 │   ├── day1_tool_check.py
 │   └── day1_tool_loop.py
+├── rag/
+│   ├── extract_text.py      # PDF -> 텍스트 (쪽 표시 포함)
+│   ├── chunking.py          # 조 단위 청킹, 머리말 파싱
+│   ├── fix_spacing.py       # 띄어쓰기 복원
+│   ├── build_chunks.py      # 문서 4종 -> chunks.jsonl + 점검 보고서
+│   ├── inspect_chunks.py    # 청크 확인용
+│   ├── manual/              # 상품설명서 청크 (파일은 git 제외, FORMAT.md만 포함)
+│   ├── raw/                 # 원문 PDF (git 제외)
+│   ├── extracted/           # 추출 텍스트 (git 제외)
+│   └── chunks/              # 생성물 (chunks.jsonl, spacing_changes.txt, git 제외)
 ├── requirements.txt
 ├── .gitignore
 └── README.md
 
 # 구현 예정
 ├── app/                     # graph.py, state.py, validators.py, tools/, api.py
-├── rag/                     # ingest.py, raw/ (원문, git 제외)
+├── rag/ingest.py            # 3일차: 청크 -> 임베딩 -> Chroma
 ├── eval/                    # questions.jsonl, run_eval.py
 ├── tests/
 └── docker-compose.yml
