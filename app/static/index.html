@@ -19,6 +19,7 @@
     <button data-tab="chat">채팅</button>
     <button data-tab="calc">이자 계산</button>
     <button data-tab="tools">도구 호출</button>
+    <button data-tab="agent">에이전트</button>
   </nav>
 
   <div id="settings">
@@ -121,6 +122,17 @@
       </form>
       <div id="tools-result"></div>
       <details id="tools-spec"><summary>모델이 보는 도구 정의</summary><pre class="text open" id="tools-spec-text"></pre></details>
+    </section>
+
+    <section id="tab-agent" hidden>
+      <p class="muted">모델이 도구를 고르고, 결과를 보고 다시 판단하는 반복(agent ⇄ tools)을 그대로 보여줍니다. 한 대화로 이어지므로 되묻는 질문에 이어서 답할 수 있습니다. 한 질문에서 도구는 최대 5번까지 부르고, 서버를 다시 시작하면 대화는 사라집니다.</p>
+      <div id="agent-confirmed" class="muted small"></div>
+      <div id="agent-log"><p class="muted">예: 1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요?</p></div>
+      <form id="agent-form">
+        <input id="agent-q" type="text" placeholder="질문을 입력하세요" autocomplete="off" required>
+        <button type="submit" id="agent-send">보내기</button>
+        <button type="button" id="agent-reset" class="secondary">새 대화</button>
+      </form>
     </section>
   </main>
 

@@ -72,7 +72,7 @@ $("#tabs").addEventListener("click", (ev) => {
   const name = ev.target.dataset && ev.target.dataset.tab;
   if (!name) return;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b === ev.target));
-  ["search", "chunks", "check", "chat", "calc", "tools"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
+  ["search", "chunks", "check", "chat", "calc", "tools", "agent"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
 });
 
 // ---------- 공통: 선택 상자 채우기 ----------
@@ -430,6 +430,58 @@ async function loadToolCases() {
 $("#t-q").addEventListener("input", () => { if (TOOL_CASE && $("#t-q").value.trim() !== TOOL_CASE.question) { TOOL_CASE = null; document.querySelectorAll("#tools-cases .chip").forEach((b) => b.classList.remove("sel")); } });
 $("#t-variant").addEventListener("change", loadToolSpec);
 $("#tools-form").addEventListener("submit", (ev) => { ev.preventDefault(); askTools(); });
+
+// ---------- 에이전트 탭 (6일차) ----------
+const AGENT_SESSION = "web-" + Math.random().toString(36).slice(2, 10);       // 서버가 이 이름으로 대화를 저장한다
+const TRACE_TONE = { ok: "", not_found: "warn", missing_info: "warn", need_base_rate: "warn", invalid_input: "warn", duplicate: "warn", error: "bad", unknown_tool: "bad" };
+
+function agentTrace(trace) {
+  return h("div", { class: "agent-trace" }, trace.map((t) => h("div", { class: TRACE_TONE[t.status] || "" },
+    `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
+    + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "") + ` · ${t.ms}ms`)));
+}
+
+function renderAgentTurn(data, pending) {
+  const bubble = pending.querySelector(".msg-bot");
+  pending.querySelectorAll(".agent-trace").forEach((el) => el.remove());
+  if (data.trace && data.trace.length) pending.insertBefore(agentTrace(data.trace), bubble);
+  bubble.classList.remove("streaming");
+  if (data.error) { bubble.classList.add("failed"); bubble.textContent = data.error; }
+  else {
+    bubble.textContent = data.answer || "(빈 답변)";
+    if (data.stop_reason) bubble.classList.add("stopped");
+  }
+  pending.append(h("div", { class: "muted small" }, `도구 ${data.tool_calls}회 · 모델 ${data.model_calls}회 · ${data.ms}ms` + (data.stop_reason ? ` · 중단: ${data.stop_reason}` : "")));
+  $("#agent-confirmed").textContent = data.confirmed_text ? "확인된 값: " + data.confirmed_text : "";
+}
+
+async function sendAgent() {
+  const input = $("#agent-q"), q = input.value.trim();
+  if (!q) return;
+  const log = $("#agent-log");
+  if (log.querySelector("p.muted")) log.replaceChildren();
+  log.append(h("div", { class: "msg-user" }, q));
+  const pending = h("div", { class: "bot-wrap" }, h("div", { class: "msg-bot streaming" }, "생각하는 중..."));
+  log.append(pending);
+  input.value = "";
+  $("#agent-send").disabled = true;
+  try {
+    renderAgentTurn(await api("/api/agent/ask", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                  body: JSON.stringify({ question: q, session_id: AGENT_SESSION }) }), pending);
+  } catch (e) {
+    renderAgentTurn({ error: e.message, tool_calls: 0, model_calls: 0, ms: 0, trace: [], confirmed_text: "" }, pending);
+  } finally {
+    $("#agent-send").disabled = false;
+    input.focus();
+  }
+}
+$("#agent-form").addEventListener("submit", (ev) => { ev.preventDefault(); sendAgent(); });
+$("#agent-reset").addEventListener("click", async () => {
+  try { await api("/api/agent/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id: AGENT_SESSION }) }); }
+  catch (e) { /* 서버에 대화가 없어도 화면은 비운다 */ }
+  $("#agent-log").replaceChildren(h("p", { class: "muted" }, "새 대화를 시작했습니다."));
+  $("#agent-confirmed").textContent = "";
+});
 
 // ---------- 시작 ----------
 (async function init() {

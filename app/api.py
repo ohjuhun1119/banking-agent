@@ -2,7 +2,7 @@
 
 실행: 레포 루트에서  uvicorn app.api:app --reload      (브라우저에서 http://127.0.0.1:8000)
 
-지금은 청크 탐색, 검색 결과 확인, 질문 일괄 확인, 채팅, 이자 계산, 도구 호출(5일차) 화면을 제공한다.
+지금은 청크 탐색, 검색 결과 확인, 질문 일괄 확인, 채팅, 이자 계산, 도구 호출(5일차), 에이전트(6일차) 화면을 제공한다.
 6~8일차에 에이전트가 생기면 같은 앱에 /api/chat 을 추가해 채팅 화면으로 확장한다.
 """
 import json
@@ -29,6 +29,7 @@ from search import DEFAULT_MODE, DEFAULT_RERANK, search_terms  # noqa: E402
 
 from app import chat  # noqa: E402
 from app import tool_calling  # noqa: E402
+from app import graph as agent_graph  # noqa: E402
 from app.tools import interest as interest_tool  # noqa: E402
 from app.tools import interest_cases  # noqa: E402
 
@@ -243,3 +244,40 @@ def api_tool_ask(req: ToolAskRequest):
     if case and case["question"] == req.question:          # 질문을 고쳤으면 기대값이 맞지 않으므로 채점하지 않는다
         out["grade"] = tool_check.grade(case, out)
     return out
+
+
+# ---------- 6일차: 에이전트 (agent ⇄ tools 반복, 세션별 대화) ----------
+_agent = None
+
+
+def get_agent() -> "agent_graph.Agent":
+    """대화 저장소(MemorySaver)를 서버 하나가 공유한다. 서버를 다시 시작하면 대화는 사라진다."""
+    global _agent
+    if _agent is None:
+        _agent = agent_graph.Agent()
+    return _agent
+
+
+class AgentAskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    session_id: str = Field("web", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    today: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class AgentResetRequest(BaseModel):
+    session_id: str = Field("web", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+@app.post("/api/agent/ask")
+def api_agent_ask(req: AgentAskRequest):
+    """한 질문을 에이전트에게 보낸다. 모델 호출이 실패해도 200으로 돌려주고 error 필드에 이유를 담는다 (그 질문은 대화에 남지 않는다)."""
+    try:
+        return get_agent().ask(req.question.strip(), req.session_id, req.today)
+    except ValueError as e:                                  # 존재하지 않는 날짜 (예: 2026-13-45)
+        raise HTTPException(status_code=422, detail=f"today가 올바른 날짜가 아닙니다: {e}")
+
+
+@app.post("/api/agent/reset")
+def api_agent_reset(req: AgentResetRequest):
+    get_agent().reset(req.session_id)
+    return {"session_id": req.session_id, "reset": True}

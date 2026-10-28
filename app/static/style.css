@@ -82,3 +82,11 @@ form#tools-form { display:flex; gap:8px; } form#tools-form input { flex:1; }
 .tool-call b { color:var(--accent); } .tool-call pre { margin:6px 0 0; white-space:pre-wrap; word-break:break-word; font-size:13px; }
 .chip.sel { border-color:var(--accent); background:#e8eeff; }
 #tools-spec { margin-top:16px; } #tools-spec summary { cursor:pointer; color:var(--accent); font-size:13px; }
+
+/* 에이전트 */
+#agent-log { min-height:200px; margin-bottom:12px; }
+#agent-confirmed { margin:6px 0; min-height:1.4em; }
+form#agent-form { display:flex; gap:8px; } form#agent-form input { flex:1; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+.agent-trace { font-size:12.5px; color:var(--muted); margin:2px 0 6px; } .agent-trace div { padding:1px 0; word-break:break-word; }
+.agent-trace .bad { color:var(--bad); } .agent-trace .warn { color:var(--warn); }
+.msg-bot.stopped { border-color:var(--warn); } .msg-bot.failed { border-color:var(--bad); color:var(--bad); }
