@@ -1,0 +1,579 @@
+{
+ "kind": "tools",
+ "variant": "detailed",
+ "model": "qwen2.5:7b",
+ "today": "2026-10-28",
+ "repeat": 1,
+ "created": "2026-10-28T15:49:35",
+ "rows": [
+  {
+   "id": "T1",
+   "group": "약관",
+   "question": "정기예금 중도해지하면 이율이 어떻게 돼요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 이율"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2131,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "T2",
+   "group": "약관",
+   "question": "만기가 지나서 찾으면 이자는 어떻게 줘요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "하나의 정기예금의 경우, 만기가 지나도 원금은 안전하게 보호됩니다. 만기 후 이자는 만기일부터 만기 전까지의 이자와 합산되어 지급됩니다. 만기 후 이자율은 만기일의 이자율을 기준으로 합니다. 만기 후에도 이자 지급은 가능하므로, 만기가 지나서 찾아도 이자가 발생할 수 있습니다.",
+   "ms": 3796,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_call",
+     "detail": "search_terms"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "T3",
+   "group": "약관",
+   "question": "예금 일부만 먼저 해지할 수 있나요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "예금 일부만 먼저 해지할 수 있는지 확인해보겠습니다.\n\nleton\n{\"name\": \"search_terms\", \"arguments\": {\"query\": \" 일부해지\"}}\n</tool_call>",
+   "ms": 1542,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_call",
+     "detail": "search_terms"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "T4",
+   "group": "약관",
+   "question": "만기 때 자동으로 재예치되나요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "만기 자동 재예치"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "하나의 정기예금 상품의 경우, 만기 시 자동 재예치 여부는 상품 종류와 조건에 따라 다릅니다. 일반적으로 자동 재예치는 선택 사항이며, 고객이 재예치를 원할 경우 별도로 신청해야 합니다. 상세한 내용은 하나은행 『하나의 정기예금』 상품 설명서와 약관을 확인해 보시는 것이 좋습니다.\n\n만약 관련 조항을 확인하고 싶으시다면, 검색해 보도록 하겠습니다.\n",
+   "ms": 5797,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "T5",
+   "group": "약관",
+   "question": "이 예금은 예금자보호가 되나요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "예금자보호"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 979,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "T6",
+   "group": "약관",
+   "question": "비과세종합저축으로 가입할 수 있어요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "하나의 정기예금은 비과세종합저축 상품이 아닙니다. 비과세종합저축은 하나은행에서 제공하는 특별한 저축 상품으로, 정기예금과는 다릅니다. 비과세종합저축의 경우 세금이 면제되는 혜택이 있지만, 이 상품은 만기 시점에서만 이자를 받을 수 있으며, 중도해지 시에는 세금이 부과될 수 있습니다. \n\n하나의 정기예금의 경우, 만기 후에만 이자를 받을 수 있으며, 중도해지 시에는 이자에 대해 세금이 부과될 수 있습니다. 따라서 비과세종합저축과 정기예금은 목적과 조건이 다르므로,适合自己情况的回答:\n\n您提到的“ 비과세종합저축 ”并不是“ 하나의 정기예금",
+   "ms": 10782,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_call",
+     "detail": "search_terms"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "T7",
+   "group": "약관",
+   "question": "중도해지금리 차등율이 뭐예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 금리 차등율"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 1208,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "T8",
+   "group": "약관",
+   "question": "만기일이 공휴일이면 해지는 어떻게 되나요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "하나의 정기예금의 경우, 만기일이 공휴일일 경우 일반적으로 공휴일 다음-working day에 자동으로 해지됩니다. 하지만 정확한 처리 방법은 상품 약관을 확인해보시는 것이 좋습니다. 약관 내용을 검색해드릴까요?\n\n{\"name\": \"search_terms\", \"arguments\": {\"query\": \"만기일 공휴일\"}}",
+   "ms": 3536,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_call",
+     "detail": "search_terms"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "C1",
+   "group": "계산",
+   "question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-01-21에 해지하면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 3.5,
+      "maturity_date": "2027-01-01",
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-01-21"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3327,
+   "pass": false,
+   "errors": [
+    {
+     "code": "extra_arg",
+     "field": "base_rate",
+     "detail": 3.5
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "C2",
+   "group": "계산",
+   "question": "2026년 1월 1일에 천만 원을 1년 만기로 넣었는데 2026년 3월 2일에 해지하면 이자가 얼마죠?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-03-02"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2340,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_arg",
+     "field": "maturity_date"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "C3",
+   "group": "계산",
+   "question": "원금 10,000,000원, 신규 2026-01-01, 만기 2027-01-01, 해지 2026-05-31. 중도해지 이자 계산해 주세요.",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "maturity_date": "2027-01-01",
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-05-31",
+      "base_rate": 3.5
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3325,
+   "pass": false,
+   "errors": [
+    {
+     "code": "extra_arg",
+     "field": "base_rate",
+     "detail": 3.5
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "C4",
+   "group": "계산",
+   "question": "1000만원, 2026-01-01 신규, 2027-01-01 만기, 기본금리 3.5%였고 2026-07-20에 해지하면 이자는요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "start_date": "2026-01-01",
+      "termination_date": "2026-07-20",
+      "base_rate": 3.5,
+      "maturity_date": "2027-01-01",
+      "principal": 10000000
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3323,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "C5",
+   "group": "계산",
+   "question": "2년 만기(2026-01-01 ~ 2028-01-01)로 1000만원 넣었고 기본금리는 4%예요. 2026-10-28에 깨면 얼마 받아요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 4,
+      "maturity_date": "2028-01-01",
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-10-28"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3346,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "C6",
+   "group": "계산",
+   "question": "기본금리 연 3.5%, 원금 1천만원, 2026-01-01부터 2027-01-01까지인데 2026-12-07에 해지하면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "maturity_date": "2027-01-01",
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-12-07",
+      "base_rate": 3.5
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3329,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "C7",
+   "group": "계산",
+   "question": "5년짜리(2026-01-01 신규, 2031-01-01 만기) 1000만원, 기본금리 2.0%인데 2026-07-20에 해지하면 이자는?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "termination_date": "2026-07-20",
+      "base_rate": 2,
+      "maturity_date": "2031-01-01",
+      "principal": 10000000,
+      "start_date": "2026-01-01"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 3335,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "C8",
+   "group": "계산",
+   "question": "2000만원을 2026-03-15에 1년 만기(2027-03-15)로 넣었어요. 오늘 해지하면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 20000000,
+      "start_date": "2026-03-15",
+      "termination_date": "2026-10-28"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2350,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_arg",
+     "field": "maturity_date"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "M1",
+   "group": "부족",
+   "question": "예금 중도해지하면 이자 얼마 받아요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 이율"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 1060,
+   "pass": true,
+   "errors": [],
+   "notes": [
+    "검색 도구도 함께 부름 (허용)",
+    "도구 없이 되물음 (허용)"
+   ]
+  },
+  {
+   "id": "M2",
+   "group": "부족",
+   "question": "1000만원 넣었는데 지금 깨면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "먼저, 정기예금의 만기일을 알려주실 수 있나요? 만기일을 알려주시면 정확한 이자 계산이 가능합니다. 만기일을 알려주시지 않으면, 현재 날짜를 기준으로 만기일까지의 이자를 계산할 수 없습니다.",
+   "ms": 2742,
+   "pass": true,
+   "errors": [],
+   "notes": [
+    "도구 없이 되물음 (허용)"
+   ]
+  },
+  {
+   "id": "M3",
+   "group": "부족",
+   "question": "가입한 지 150일 됐어요. 원금은 500만원인데 오늘 해지하면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 5000000,
+      "start_date": "2026-05-10",
+      "termination_date": "2026-10-28"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2297,
+   "pass": false,
+   "errors": [
+    {
+     "code": "extra_arg",
+     "field": "start_date",
+     "detail": "2026-05-10"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "M4",
+   "group": "부족",
+   "question": "5개월 전에 2000만원을 1년짜리로 가입했어요. 지금 해지하면 이자는요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 3.5,
+      "principal": 20000000,
+      "start_date": "2026-05-28",
+      "termination_date": "2026-10-28"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2667,
+   "pass": false,
+   "errors": [
+    {
+     "code": "extra_arg",
+     "field": "base_rate",
+     "detail": 3.5
+    },
+    {
+     "code": "extra_arg",
+     "field": "start_date",
+     "detail": "2026-05-28"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "M5",
+   "group": "부족",
+   "question": "2026-02-01에 신규했고 2026-09-30에 해지하려고 해요. 이자 얼마 나와요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "start_date": "2026-02-01",
+      "termination_date": "2026-09-30"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 1848,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "E1",
+   "group": "엣지",
+   "question": "10만원을 2026-01-01부터 2027-01-01까지 넣었다가 2026-05-31에 해지하면 이자 얼마예요?",
+   "repeat": 1,
+   "calls": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 100000,
+      "start_date": "2026-01-01",
+      "termination_date": "2026-05-31"
+     }
+    }
+   ],
+   "invalid_calls": [],
+   "content": "",
+   "ms": 2267,
+   "pass": false,
+   "errors": [
+    {
+     "code": "missing_arg",
+     "field": "maturity_date"
+    }
+   ],
+   "notes": []
+  },
+  {
+   "id": "N1",
+   "group": "불필요",
+   "question": "안녕하세요",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "안녕하세요! 하나의 정기예금 상품에 대해 궁금한 점이 있으신가요?",
+   "ms": 1075,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "N2",
+   "group": "불필요",
+   "question": "고마워요, 잘 알겠어요",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "별 말 것 없습니다. 다른 궁금한 점이 있으면 물어보세요.",
+   "ms": 902,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  },
+  {
+   "id": "N3",
+   "group": "불필요",
+   "question": "오늘 서울 날씨 어때요?",
+   "repeat": 1,
+   "calls": [],
+   "invalid_calls": [],
+   "content": "죄송합니다,但我发现您似乎询问的是关于\" 하나의 정기예금\"的相关信息，而不是天气。您想了解关于该产品的哪些条款呢？例如，您想了解中止条款、利率规则、到期后的利息计算等。请提供具体信息，我将尽力帮助您。",
+   "ms": 2549,
+   "pass": true,
+   "errors": [],
+   "notes": []
+  }
+ ],
+ "summary": {
+  "total": 25,
+  "pass": 14,
+  "selection_ok": 21,
+  "args_ok": 14,
+  "by_group": {
+   "약관": "4/8",
+   "계산": "4/8",
+   "부족": "3/5",
+   "엣지": "0/1",
+   "불필요": "3/3"
+  },
+  "error_codes": {
+   "extra_arg": 5,
+   "missing_call": 4,
+   "missing_arg": 3
+  },
+  "median_ms": 2549,
+  "flaky": []
+ }
+}

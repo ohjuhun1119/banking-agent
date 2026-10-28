@@ -1,0 +1,301 @@
+{
+ "kind": "retrieval",
+ "variant": "detailed",
+ "model": "qwen2.5:7b",
+ "today": "2026-10-28",
+ "k": 5,
+ "created": "2026-10-28T15:52:51",
+ "rows": [
+  {
+   "group": "중도해지",
+   "question": "정기예금 중도해지하면 이율이 어떻게 돼요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1089
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지하면 이자 얼마 받아요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1053
+  },
+  {
+   "group": "중도해지",
+   "question": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?",
+   "model_query": null,
+   "other_calls": [
+    "calc_interest"
+   ],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 2338
+  },
+  {
+   "group": "중도해지",
+   "question": "1년짜리 예금을 8개월 만에 깨면 이율은 어떻게 계산해요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 3,
+   "model_rank": 1,
+   "ms": 1066
+  },
+  {
+   "group": "중도해지",
+   "question": "만기 전에 해지하면 손해인가요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 2,
+   "model_rank": null,
+   "ms": 1935
+  },
+  {
+   "group": "중도해지",
+   "question": "6개월 안에 해지하면 이자를 거의 못 받나요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 4146
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지금리 차등율이 뭐예요?",
+   "model_query": "중도해지 금리 차등율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1221
+  },
+  {
+   "group": "중도해지",
+   "question": "경과율은 어떻게 계산해요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 2,
+   "model_rank": null,
+   "ms": 5386
+  },
+  {
+   "group": "중도해지",
+   "question": "중도해지 이율은 소수점 몇째 자리까지 적용돼요?",
+   "model_query": "중도해지 이율 소수점",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1213
+  },
+  {
+   "group": "중도해지",
+   "question": "급전이 필요해서 예금을 중간에 깼는데 이자는 얼마나 나와요?",
+   "model_query": null,
+   "other_calls": [
+    "calc_interest"
+   ],
+   "base_rank": 2,
+   "model_rank": null,
+   "ms": 2177
+  },
+  {
+   "group": "기타",
+   "question": "만기가 지난 뒤에 찾으면 이자를 더 주나요?",
+   "model_query": "만기 후 이자",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1918
+  },
+  {
+   "group": "기타",
+   "question": "예금 일부만 먼저 해지할 수 있나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 1564
+  },
+  {
+   "group": "기타",
+   "question": "만기 때 자동으로 다시 예치하려면 어떻게 해요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 9211
+  },
+  {
+   "group": "기타",
+   "question": "만기일이 공휴일이면 해지는 어떻게 되나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 3573
+  },
+  {
+   "group": "기타",
+   "question": "오래 거래 안 한 계좌는 휴면예금이 되나요?",
+   "model_query": "휴면예금 전환 기준일",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 3883
+  },
+  {
+   "group": "기타",
+   "question": "이 예금은 예금자보호가 되나요?",
+   "model_query": "예금자보호",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1004
+  },
+  {
+   "group": "기타",
+   "question": "최소 가입금액이 얼마예요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 1097
+  },
+  {
+   "group": "기타",
+   "question": "이자는 어떻게 계산해요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 2300
+  },
+  {
+   "group": "기타",
+   "question": "비과세종합저축으로 가입할 수 있나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 5190
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "계약 기간이 끝나기 전에 돈을 찾으면 이자가 어떻게 되나요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 5,
+   "model_rank": 1,
+   "ms": 1080
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "예치한 지 3개월 됐는데 인출하면 이율이 몇 퍼센트인가요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 5,
+   "model_rank": 1,
+   "ms": 1058
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "10개월 넣어뒀다가 해약하면 이자율은요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1077
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "만기를 채우지 않고 해지할 때 적용되는 금리를 알려주세요",
+   "model_query": "중도해지 금리",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1109
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "일찍 해약하면 약정금리 그대로 받나요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1058
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "가입한 지 얼마나 됐는지에 따라 해지 이율이 달라지나요?",
+   "model_query": "중도해지 이율 기간별",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 2963
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "중도해지 이율은 가입할 때 금리를 기준으로 계산하나요?",
+   "model_query": "중도해지 이율 기준",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1133
+  },
+  {
+   "group": "검증-중도해지",
+   "question": "한 달도 안 돼서 해지하면 이자를 얼마나 주나요?",
+   "model_query": "중도해지 이율",
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": 1,
+   "ms": 1574
+  },
+  {
+   "group": "검증-기타",
+   "question": "원금 중 일부만 빼서 쓸 수 있나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 1601
+  },
+  {
+   "group": "검증-기타",
+   "question": "만기 후에 한참 뒤에 가면 이자가 줄어드나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 5795
+  },
+  {
+   "group": "검증-기타",
+   "question": "이 상품은 5천만 원 넣어도 원금이 보호되나요?",
+   "model_query": null,
+   "other_calls": [],
+   "base_rank": 1,
+   "model_rank": null,
+   "ms": 5355
+  }
+ ],
+ "summary": {
+  "question": {
+   "n": 30,
+   "top1": 24,
+   "top3": 28,
+   "top5": 30,
+   "mrr": 0.874
+  },
+  "model_query": {
+   "n": 30,
+   "top1": 17,
+   "top3": 17,
+   "top5": 17,
+   "mrr": 0.567
+  },
+  "no_search": 13
+ }
+}
