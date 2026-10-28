@@ -2,7 +2,7 @@
 
 실행: 레포 루트에서  uvicorn app.api:app --reload      (브라우저에서 http://127.0.0.1:8000)
 
-지금은 청크 탐색, 검색 결과 확인, 22개 질문 일괄 확인 화면을 제공한다.
+지금은 청크 탐색, 검색 결과 확인, 질문 일괄 확인, 채팅, 이자 계산, 도구 호출(5일차) 화면을 제공한다.
 6~8일차에 에이전트가 생기면 같은 앱에 /api/chat 을 추가해 채팅 화면으로 확장한다.
 """
 import json
@@ -28,8 +28,13 @@ import rerank as rerank_lib  # noqa: E402
 from search import DEFAULT_MODE, DEFAULT_RERANK, search_terms  # noqa: E402
 
 from app import chat  # noqa: E402
+from app import tool_calling  # noqa: E402
 from app.tools import interest as interest_tool  # noqa: E402
 from app.tools import interest_cases  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "eval"))      # 도구 호출 탭이 확인용 질문(tool_cases)과 채점(tool_check)을 함께 쓴다
+import tool_cases  # noqa: E402
+import tool_check  # noqa: E402
 
 CHUNKS = ROOT / "rag" / "chunks" / "chunks.jsonl"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -198,3 +203,43 @@ def api_calc(req: CalcRequest):
 @app.get("/api/calc/cases")
 def api_calc_cases():
     return interest_cases.CASES
+
+
+# ---------- 5일차: 도구 호출 (Tool Calling) ----------
+@app.get("/api/tools/spec")
+def api_tool_spec(variant: Literal["short", "detailed", "examples"] = tool_calling.DEFAULT_VARIANT):
+    """모델이 실제로 보는 도구 정의와 시스템 프롬프트."""
+    return {"variant": variant, "model": tool_calling.TOOL_MODEL, "tools": tool_calling.tool_specs(variant),
+            "system_prompt": tool_calling.SYSTEM_PROMPT, "today": tool_cases.TODAY}
+
+
+@app.get("/api/tools/cases")
+def api_tool_cases():
+    return {"today": tool_cases.TODAY, "cases": [{"id": c["id"], "group": c["group"], "question": c["question"],
+                                                  "expect": c["expect"]} for c in tool_cases.CASES]}
+
+
+class ToolAskRequest(BaseModel):
+    question: str = Field(min_length=1)
+    variant: Literal["short", "detailed", "examples"] = tool_calling.DEFAULT_VARIANT
+    execute: bool = False                      # True면 모델이 고른 도구까지 실행한다
+    case_id: str | None = None                 # 확인용 질문이면 채점 결과도 함께 돌려준다
+    today: str | None = None                   # 비우면 확인용 질문의 기준일(tool_cases.TODAY)
+
+
+@app.post("/api/tools/ask")
+def api_tool_ask(req: ToolAskRequest):
+    """모델을 한 번 호출해 어떤 도구를 어떤 값으로 부르는지 보여준다. 결과를 모델에 다시 넘기는 반복은 6일차."""
+    case = next((c for c in tool_cases.CASES if c["id"] == req.case_id), None) if req.case_id else None
+    if req.case_id and case is None:
+        raise HTTPException(status_code=404, detail=f"없는 질문 id: {req.case_id}")
+    try:
+        out = tool_calling.ask(req.question, req.variant, req.today or tool_cases.TODAY)
+    except tool_calling.ToolCallingError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if req.execute:
+        out["tool_results"] = [{"name": c["name"], "args": c["args"], "result": tool_calling.run_tool(c["name"], c["args"])}
+                               for c in out["tool_calls"]]
+    if case and case["question"] == req.question:          # 질문을 고쳤으면 기대값이 맞지 않으므로 채점하지 않는다
+        out["grade"] = tool_check.grade(case, out)
+    return out

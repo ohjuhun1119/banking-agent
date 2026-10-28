@@ -72,7 +72,7 @@ $("#tabs").addEventListener("click", (ev) => {
   const name = ev.target.dataset && ev.target.dataset.tab;
   if (!name) return;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b === ev.target));
-  ["search", "chunks", "check", "chat", "calc"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
+  ["search", "chunks", "check", "chat", "calc", "tools"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
 });
 
 // ---------- 공통: 선택 상자 채우기 ----------
@@ -358,9 +358,82 @@ async function loadCalcCases() {
   cases.forEach((c) => $("#calc-cases").append(h("button", { type: "button", class: "chip", onclick: () => fillCalc(c) }, `케이스 ${c.id} · ${c.label}`)));
 }
 
+// ---------- 도구 호출 탭 (5일차) ----------
+let TOOL_CASE = null;                                       // 확인용 질문을 골랐을 때만 채점한다
+const ERR_TEXT = {
+  missing_call: "불러야 할 도구를 안 부름", extra_call: "부르면 안 되는 도구를 부름", unknown_tool: "없는 도구 이름",
+  invalid_call: "인자를 읽을 수 없음", empty_query: "검색어가 비어 있음", extra_arg: "질문에 없는 값을 넣음(지어냄)",
+  missing_arg: "질문에 있는 값을 빠뜨림", date_not_iso: "날짜가 YYYY-MM-DD가 아님", unparsable_principal: "원금을 숫자로 못 읽음",
+};
+const errText = (e) => (ERR_TEXT[e.code] || (e.code.startsWith("wrong_") ? "값이 다름" : e.code)) + (e.field ? ` (${e.field})` : "")
+  + (e.detail != null ? `: ${JSON.stringify(e.detail)}` : "");
+
+function expectText(exp) {
+  if (exp.tool === null) return "기대: 도구를 부르지 않음";
+  if (exp.tool === "search_terms") return "기대: search_terms (검색)";
+  if (exp.strict) return "기대: calc_interest " + JSON.stringify(exp.args);
+  return "기대: 되묻기, 또는 calc_interest에 아는 값만 " + JSON.stringify(exp.allowed || {});
+}
+
+function renderTools(data) {
+  const box = $("#tools-result");
+  box.replaceChildren();
+  if (data.grade) {
+    box.append(h("p", { class: data.grade.pass ? "calc-ok" : "calc-bad" }, `케이스 ${TOOL_CASE.id}: ${data.grade.pass ? "통과 ✓" : "실패 ✗"}`));
+    if (data.grade.errors.length) box.append(h("ul", {}, data.grade.errors.map((e) => h("li", {}, errText(e)))));
+    if (data.grade.notes.length) box.append(h("p", { class: "muted small" }, data.grade.notes.join(" · ")));
+  }
+  if (TOOL_CASE) box.append(h("p", { class: "muted small" }, expectText(TOOL_CASE.expect)));
+  if (!data.tool_calls.length) box.append(h("div", { class: "tool-call" }, h("b", {}, "도구 호출 없음"), h("pre", {}, data.content || "(빈 답변)")));
+  data.tool_calls.forEach((c, i) => {
+    const card = h("div", { class: "tool-call" }, h("b", {}, c.name), h("pre", {}, JSON.stringify(c.args, null, 2)));
+    const r = data.tool_results && data.tool_results[i];
+    if (r) card.append(h("p", { class: "muted small" }, "도구 결과 (status: " + r.result.status + ")"), h("pre", { class: "text" }, JSON.stringify(r.result, null, 2)));
+    box.append(card);
+  });
+  (data.invalid_calls || []).forEach((c) => box.append(h("div", { class: "tool-call" }, h("b", {}, "읽을 수 없는 호출"), h("pre", {}, JSON.stringify(c, null, 2)))));
+  box.append(h("p", { class: "muted small" }, `설명 문구 ${data.variant} · 모델 응답 ${data.ms}ms`));
+}
+
+async function askTools() {
+  const q = $("#t-q").value.trim();
+  if (!q) return;
+  const btn = $("#t-send");
+  btn.disabled = true;
+  $("#tools-result").replaceChildren(h("p", { class: "msg" }, "모델이 도구를 고르는 중..."));
+  try {
+    const body = { question: q, variant: $("#t-variant").value, execute: $("#t-exec").checked };
+    if (TOOL_CASE && TOOL_CASE.question === q) body.case_id = TOOL_CASE.id;
+    renderTools(await api("/api/tools/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+  } catch (e) {
+    $("#tools-result").replaceChildren(h("p", { class: "msg err" }, e.message));
+  } finally {
+    btn.disabled = false;
+  }
+}
+async function loadToolSpec() {
+  const spec = await api("/api/tools/spec?variant=" + encodeURIComponent($("#t-variant").value));
+  $("#tools-spec-text").textContent = "[시스템 프롬프트]\n" + spec.system_prompt.replace("{today}", spec.today) + "\n\n[도구]\n" + JSON.stringify(spec.tools, null, 2);
+}
+async function loadToolCases() {
+  const data = await api("/api/tools/cases");
+  $("#tools-today").textContent = data.today;
+  data.cases.forEach((c) => $("#tools-cases").append(h("button", {
+    type: "button", class: "chip", title: c.question,
+    onclick: (ev) => {
+      document.querySelectorAll("#tools-cases .chip").forEach((b) => b.classList.toggle("sel", b === ev.currentTarget));
+      TOOL_CASE = c; $("#t-q").value = c.question; askTools();
+    },
+  }, `${c.id} · ${c.group}`)));
+  await loadToolSpec();
+}
+$("#t-q").addEventListener("input", () => { if (TOOL_CASE && $("#t-q").value.trim() !== TOOL_CASE.question) { TOOL_CASE = null; document.querySelectorAll("#tools-cases .chip").forEach((b) => b.classList.remove("sel")); } });
+$("#t-variant").addEventListener("change", loadToolSpec);
+$("#tools-form").addEventListener("submit", (ev) => { ev.preventDefault(); askTools(); });
+
 // ---------- 시작 ----------
 (async function init() {
   await loadStatus();
-  try { await loadMeta(); await loadChunkList(); await loadExamples(); await loadCalcCases(); }
+  try { await loadMeta(); await loadChunkList(); await loadExamples(); await loadCalcCases(); await loadToolCases(); }
   catch (e) { $("#search-msg").className = "msg err"; $("#search-msg").textContent = e.message; }
 })();

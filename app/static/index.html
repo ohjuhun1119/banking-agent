@@ -18,6 +18,7 @@
     <button data-tab="check">일괄 확인</button>
     <button data-tab="chat">채팅</button>
     <button data-tab="calc">이자 계산</button>
+    <button data-tab="tools">도구 호출</button>
   </nav>
 
   <div id="settings">
@@ -99,6 +100,27 @@
         <button type="submit">계산</button>
       </form>
       <div id="calc-result"></div>
+    </section>
+
+    <section id="tab-tools" hidden>
+      <p class="muted">모델(qwen2.5:7b)이 질문을 보고 어떤 도구를 어떤 값으로 부르는지 확인합니다. 모델은 한 번만 호출하고, 도구 결과를 모델에 다시 넘기는 반복은 6일차에 붙입니다. 확인용 질문은 오늘을 <b id="tools-today"></b>로 고정해 채점합니다.</p>
+      <div class="filters">
+        <label>설명 문구
+          <select id="t-variant">
+            <option value="short">short (한 줄)</option>
+            <option value="detailed" selected>detailed (조건 · 형식)</option>
+            <option value="examples">examples (detailed + 예시)</option>
+          </select>
+        </label>
+        <label><input id="t-exec" type="checkbox"> 도구까지 실행</label>
+      </div>
+      <div id="tools-cases" class="chips"></div>
+      <form id="tools-form">
+        <input id="t-q" type="text" placeholder="예: 1000만원을 2026-01-01에 넣었고 만기 2027-01-01, 2026-05-31에 해지하면 이자는?" autocomplete="off" required>
+        <button type="submit" id="t-send">모델에 묻기</button>
+      </form>
+      <div id="tools-result"></div>
+      <details id="tools-spec"><summary>모델이 보는 도구 정의</summary><pre class="text open" id="tools-spec-text"></pre></details>
     </section>
   </main>
 

@@ -2,7 +2,7 @@
 
 로컬 LLM이 **약관 검색 · 이자 계산 · 상담 요청 저장** 도구를 스스로 골라 쓰고, 정보가 부족하면 되묻는 금융 상담 에이전트 (LangGraph + Tool Calling).
 
-> **상태: 진행 중 (12일 계획 중 4일차까지 완료).** 구현이 끝난 항목만 체크(`[x]`)로 표시합니다. 지금까지 만든 것은 **약관 데이터 파이프라인, 검색(RAG), 이자 계산 도구, 검증용 화면**이고, 도구를 LLM에 연결하는 Tool Calling과 에이전트 그래프는 5일차 이후에 구현합니다.
+> **상태: 진행 중 (12일 계획 중 4일차까지 완료, 5일차 진행 중).** 구현이 끝난 항목만 체크(`[x]`)로 표시합니다. 지금까지 만든 것은 **약관 데이터 파이프라인, 검색(RAG), 이자 계산 도구, 검증용 화면, 도구를 LLM에 연결하는 Tool Calling 코드와 측정 도구**입니다. 실제 모델의 도구 선택 측정과 에이전트 그래프는 아직입니다.
 > 학습용 프로젝트이며 실제 금융 상담이나 자문이 아닙니다. 실제 이자는 은행의 해지예상조회로 확인해야 합니다.
 
 ## 지금까지의 핵심 결과
@@ -13,8 +13,9 @@
 | 검색 품질 (정답 있는 30문항) | 벡터 검색 + 검색용 설명: 정답 청크가 상위 5개 안에 **30/30**, 1위 24/30 |
 | 정확한 검색 모드 | 하이브리드 + 교차 인코더 리랭킹: 1위 **29/30**, MRR 0.967 (대신 검색 약 2.2초) |
 | 이자 계산 도구 | 기준 사례 A~G 7개가 기대값과 **정확히 일치**, 입력 검사와 경계일 시험 포함. 계산 코드에 버그 15개를 일부러 넣어 시험이 모두 잡는지 확인 |
-| 확인 화면 | FastAPI 화면: 청크 탐색 · 검색 설정 비교 · 33문항 일괄 확인 · 스트리밍 채팅(SSE) · 이자 계산 |
-| 시험 | 띄어쓰기 복원, 하이브리드 검색, 이자 계산 · 입력 검사 (pytest) |
+| Tool Calling (5일차) | 도구 2개를 qwen2.5:7b에 연결, 확인용 질문 25개와 오류 종류별 채점기. 실제 모델 측정은 아직 (측정 후 기입) |
+| 확인 화면 | FastAPI 화면: 청크 탐색 · 검색 설정 비교 · 33문항 일괄 확인 · 스트리밍 채팅(SSE) · 이자 계산 · 도구 호출 |
+| 시험 | 띄어쓰기 복원, 하이브리드 검색, 이자 계산 · 입력 검사, 도구 정의 · 실행 · 채점 (pytest 317개) |
 
 자세한 측정 방법과 한계는 [검색](#검색) 절, [이자 계산 도구](#이자-계산-도구) 절, [알려진 한계](#알려진-한계)에 있습니다.
 
@@ -64,8 +65,8 @@ flowchart TD
 
 | 도구 | 입력 | 출력 | 상태 |
 | --- | --- | --- | --- |
-| `search_terms` | 검색어, 상품명, 청크 종류 | 조항 텍스트 + 상품명 · 심의번호 · 기준일 · 청크 종류 · 조항 · 점수 | **구현됨** (`rag/search.py`), 에이전트 연결은 5일차 |
-| `calc_interest` | 원금, 신규일, 만기일, 해지일, 기본금리(경과 6개월 이상일 때만) | 세전 이자, 지급 예상액, 구간, 중도해지금리, 경과일수, 계산식, 사용한 가정, 상태 코드 | **구현됨** (`app/tools/interest.py`), 에이전트 연결은 5일차 |
+| `search_terms` | 검색어 (상품명은 코드가 『하나의 정기예금』으로 고정) | 조항 텍스트 + 상품명 · 심의번호 · 기준일 · 청크 종류 · 조항 | **구현됨** (`rag/search.py`), 모델 연결 코드 완료 (`app/tool_calling.py`) |
+| `calc_interest` | 원금, 신규일, 만기일, 해지일, 기본금리(경과 6개월 이상일 때만) | 세전 이자, 지급 예상액, 구간, 중도해지금리, 경과일수, 계산식, 사용한 가정, 상태 코드 | **구현됨** (`app/tools/interest.py`), 모델 연결 코드 완료 (`app/tool_calling.py`) |
 | `request_handoff` | 사용자 질문, 확인된 내용 요약 | 접수 번호 또는 저장 실패 | 8일차 구현 예정 |
 
 ## 대상 상품과 계산 규칙
@@ -145,6 +146,36 @@ flowchart LR
 
 - 케이스 A~G 일곱 개, 금리 절사(1.564721 → 1.564), 최저 0.20% 적용, 입력 오류와 누락, 상태 코드별 흐름, JSON 변환, 부동소수점 오차 방지, 개월 경계일
 - 시험이 쓸모 있는지 확인하려고 **계산 코드에 버그 15개를 일부러 하나씩 넣었고**(이자 반올림, 최저금리 제거, 365 → 360, 차등율 변경, 만기 당일 처리 등) 시험이 모두 실패하는 것을 확인했습니다.
+
+## Tool Calling 연결 (5일차, 측정 전)
+
+모델을 한 번 호출해서 **어떤 도구를 어떤 값으로 부르는지** 확인하는 단계입니다. 도구 결과를 모델에 다시 넘겨 추가 호출 / 되묻기 / 최종 답변을 고르는 반복은 6일차(LangGraph)에서 붙입니다.
+
+```text
+질문 + 오늘 날짜(시스템 프롬프트) + 도구 정의 2개 -> qwen2.5:7b 1회 호출 -> 도구 호출 확인 -> (선택) 도구 실행
+```
+
+| 결정 | 이유 |
+| --- | --- |
+| 도구 정의를 OpenAI 함수 형식 dict로 직접 작성 | pydantic의 Optional이 `anyOf`로 바뀌면 모델 · Ollama가 혼동할 수 있고, 모델이 보는 스키마를 그대로 확인할 수 있다 |
+| 검색 도구는 `query`만 받고 상품명은 코드가 고정 | `search_terms`의 상품 필터는 [상품명, 공통]만 허용해서, 모델이 '정기예금'처럼 조금만 다르게 쓰면 상품 전용 문서가 오류 없이 빠진다 |
+| `calc_interest`의 인자는 모두 선택 | 모르는 값은 비우고 부르면 도구가 `missing_info`로 알려준다. 모델이 값을 지어내지 않는지가 핵심 확인 항목 |
+| 날짜는 `YYYY-MM-DD` 그대로, 오늘 날짜는 시스템 프롬프트로 | 일수 · 개월 계산은 코드가 한다 (3일차에 7B가 일수를 지어낸 문제) |
+| 시스템 프롬프트는 고정하고 도구 설명 문구만 3종 비교 | short(한 줄) / detailed(사용 조건 · 형식 · 지어내지 말 것) / examples(detailed + 예시). examples의 예시는 확인용 질문과 겹치지 않게 시험으로 고정 |
+
+**확인용 질문 25개** (`eval/tool_cases.py`, 오늘 = 2026-10-28로 고정): 약관 8 / 계산(값 충분) 8 / 값 부족 5 / 엣지(10만원) 1 / 도구 불필요 3. 값 부족 질문은 되물어도, 아는 값만 넣어 불러도 통과이고, 질문에 없는 값을 넣으면 실패입니다. '150일 됐어요' · '5개월 전'에서 날짜를 계산해 넣는 것도 지어낸 값으로 셉니다.
+
+**채점** (`eval/tool_check.py`)은 계산 도구가 실제로 받아들이는 방식(`app/validators.py`)으로 값을 읽어 비교합니다 (`"10,000,000원"`과 `10000000`은 같은 값). 오류 종류는 도구 선택(`missing_call`, `extra_call`, `unknown_tool`, `invalid_call`, `empty_query`)과 인자(`extra_arg` = 지어냄, `missing_arg`, `wrong_<인자>`, `date_not_iso`, `unparsable_principal`)로 나눕니다.
+
+**검색어 재측정**: 3일차의 정답 있는 30문항을 모델에 보내, 모델이 만든 검색어로 검색한 순위와 질문 그대로 검색한 순위를 비교합니다. 모델이 검색 도구를 부르지 않으면 실패로 셉니다.
+
+**시험**: 가짜 모델로 도구 정의 · 실행 · 채점 · 측정 실행기 · API를 시험하고, 실제 `ChatOllama`가 Ollama 서버로 보내는 요청(도구 정의 · 메시지 · `temperature 0` · `num_ctx 8192`)을 가로채 확인했습니다. 채점 · 도구 실행 코드에 버그 20개를 하나씩 넣어 시험이 모두 잡는지도 확인했습니다 (처음 19/20, 놓친 1개는 시험을 보강해 탐지).
+
+| 설명 문구 | 통과 | 도구 선택 | 인자 | 비고 |
+| --- | --- | --- | --- | --- |
+| short | 측정 전 | | | |
+| detailed | 측정 전 | | | |
+| examples | 측정 전 | | | |
 
 ## 데이터와 청킹
 
@@ -261,7 +292,7 @@ flowchart LR
 - [x] 2일차: 약관 데이터 준비 (상품설명서 · 약관 수집, 청킹, 메타데이터)
 - [x] 3일차: 약관 검색 도구 (임베딩 · 적재 · `search_terms`), 하이브리드 검색과 리랭킹 비교, 확인 화면, 스트리밍 채팅
 - [x] 4일차: 중도해지 이자 계산 도구 (`calc_interest`, 입력 검사) + 단위 테스트, 확인 화면의 이자 계산 탭
-- [ ] 5일차: Tool Calling 연결, 도구 설명 문구별 선택 결과 비교
+- [ ] 5일차: Tool Calling 연결, 도구 설명 문구별 선택 결과 비교 (연결 코드 · 측정 도구 완료, 실제 모델 측정 전)
 
 **2주차: 그래프 · 서빙**
 - [ ] 6일차: 그래프 조립, 대화 상태 저장
@@ -334,7 +365,20 @@ python rag/compare_runs.py eval/runs/dense.json eval/runs/hybrid_cross.json
 
 `--mode`는 `dense | bm25 | hybrid`, `--rerank`는 `none | cross | llm`입니다. `compare_runs.py`는 두 기록의 조건 차이, 1위 / 3위 안 / 5위 안 / MRR, 순위가 좋아지거나 나빠진 질문, 검색 시간을 보여줍니다.
 
-**4. 시험**
+**4. 도구 선택 측정 (5일차, Ollama 필요)**
+
+```bash
+python -m app.tool_calling "1000만원을 2026-01-01에 넣고 2027-01-01 만기, 2026-05-31 해지하면 이자는?"   # 한 질문 (--run: 도구까지 실행)
+python eval/tool_check.py --variant short    --save eval/tool_runs/short.json
+python eval/tool_check.py --variant detailed --save eval/tool_runs/detailed.json
+python eval/tool_check.py --variant examples --save eval/tool_runs/examples.json
+python eval/tool_check.py --compare eval/tool_runs/short.json eval/tool_runs/detailed.json eval/tool_runs/examples.json
+python eval/tool_check.py --retrieval --variant detailed --save eval/tool_runs/query_detailed.json   # 검색어 재측정 (ingest 후)
+```
+
+보조 옵션: `--repeat 3`(같은 질문 반복, 흔들림 확인), `--only C1,C3`(일부 질문만). 확인 화면의 **도구 호출** 탭에서도 질문을 골라 모델의 선택과 채점 결과를 볼 수 있습니다.
+
+**5. 시험**
 
 ```bash
 pip install pytest
@@ -343,7 +387,7 @@ pytest tests
 
 띄어쓰기 복원(정상 표기가 바뀌지 않는지, 실제 약관 문단에서 단어가 쪼개지지 않는지), 하이브리드 검색(RRF, BM25, 필터, 거리 한도, 리랭킹 배선), 이자 계산(기준 사례 A~G, 금리 절사, 입력 검사, 상태 코드, 개월 경계)을 시험합니다. 임베딩은 가짜를 쓰므로 Ollama나 모델 내려받기가 필요 없습니다.
 
-**5. 1일차 실습 스크립트**
+**6. 1일차 실습 스크립트**
 
 ```bash
 python scripts/day1_hello_graph.py   # LLM 없이 실행됨
@@ -357,8 +401,9 @@ python scripts/day1_tool_loop.py     # agent ⇄ tools 반복 (선택)
 banking-agent/
 ├── scripts/                 # 1일차 실습 스크립트
 ├── app/
-│   ├── api.py               # FastAPI 서버 (청크 · 검색 · 일괄 확인 · 채팅 · 이자 계산 API)
+│   ├── api.py               # FastAPI 서버 (청크 · 검색 · 일괄 확인 · 채팅 · 이자 계산 · 도구 호출 API)
 │   ├── chat.py              # 스트리밍 채팅 (검색 -> 근거 전송 -> LLM 토큰 전송)
+│   ├── tool_calling.py      # 5일차: 도구 정의(설명 문구 3종) · 모델 호출 · 도구 실행
 │   ├── validators.py        # 도구 입력값 검사 (단위 · 범위, 누락과 오류 구분)
 │   ├── tools/
 │   │   ├── interest.py      # calc_interest: 중도해지 이자 계산
@@ -385,7 +430,11 @@ banking-agent/
 │   ├── chunks/              # 생성물 (chunks.jsonl, spacing_changes.txt, git 제외)
 │   ├── chroma_db/           # 벡터 · 키워드 인덱스 (git 제외)
 │   └── models/              # 내려받은 리랭커 모델 (git 제외)
-├── eval/runs/               # 검색 설정별 측정 기록 (질문 · 청크 id · 거리)
+├── eval/
+│   ├── runs/                # 검색 설정별 측정 기록 (질문 · 청크 id · 거리)
+│   ├── tool_cases.py        # 도구 선택 확인용 질문 25개와 기대값
+│   ├── tool_check.py        # 도구 선택 채점 · 설명 문구 비교 · 검색어 재측정
+│   └── tool_runs/           # 도구 선택 측정 기록
 ├── tests/
 │   ├── test_fix_spacing.py   # 띄어쓰기 복원 회귀 시험
 │   ├── test_hybrid_search.py # 하이브리드 검색 · 리랭킹 시험
@@ -393,7 +442,10 @@ banking-agent/
 │   ├── test_validators.py    # 입력 검사 시험
 │   ├── test_calc_api.py      # 이자 계산 API 시험
 │   ├── test_amounts.py       # 질문 속 금액 읽기 시험
-│   └── test_chat_min_deposit.py # 최소 가입금액 안내(채팅) 시험
+│   ├── test_chat_min_deposit.py # 최소 가입금액 안내(채팅) 시험
+│   ├── test_tool_calling.py  # 도구 정의 · 모델 호출 · 도구 실행 시험
+│   ├── test_tool_check.py    # 도구 선택 채점기 시험
+│   └── test_tool_api.py      # 도구 호출 API 시험
 ├── requirements.txt
 ├── .gitignore
 └── README.md

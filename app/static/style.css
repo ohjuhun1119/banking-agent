@@ -75,3 +75,10 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 .calc-status { display:inline-block; padding:3px 12px; border-radius:999px; font-weight:600; font-size:13px; }
 .calc-status.ok { background:#e6f5ec; color:var(--ok); } .calc-status.warn { background:#fff4e0; color:var(--warn); } .calc-status.bad { background:#fdeaea; color:var(--bad); }
 .calc-ok { color:var(--ok); font-weight:600; } .calc-bad { color:var(--bad); font-weight:600; }
+
+/* 도구 호출 */
+form#tools-form { display:flex; gap:8px; } form#tools-form input { flex:1; }
+.tool-call { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin:10px 0; }
+.tool-call b { color:var(--accent); } .tool-call pre { margin:6px 0 0; white-space:pre-wrap; word-break:break-word; font-size:13px; }
+.chip.sel { border-color:var(--accent); background:#e8eeff; }
+#tools-spec { margin-top:16px; } #tools-spec summary { cursor:pointer; color:var(--accent); font-size:13px; }
