@@ -44,7 +44,7 @@ def ask(**body):
 def test_ask_returns_answer_trace_and_confirmed(fresh):
     fresh(lambda m, n: AIMessage(content="", tool_calls=[{"name": "calc_interest", "args": BASE, "id": "c1"}]) if n == 1
           else AIMessage(content="세전 이자는 547원입니다."))
-    r = ask(session_id="t1", today="2026-10-28")
+    r = ask(question="1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-01-21에 해지하면 이자는?", session_id="t1", today="2026-10-28")
     assert r.status_code == 200
     body = r.json()
     assert body["answer"] == "세전 이자는 547원입니다." and body["trace"][0]["status"] == "ok" and body["tool_calls"] == 1
@@ -85,3 +85,10 @@ def test_impossible_date_is_422(fresh):
 def test_reset_of_unknown_session_is_fine(fresh):
     fresh(lambda m, n: AIMessage(content="끝"))
     assert client.post("/api/agent/reset", json={"session_id": "never-used"}).status_code == 200
+
+
+def test_invented_value_is_reported_in_the_trace(fresh):
+    fresh(lambda m, n: AIMessage(content="", tool_calls=[{"name": "calc_interest", "args": {**BASE, "base_rate": 3.5}, "id": "c1"}]) if n == 1
+          else AIMessage(content="끝"))
+    body = ask(question="1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-01-21에 해지하면 이자는?", session_id="t2").json()
+    assert body["trace"][0]["dropped"] == {"base_rate": 3.5} and "base_rate" not in body["confirmed"]

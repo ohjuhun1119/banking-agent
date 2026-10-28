@@ -16,6 +16,7 @@ from app import graph as g  # noqa: E402
 from app import tool_calling as tc  # noqa: E402
 
 BASE = {"principal": 10_000_000, "start_date": "2026-01-01", "maturity_date": "2027-01-01"}
+SAID = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요."          # BASE의 값을 사용자가 말한 문장
 _ids = iter(range(10_000))
 
 
@@ -69,7 +70,7 @@ def test_tool_result_goes_back_to_the_model_and_final_answer_follows():
             return ai(call("calc_interest", **BASE, termination_date="2026-07-20", base_rate=3.5))
         return AIMessage(content="세전 이자는 63,013원입니다.")
     a, m = agent(fn)
-    res = a.ask("이자 계산해줘", "s", today="2025-03-04")
+    res = a.ask(SAID + " 2026-07-20에 해지하면 이자는? 기본금리는 3.5%였어요.", "s", today="2025-03-04")
     assert "2025-03-04" in m.seen[0][0].content
     assert res["answer"] == "세전 이자는 63,013원입니다." and (res["tool_calls"], res["model_calls"]) == (1, 2)
     result = last_tool_json(m.seen[1])                                   # 두 번째 호출에서 모델이 본 도구 결과
@@ -136,7 +137,7 @@ def test_followup_turn_keeps_history_and_confirmed_values():
 
 def test_first_turn_has_no_confirmed_block_and_sessions_are_isolated():
     a, m = agent(lambda msgs, n: ai(call("calc_interest", **BASE)) if n == 1 else AIMessage(content="끝"))
-    a.ask("q1", "A")
+    a.ask(SAID, "A")
     assert "[지금까지 확인된 값]" not in m.seen[0][0].content
     b, m2 = agent(lambda msgs, n: AIMessage(content="끝"))
     b.checkpointer = a.checkpointer                                     # 같은 저장소라도 session_id가 다르면 보이지 않는다
@@ -149,7 +150,7 @@ def test_first_turn_has_no_confirmed_block_and_sessions_are_isolated():
 
 def test_invalid_values_are_not_remembered_and_reset_forgets_everything():
     a, m = agent(lambda msgs, n: ai(call("calc_interest", principal="1000만원", start_date="2026-01-01")) if n == 1 else AIMessage(content="끝"))
-    res = a.ask("q", "s")
+    res = a.ask("1000만원을 2026-01-01에 넣었어요", "s")
     assert res["confirmed"] == {"start_date": "2026-01-01"} and res["trace"][0]["status"] == "invalid_input"
     assert len(a.history("s")) == 4
     a.reset("s")
@@ -311,7 +312,7 @@ def test_model_failure_after_a_tool_call_removes_the_whole_turn():
             return ai(call("calc_interest", **BASE))
         raise TimeoutError("모델 응답 없음")
     a, _ = agent(fn)
-    res = a.ask("q", "s")
+    res = a.ask(SAID, "s")
     assert res["error"] and res["answer"] is None and res["tool_calls"] == 1 and a.history("s") == []
 
 
@@ -359,7 +360,8 @@ def test_cli_one_shot_and_chat(monkeypatch, capsys):
             self.asked.append((q, session))
             return {"answer": f"답:{q}", "error": None, "stop_reason": None, "tool_calls": 1, "model_calls": 2, "ms": 5,
                     "confirmed_text": "원금 10,000,000원",
-                    "trace": [{"name": "calc_interest", "args": {"principal": 1}, "status": "ok", "ms": 1, "retried": True, "duplicate": False}]}
+                    "trace": [{"name": "calc_interest", "args": {"principal": 1}, "status": "ok", "ms": 1, "retried": True, "duplicate": False,
+                       "dropped": {"base_rate": 3.5}}]}
 
         def reset(self, session):
             self.asked.append(("/reset", session))
@@ -370,6 +372,105 @@ def test_cli_one_shot_and_chat(monkeypatch, capsys):
     g.main(["--chat", "--session", "t"])
     out = capsys.readouterr().out
     assert fake.asked == [("질문1", "t"), ("/reset", "t"), ("질문2", "t")]
-    assert "답:질문1" in out and "calc_interest" in out and "(재시도함)" in out and "확인된 값: 원금 10,000,000원" in out
+    assert "답:질문1" in out and "calc_interest" in out and "(재시도함)" in out and "말하지 않은 값 제외: 기본금리 3.5" in out and "확인된 값: 원금 10,000,000원" in out
     with pytest.raises(SystemExit):
         g.main([])                                                         # 질문도 --chat도 없으면 사용법을 보여준다
+
+
+# ---------- 값 근거 대조 (말하지 않은 값은 도구에 넘기지 않는다) ----------
+USER_Q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요?"
+INVENTED = {**BASE, "termination_date": "2026-12-07", "base_rate": 3.5}         # 사용자가 말하지 않은 기본금리 3.5를 모델이 넣음 (실제 대화에서 발생)
+
+
+def test_invented_base_rate_is_dropped_so_the_tool_asks_instead_of_calculating():
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", **INVENTED))
+        return AIMessage(content="신규일 당시 기본금리(%)를 알려주세요.")
+    a, m = agent(fn)
+    res = a.ask(USER_Q, "s", today="2026-10-28")
+    result = last_tool_json(m.seen[1])
+    assert result["status"] == "need_base_rate" and "interest_krw" not in result                   # 계산하지 않고 되묻는다
+    assert result["dropped_args"] == {"base_rate": 3.5} and "기본금리 3.5" in result["note"]
+    assert res["trace"][0]["dropped"] == {"base_rate": 3.5} and res["trace"][0]["status"] == "need_base_rate"
+    assert "base_rate" not in res["confirmed"] and res["confirmed"]["termination_date"] == "2026-12-07"
+    assert "기본금리" in res["answer"]
+
+
+def test_after_the_user_gives_the_rate_the_same_call_is_calculated():
+    def fn(msgs, n):
+        if n in (1, 3):
+            return ai(call("calc_interest", **INVENTED))
+        return AIMessage(content="되묻기" if n == 2 else "세전 이자는 273,304원입니다.")
+    a, m = agent(fn)
+    a.ask(USER_Q, "s", today="2026-10-28")
+    res = a.ask("기본금리는 3.5%였어요", "s", today="2026-10-28")
+    result = last_tool_json(m.seen[3])
+    assert result["status"] == "ok" and result["interest_krw"] == 273304 and "dropped_args" not in result
+    assert res["trace"][0]["dropped"] == {} and res["confirmed"]["base_rate"] == 3.5
+
+
+def test_values_said_in_an_earlier_turn_still_count():
+    def fn(msgs, n):
+        if n == 1:
+            return AIMessage(content="해지일도 알려주세요.")
+        if n == 2:
+            return ai(call("calc_interest", **BASE, termination_date="2026-01-21"))
+        return AIMessage(content="끝")
+    a, m = agent(fn)
+    a.ask(SAID, "s")
+    res = a.ask("2026-01-21에 해지해요", "s")                                # 원금 · 신규일 · 만기일은 앞 질문에서 말함
+    assert res["trace"][0]["dropped"] == {} and res["trace"][0]["status"] == "ok"
+
+
+def test_relative_date_computed_by_the_model_is_dropped():
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", principal=20_000_000, start_date="2026-05-28", termination_date="2026-10-28"))
+        return AIMessage(content="정확한 신규일을 알려주세요.")
+    a, m = agent(fn)
+    res = a.ask("5개월 전에 2000만원을 1년짜리로 가입했어요. 지금 해지하면 이자는요?", "s", today="2026-10-28")
+    assert res["trace"][0]["dropped"] == {"start_date": "2026-05-28"}                    # '5개월 전'을 날짜로 바꿔 넣은 것
+    assert res["confirmed"] == {"principal": 20_000_000, "termination_date": "2026-10-28"}   # 지금 = 오늘, 원금은 말한 값
+    assert last_tool_json(m.seen[1])["status"] == "missing_info"
+
+
+def test_search_arguments_are_not_checked():
+    seen = []
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="모델이 만든 검색어")) if n == 1 else AIMessage(content="끝"),
+                 search_fn=lambda q, **kw: seen.append(q) or search_ok(q))
+    res = a.ask("해지하면 어떻게 돼요?", "s")
+    assert seen == ["모델이 만든 검색어"] and res["trace"][0]["dropped"] == {}
+
+
+def test_repeating_the_same_invented_call_is_still_caught_as_duplicate():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", **INVENTED)) if n <= 2 else AIMessage(content="끝"))
+    res = a.ask(USER_Q, "s", today="2026-10-28")
+    assert [(t["status"], t["duplicate"]) for t in res["trace"]] == [("need_base_rate", False), ("duplicate", True)]
+
+
+def test_confirmed_values_count_even_when_the_turn_that_said_them_was_rolled_back():
+    """첫 질문에서 값을 확인한 뒤 모델 호출이 실패하면 그 질문은 대화에서 지워지지만 확인된 값은 남는다.
+    모델은 시스템 프롬프트로 그 값을 보고 다시 넘기므로, 근거 대조가 확인된 값도 근거로 인정해야 한다."""
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", **BASE))
+        if n == 2:
+            raise TimeoutError("모델 응답 없음")                              # 첫 질문의 두 번째 모델 호출이 실패 -> 질문이 지워짐
+        if n == 3:
+            return ai(call("calc_interest", **BASE, termination_date="2026-01-21"))
+        return AIMessage(content="끝")
+    a, m = agent(fn)
+    assert a.ask(SAID, "s")["error"] and a.history("s") == []
+    res = a.ask("2026-01-21에 해지해요", "s")
+    assert "원금 10,000,000원" in m.seen[2][0].content                        # 모델이 확인된 값을 본다
+    assert res["trace"][0]["dropped"] == {} and res["trace"][0]["status"] == "ok"
+
+
+def test_today_word_uses_the_date_given_to_the_agent():
+    """'오늘 해지하면'의 오늘은 ask(today=...)로 알려준 날짜다 (실제 오늘과 다른 날짜로 시험한다)."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", **BASE, termination_date="2025-03-04")) if n == 1 else AIMessage(content="끝"))
+    res = a.ask(SAID + " 오늘 해지하면 이자는?", "s", today="2025-03-04")
+    assert res["trace"][0]["dropped"] == {}
+    b, _ = agent(lambda msgs, n: ai(call("calc_interest", **BASE, termination_date="2025-03-05")) if n == 1 else AIMessage(content="끝"))
+    assert b.ask(SAID + " 오늘 해지하면 이자는?", "s", today="2025-03-04")["trace"][0]["dropped"] == {"termination_date": "2025-03-05"}

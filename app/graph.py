@@ -6,6 +6,7 @@
 
   agent   시스템 프롬프트 + 확인된 값 + 대화를 모델에 보내 '추가 도구 호출 / 되묻기 / 최종 답변' 중 하나를 받는다.
   tools   모델이 고른 도구를 실행하고 결과를 ToolMessage로 돌려준다 (대기 시간 제한, 1회 재시도, 같은 호출 반복 차단).
+          계산 도구에는 '사용자가 실제로 말한 값'만 넘긴다: 근거 없는 값은 빼고(app/grounding.py) 도구가 되묻게 한다.
   limit   한 질문에서 도구를 너무 많이 부르려 하면 실행하지 않고 중단 안내를 한다 (상담원 연결 제안).
 
 세션: 체크포인터(MemorySaver)가 session_id(thread_id)별로 대화와 확인된 값을 저장해서, 되묻기 뒤의 답을 이어 받는다.
@@ -39,6 +40,7 @@ from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
+from app.grounding import describe_dropped, ground_calc_args  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
 
 MAX_TOOL_CALLS = int(os.environ.get("MAX_TOOL_CALLS", "5"))          # 한 질문에서 부를 수 있는 도구 횟수 (노션 오류 처리 표: 예 5회)
@@ -59,6 +61,7 @@ GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 �
 - not_early_termination: 계산하지 않았다고 알리고 message의 안내를 전한다.
 - 약관 검색 결과: 결과에 있는 내용만 답한다. not_found면 '약관에서 확인되지 않습니다'라고 안내한다.
 - error: 잠시 후 다시 시도하거나 상담원 연결을 이용해 달라고 안내한다.
+- 결과에 dropped_args가 있으면: 그 값은 사용자가 말하지 않아서 계산에 쓰지 않았다는 뜻이다. 계산에 필요한 값이면 사용자에게 묻는다.
 같은 도구를 같은 값으로 다시 부르지 않는다. 결과가 나왔으면 그 결과로 답한다."""
 
 
@@ -156,9 +159,14 @@ def make_agent_node(get_model):
     return agent
 
 
+def _today(state: dict) -> date:
+    return date.fromisoformat(state["today"]) if state.get("today") else date.today()
+
+
 def make_tools_node(search_fn, timeout):
     def tools(state: dict) -> dict:
         last = state["messages"][-1]
+        said = [m.content for m in state["messages"] if isinstance(m, HumanMessage)]       # 대화에서 사용자가 한 말 (앞 질문 포함)
         count = state.get("tool_calls", 0)
         trace = list(state.get("trace") or [])
         confirmed = dict(state.get("confirmed") or {})
@@ -167,17 +175,23 @@ def make_tools_node(search_fn, timeout):
         for call in last.tool_calls:
             name, args = call["name"], dict(call.get("args") or {})
             key, t0 = _args_key(name, args), time.perf_counter()
-            duplicate = key in seen
+            duplicate, dropped = key in seen, {}
             if duplicate:                                     # 같은 호출을 또 하는 반복을 끊는다 (한도에는 센다)
                 result, retried = {"status": "duplicate", "message": "같은 도구를 같은 값으로 이미 불렀습니다. 앞의 결과로 답하세요."}, False
             else:
-                result, retried = run_guarded(name, args, timeout, search_fn)
+                run_args = args
+                if name == "calc_interest":                   # 사용자가 말하지 않은 값은 빼고 도구가 되묻게 한다
+                    run_args, dropped = ground_calc_args(args, said, _today(state), confirmed)
+                result, retried = run_guarded(name, run_args, timeout, search_fn)
+                if dropped:
+                    result = {**result, "dropped_args": dropped,
+                              "note": f"사용자가 말하지 않은 값({describe_dropped(dropped)})은 계산에 쓰지 않았습니다."}
                 if name == "calc_interest":
-                    confirmed.update(accepted_values(args))
+                    confirmed.update(accepted_values(run_args))
             seen.add(key)
             count += 1
             trace.append({"name": name, "args": args, "status": result.get("status"), "ms": int((time.perf_counter() - t0) * 1000),
-                          "retried": retried, "duplicate": duplicate})
+                          "retried": retried, "duplicate": duplicate, "dropped": dropped})
             out.append(ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call.get("id") or "", name=name))
         return {"messages": out, "tool_calls": count, "trace": trace, "confirmed": confirmed}
     return tools
@@ -256,7 +270,8 @@ class Agent:
 # ---------- 명령줄 ----------
 def _print_result(res: dict) -> None:
     for t in res["trace"]:
-        flags = (" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
+        flags = ((" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
+                 + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else ""))
         print(f"  도구: {t['name']} {json.dumps(t['args'], ensure_ascii=False)} -> {t['status']} ({t['ms']}ms){flags}")
     if res["error"]:
         print(f"[오류] {res['error']}")

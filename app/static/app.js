@@ -435,10 +435,16 @@ $("#tools-form").addEventListener("submit", (ev) => { ev.preventDefault(); askTo
 const AGENT_SESSION = "web-" + Math.random().toString(36).slice(2, 10);       // 서버가 이 이름으로 대화를 저장한다
 const TRACE_TONE = { ok: "", not_found: "warn", missing_info: "warn", need_base_rate: "warn", invalid_input: "warn", duplicate: "warn", error: "bad", unknown_tool: "bad" };
 
+const FIELD_LABEL = { principal: "원금", start_date: "신규일", maturity_date: "만기일", termination_date: "해지일", base_rate: "기본금리" };
+
 function agentTrace(trace) {
-  return h("div", { class: "agent-trace" }, trace.map((t) => h("div", { class: TRACE_TONE[t.status] || "" },
-    `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
-    + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "") + ` · ${t.ms}ms`)));
+  return h("div", { class: "agent-trace" }, trace.map((t) => {
+    const dropped = Object.entries(t.dropped || {});
+    return h("div", { class: TRACE_TONE[t.status] || "" },
+      `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
+      + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
+      + (dropped.length ? ` · 말하지 않은 값 제외: ${dropped.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "") + ` · ${t.ms}ms`);
+  }));
 }
 
 function renderAgentTurn(data, pending) {
