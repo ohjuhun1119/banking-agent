@@ -435,6 +435,7 @@ $("#tools-form").addEventListener("submit", (ev) => { ev.preventDefault(); askTo
 const AGENT_SESSION = "web-" + Math.random().toString(36).slice(2, 10);       // 서버가 이 이름으로 대화를 저장한다
 const TRACE_TONE = { ok: "", not_found: "warn", missing_info: "warn", need_base_rate: "warn", invalid_input: "warn", duplicate: "warn", error: "bad", unknown_tool: "bad" };
 
+const STOP_LABEL = { tool_limit: "중단: 도구 호출 한도", model_error: "중단: 모델 오류", handoff_not_ready: "안내: 상담원 연결은 아직 지원하지 않음" };
 const FIELD_LABEL = { principal: "원금", start_date: "신규일", maturity_date: "만기일", termination_date: "해지일", base_rate: "기본금리" };
 
 function agentTrace(trace) {
@@ -457,7 +458,7 @@ function renderAgentTurn(data, pending) {
     bubble.textContent = data.answer || "(빈 답변)";
     if (data.stop_reason) bubble.classList.add("stopped");
   }
-  pending.append(h("div", { class: "muted small" }, `도구 ${data.tool_calls}회 · 모델 ${data.model_calls}회 · ${data.ms}ms` + (data.stop_reason ? ` · 중단: ${data.stop_reason}` : "")));
+  pending.append(h("div", { class: "muted small" }, `도구 ${data.tool_calls}회 · 모델 ${data.model_calls}회 · ${data.ms}ms` + (data.stop_reason ? ` · ${STOP_LABEL[data.stop_reason] || "중단: " + data.stop_reason}` : "")));
   $("#agent-confirmed").textContent = data.confirmed_text ? "확인된 값: " + data.confirmed_text : "";
 }
 

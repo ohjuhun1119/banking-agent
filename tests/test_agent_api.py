@@ -92,3 +92,11 @@ def test_invented_value_is_reported_in_the_trace(fresh):
           else AIMessage(content="끝"))
     body = ask(question="1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-01-21에 해지하면 이자는?", session_id="t2").json()
     assert body["trace"][0]["dropped"] == {"base_rate": 3.5} and "base_rate" not in body["confirmed"]
+
+
+def test_handoff_request_is_answered_without_calling_the_model(fresh):
+    def must_not_be_called(m, n):
+        raise AssertionError("상담원 연결 요청에는 모델을 부르면 안 된다")
+    fresh(must_not_be_called)
+    body = ask(question="상담원 연결해줘", session_id="h1").json()
+    assert body["answer"] == g.HANDOFF_TEXT and body["stop_reason"] == "handoff_not_ready" and body["model_calls"] == 0 and body["error"] is None

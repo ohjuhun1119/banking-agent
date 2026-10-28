@@ -3,6 +3,7 @@
 처리 흐름 (한 질문 = 한 턴)
   START -> agent -> (도구 호출이 있으면) tools -> agent -> ... -> (없으면) END
                  \\-> (호출 횟수가 한도를 넘으면) limit -> END
+  START -> (상담원 연결 요청이면) handoff -> END          모델을 거치지 않고 '아직 지원하지 않는다'고 안내한다 (8일차에 도구로 교체)
 
   agent   시스템 프롬프트 + 확인된 값 + 대화를 모델에 보내 '추가 도구 호출 / 되묻기 / 최종 답변' 중 하나를 받는다.
   tools   모델이 고른 도구를 실행하고 결과를 ToolMessage로 돌려준다 (대기 시간 제한, 1회 재시도, 같은 호출 반복 차단).
@@ -40,6 +41,7 @@ from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
+from app.answer_check import foreign_script, handoff_request, unsupported_phone_numbers  # noqa: E402
 from app.grounding import describe_dropped, ground_calc_args  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
 
@@ -51,6 +53,16 @@ RECURSION_LIMIT = 25                                                 # 그래프
 LIMIT_TEXT = ("도구를 너무 많이 호출해서 여기서 멈췄어요. 질문을 조금 더 구체적으로 다시 알려주시거나, "
               "상담원 연결을 요청해 주세요.")
 EMPTY_TEXT = "답변을 만들지 못했어요. 질문을 한 번 더 알려주세요."
+UNSAFE_TEXT = ("확인되지 않은 내용이 섞여 답변을 드리지 못했어요. 질문을 조금 바꿔 다시 물어봐 주시거나, "
+               "하나은행 고객센터나 영업점에 문의해 주세요.")
+# 상담원 연결은 8일차(request_handoff)에 만든다. 그 전에는 연결해 주는 것처럼 말하지 않도록 모델을 거치지 않고 이 문구로 답한다.
+HANDOFF_TEXT = ("상담원 연결은 아직 지원하지 않아요. 하나은행 고객센터나 영업점에 직접 문의해 주세요. "
+                "약관 안내와 중도해지 이자 계산은 도와드릴 수 있어요.")
+RETRY_NOTES = {
+    "language": "직전 답변에 한국어가 아닌 글자(중국어 · 일본어)가 섞였다. 한국어(한글)로만 다시 답한다.",
+    "phone": ("직전 답변에 근거 없는 전화번호가 들어 있다. 전화번호는 도구 결과나 사용자가 말한 것만 말한다. "
+              "없으면 번호 없이 하나은행 고객센터나 영업점에 문의하라고만 안내한다."),
+}
 
 # 도구 결과를 받은 뒤의 행동 규칙. 7일차에 근거 표시와 검색 -> 계산 연결을 다듬으면서 고친다.
 GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 고른다.
@@ -63,7 +75,9 @@ GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 �
 - error: 잠시 후 다시 시도하거나 상담원 연결을 이용해 달라고 안내한다.
 - need_base_rate, missing_info, invalid_input이면 설명만 하고 끝내지 말고, 필요한 값을 알려 달라는 질문으로 끝낸다.
 - 결과에 dropped_args가 있으면: 그 값은 사용자가 말하지 않아서 계산에 쓰지 않았다는 뜻이다. 계산에 필요한 값이면 사용자에게 묻는다.
-같은 도구를 같은 값으로 다시 부르지 않는다. 결과가 나왔으면 그 결과로 답한다."""
+같은 도구를 같은 값으로 다시 부르지 않는다. 결과가 나왔으면 그 결과로 답한다.
+한국어로만 답한다. 중국어 · 일본어 · 영어를 섞지 않는다.
+너는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 할 수 있다. 상담원 연결 · 계좌 조회 · 해지 처리 같은 실제 업무는 할 수 없다고 말한다. 전화번호나 주소는 도구 결과나 사용자가 말한 것만 말하고, 없으면 만들지 않는다."""
 
 
 # ---------- 프롬프트 ----------
@@ -148,16 +162,44 @@ def _rollback(state: dict, reason: str) -> dict:
             "model_calls": state.get("model_calls", 0) + 1}
 
 
+def check_reply(ai, state: dict) -> str | None:
+    """모델 응답의 문제를 찾는다: 'language'(한자 · 가나 섞임) / 'phone'(근거 없는 전화번호) / None.
+    도구 호출이면 검색어만, 최종 답변이면 본문 전체를 본다."""
+    calls = getattr(ai, "tool_calls", None) or []
+    if calls:
+        return "language" if any(foreign_script((c.get("args") or {}).get("query")) for c in calls if c.get("name") == "search_terms") else None
+    text = str(ai.content)
+    if foreign_script(text):
+        return "language"
+    msgs = state["messages"]
+    start = _turn_start(msgs)
+    allowed = [m.content for i, m in enumerate(msgs) if isinstance(m, HumanMessage) or (isinstance(m, ToolMessage) and i >= start)]
+    return "phone" if unsupported_phone_numbers(text, *allowed) else None
+
+
 def make_agent_node(get_model):
     def agent(state: dict) -> dict:
+        calls = 0
         try:
-            ai = get_model().invoke(prompt_messages(state))
+            msgs = prompt_messages(state)
+            model = get_model()
+            ai, calls = model.invoke(msgs), 1
+            problem = check_reply(ai, state)
+            if problem:                                       # 한 번만 다시 시키고, 그래도 문제면 고정 문구로 바꾼다
+                ai, calls = model.invoke(msgs + [SystemMessage(content=RETRY_NOTES[problem])]), 2
+                if check_reply(ai, state):
+                    ai = AIMessage(content=UNSAFE_TEXT)
         except Exception as e:                                # Ollama 꺼짐, 모델 없음 등
             return _rollback(state, f"모델 호출 실패 ({tc.TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {tc.TOOL_MODEL}'를 확인하세요.")
         if not getattr(ai, "tool_calls", None) and not str(ai.content).strip():
             ai = AIMessage(content=EMPTY_TEXT)                # 도구도 답도 없는 빈 응답
-        return {"messages": [ai], "model_calls": state.get("model_calls", 0) + 1}
+        return {"messages": [ai], "model_calls": state.get("model_calls", 0) + calls}
     return agent
+
+
+def handoff_node(state: dict) -> dict:
+    """상담원 연결 요청: 아직 연결 기능이 없으니 연결해 주는 것처럼 말하지 않고 안내만 한다 (8일차에 request_handoff로 교체)."""
+    return {"messages": [AIMessage(content=HANDOFF_TEXT)], "stop_reason": "handoff_not_ready"}
 
 
 def _today(state: dict) -> date:
@@ -230,7 +272,13 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
     builder.add_node("agent", make_agent_node(get_model))
     builder.add_node("tools", make_tools_node(search_fn, tool_timeout))
     builder.add_node("limit", limit_node)
-    builder.add_edge(START, "agent")
+    def entry(state: dict) -> str:                            # 이번 질문이 상담원 연결 요청이면 모델을 거치지 않는다
+        last = state["messages"][-1]
+        return "handoff" if isinstance(last, HumanMessage) and handoff_request(last.content) else "agent"
+
+    builder.add_node("handoff", handoff_node)
+    builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff"})
+    builder.add_edge("handoff", END)
     builder.add_conditional_edges("agent", route, {"tools": "tools", "limit": "limit", END: END})
     builder.add_edge("tools", "agent")                        # 결과를 모델에 다시 전달
     builder.add_edge("limit", END)

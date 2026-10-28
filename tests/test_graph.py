@@ -490,3 +490,116 @@ def test_when_the_model_repeats_the_tool_message_the_user_is_asked_for_the_rate(
 def test_rules_tell_the_model_to_end_clarifications_with_a_question():
     t = g.system_text({"today": "2025-03-04"})
     assert "질문으로 끝낸다" in t and "얼마였는지 사용자에게 질문한다" in t
+
+
+# ---------- 답변 점검 · 상담원 연결 (실제 대화에서 나온 오류) ----------
+KOREAN_OK = "하나은행 고객센터나 영업점에 문의해 주세요."
+REAL_CHINESE_REPLY = "잠시 기다려 주세요. 상담원이 연결될 때까지 기다려 주십시오. 또는 고객센터 번호 1544-1111을 직접拨打以转接人工客服。"
+REAL_FABRICATED_REPLY = "상담원 연결을 요청해주시면 됩니다. 고객센터 번호 1544-1111을 통해 상담원과 연결하실 수 있습니다."
+
+
+@pytest.mark.parametrize("question", ["상담원 연결해줘", "상담원 연결 요청"])        # 스크린샷의 두 질문
+def test_handoff_request_is_answered_without_the_model_and_without_promising_anything(question):
+    a, m = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY))
+    res = a.ask(question, "s")
+    assert m.n == 0 and res["model_calls"] == 0 and res["tool_calls"] == 0                   # 모델을 부르지 않는다
+    assert res["answer"] == g.HANDOFF_TEXT and res["stop_reason"] == "handoff_not_ready" and res["error"] is None
+    assert "아직 지원하지 않아요" in res["answer"] and "1544" not in res["answer"]
+    for promise in ("잠시 기다려", "연결될 때까지", "접수", "연결해 드릴게요"):                    # 연결해 주는 것처럼 말하지 않는다
+        assert promise not in res["answer"]
+    assert [type(x).__name__ for x in a.history("s")] == ["HumanMessage", "AIMessage"]
+
+
+def test_conversation_continues_normally_after_a_handoff_request():
+    a, m = agent(lambda msgs, n: AIMessage(content="일반 답변"))
+    a.ask("안녕하세요", "s")
+    handoff = a.ask("상담원 연결해줘", "s")
+    after = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
+    assert handoff["stop_reason"] == "handoff_not_ready" and m.n == 2                         # 일반 질문 둘만 모델을 불렀다
+    assert after["answer"] == "일반 답변" and after["stop_reason"] is None and after["model_calls"] == 1
+    assert len(a.history("s")) == 6
+
+
+def test_chinese_in_the_answer_is_retried_once_in_korean():
+    a, m = agent(lambda msgs, n: AIMessage(content=REAL_CHINESE_REPLY if n == 1 else KOREAN_OK))
+    res = a.ask("이 예금 설명해줘", "s")
+    assert res["answer"] == KOREAN_OK and res["model_calls"] == 2
+    retry_note = m.seen[1][-1]
+    assert isinstance(retry_note, SystemMessage) and "한국어" in retry_note.content and "중국어" in retry_note.content
+    assert not any(isinstance(x, SystemMessage) and "직전 답변" in x.content for x in a.history("s"))      # 점검용 메모는 대화에 남지 않는다
+
+
+def test_chinese_that_survives_the_retry_is_replaced_by_a_fixed_korean_message():
+    a, m = agent(lambda msgs, n: AIMessage(content=REAL_CHINESE_REPLY))
+    res = a.ask("이 예금 설명해줘", "s")
+    assert res["answer"] == g.UNSAFE_TEXT and res["model_calls"] == 2 and m.n == 2 and "拨" not in res["answer"]
+
+
+def test_invented_phone_number_is_retried_and_then_blocked():
+    a, m = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY if n == 1 else KOREAN_OK))
+    res = a.ask("이 예금 문의처가 어디예요?", "s")
+    assert res["answer"] == KOREAN_OK and "근거 없는 전화번호" in m.seen[1][-1].content
+    b, mb = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY))
+    blocked = b.ask("이 예금 문의처가 어디예요?", "s")
+    assert blocked["answer"] == g.UNSAFE_TEXT and "1544" not in blocked["answer"] and mb.n == 2
+
+
+def test_phone_number_from_a_tool_result_or_from_the_user_is_allowed():
+    def search_with_number(query, product=None, k=5, **kw):
+        r = search_ok(query)
+        r["results"][0]["text"] = "고객센터(1599-1111)로 문의하세요."
+        return r
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="문의처")) if n == 1 else AIMessage(content="고객센터 1599-1111로 문의하세요."),
+                 search_fn=search_with_number)
+    res = a.ask("문의처가 어디예요?", "s")
+    assert res["answer"] == "고객센터 1599-1111로 문의하세요." and res["model_calls"] == 2         # 다시 시키지 않았다 (도구 호출 1 + 답변 1)
+    b, mb = agent(lambda msgs, n: AIMessage(content="말씀하신 1588-1111로 문의하세요."))
+    assert b.ask("제가 아는 번호는 1588-1111인데 맞나요?", "s")["model_calls"] == 1
+
+
+def test_phone_number_from_an_old_tool_result_does_not_count_in_a_later_turn():
+    """이전 질문의 도구 결과에 있던 번호는 이번 질문의 근거가 아니다 (이번 질문에서 다시 검색해야 한다)."""
+    def search_with_number(query, product=None, k=5, **kw):
+        r = search_ok(query)
+        r["results"][0]["text"] = "고객센터(1599-1111)"
+        return r
+
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("search_terms", query="문의처"))
+        if n == 2:
+            return AIMessage(content="첫 답")
+        return AIMessage(content="1599-1111로 문의하세요." if n == 3 else KOREAN_OK)
+    a, m = agent(fn, search_fn=search_with_number)
+    a.ask("문의처가 어디예요?", "s")
+    res = a.ask("번호만 다시 알려줘", "s")
+    assert res["answer"] == KOREAN_OK and res["model_calls"] == 2
+
+
+def test_chinese_search_query_is_retried_before_the_tool_runs():
+    executed = []
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="中途解约利率")) if n == 1
+                 else ai(call("search_terms", query="중도해지 이율")) if n == 2 else AIMessage(content="끝"),
+                 search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = a.ask("해지하면 이율이 어떻게 돼요?", "s")
+    assert executed == ["중도해지 이율"] and res["model_calls"] == 3 and res["answer"] == "끝"
+
+
+def test_chinese_search_query_that_survives_the_retry_runs_nothing():
+    executed = []
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="中途解约利率")), search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = a.ask("해지하면 이율이 어떻게 돼요?", "s")
+    assert executed == [] and res["answer"] == g.UNSAFE_TEXT and res["tool_calls"] == 0 and res["model_calls"] == 2
+
+
+def test_text_next_to_a_tool_call_is_not_checked_only_the_query():
+    executed = []
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="중도해지"), text="好的") if n == 1 else AIMessage(content="끝"),
+                 search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = a.ask("해지하면?", "s")
+    assert executed == ["중도해지"] and res["tool_calls"] == 1 and res["model_calls"] == 2 and res["answer"] == "끝"       # 다시 시키지 않고 도구를 실행했다
+
+
+def test_rules_tell_the_model_to_use_korean_only_and_not_to_invent_contacts():
+    t = g.system_text({"today": "2025-03-04"})
+    assert "한국어로만 답한다" in t and "상담원 연결 · 계좌 조회 · 해지 처리" in t and "전화번호나 주소는 도구 결과나 사용자가 말한 것만" in t
