@@ -256,7 +256,7 @@ async function sendChat(question) {
     token: (d) => { answer.append(document.createTextNode(d.text)); scroll(); },
     done: (d) => {
       status.textContent = "완료";
-      const parts = [`검색 ${d.search_ms}ms`];
+      const parts = d.search_ms != null ? [`검색 ${d.search_ms}ms`] : [];      // 가입금액 안내처럼 검색을 거치지 않는 답변은 검색 시간이 없다
       if (d.first_token_ms != null) parts.push(`첫 글자 ${d.first_token_ms}ms`);
       parts.push(`전체 ${d.elapsed_ms}ms`);
       if (d.model) parts.push(d.model);

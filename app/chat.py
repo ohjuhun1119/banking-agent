@@ -1,7 +1,7 @@
 """채팅 스트리밍: 약관 검색 -> 근거를 먼저 보냄 -> 로컬 LLM 답변을 토큰 단위로 흘려보낸다.
 
 SSE(Server-Sent Events) 이벤트
-  status   {"stage": "search" | "generate", "message": ...}
+  status   {"stage": "check" | "search" | "generate", "message": ...}
   sources  {"status": "ok" | "not_found", "results": [...]}      검색 결과(근거 카드)
   token    {"text": "..."}                                         답변 조각 (여러 번)
   done     {"elapsed_ms", "search_ms", "first_token_ms", "model"}
@@ -21,6 +21,9 @@ sys.path.insert(0, str(ROOT / "rag"))        # rag/ 스크립트가 'from search
 
 from rerank import RerankError  # noqa: E402
 from search import search_terms  # noqa: E402
+
+from app.tools.amounts import find_deposit_amount  # noqa: E402
+from app.validators import MIN_PRINCIPAL, below_min_message  # noqa: E402
 
 CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen2.5:7b")
 CHAT_BACKEND = os.environ.get("CHAT_BACKEND", "ollama")        # "fake"는 시험용
@@ -88,6 +91,19 @@ def answer_events(question: str, product: str | None = None, k: int = 5, mode: s
     """(이벤트 이름, 데이터) 쌍을 순서대로 내보내는 제너레이터."""
     t0 = time.perf_counter()
     ms = lambda: int((time.perf_counter() - t0) * 1000)       # noqa: E731
+
+    amount = find_deposit_amount(question)
+    if amount is not None and amount < MIN_PRINCIPAL:         # 가입할 수 없는 금액이면 모델을 거치지 않고 정해진 문구로 답한다
+        yield "status", {"stage": "check", "message": "가입금액 확인 중"}
+        try:                                                  # 근거 카드는 있으면 보여주고, 검색이 안 돼도 안내는 한다
+            ev = search_terms("최소 가입금액", product=product, k=3)
+            if ev["status"] == "ok":
+                yield "sources", {"status": "ok", "results": ev["results"]}
+        except (Exception, SystemExit):
+            pass
+        yield "token", {"text": below_min_message(amount)}
+        yield "done", {"elapsed_ms": ms(), "search_ms": None, "first_token_ms": None, "model": None}
+        return
 
     yield "status", {"stage": "search", "message": "약관 검색 중"}
     try:

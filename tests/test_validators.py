@@ -118,4 +118,19 @@ def test_invalid_and_missing_can_coexist():
 
 def test_errors_carry_label_and_message_for_the_llm():
     err = validate_interest_inputs(**{**OK, "principal": 500_000}).errors[0]
-    assert err["label"] == "원금" and "100만 원" in err["message"] and "500,000" in err["message"]
+    assert err["label"] == "원금" and "최소 가입금액은 100만원입니다" in err["message"] and "500,000" in err["message"]
+
+
+# ---------- 최소 가입금액 안내 문구
+def test_below_minimum_error_uses_the_fixed_notice_and_a_code():
+    from app.validators import MIN_DEPOSIT_NOTICE, MIN_PRINCIPAL
+    err = validate_interest_inputs(**{**OK, "principal": 100_000}).errors[0]
+    assert MIN_DEPOSIT_NOTICE == "최소 가입금액은 100만원입니다." and MIN_PRINCIPAL == 1_000_000
+    assert err["message"].startswith(MIN_DEPOSIT_NOTICE) and "100,000" in err["message"]
+    assert err["code"] == "below_min_principal" and err["value"] == 100_000
+
+
+def test_below_min_message_names_the_amount_and_asks_for_a_larger_one():
+    from app.validators import below_min_message
+    text = below_min_message(100_000)
+    assert text.startswith("최소 가입금액은 100만원입니다.") and "100,000원" in text and "100만원 이상" in text

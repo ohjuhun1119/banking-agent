@@ -18,7 +18,7 @@ from decimal import Decimal
 from fractions import Fraction
 
 from app.tools.dates import completed_months
-from app.validators import LABELS, validate_interest_inputs
+from app.validators import LABELS, below_min_message, validate_interest_inputs
 
 DAY_COUNT = 365                                  # [가정] 문서에 나누는 수가 명시돼 있지 않다
 RATE_STEP = Decimal("0.001")                     # 중도해지금리는 소수점 셋째 자리까지 (넷째 자리에서 절사)
@@ -117,6 +117,9 @@ def calc_interest(principal=None, start_date=None, maturity_date=None, terminati
     """
     v = validate_interest_inputs(principal, start_date, maturity_date, termination_date, base_rate)
     missing = [LABELS[f] for f in v.missing]
+    below = next((e for e in v.errors if e.get("code") == "below_min_principal"), None)
+    if below:                                    # 가입할 수 없는 금액이면 날짜 같은 다른 값을 더 묻지 않고 이 안내만 한다
+        return _fail("invalid_input", below_min_message(below["value"]), errors=v.errors, missing=[])
     if v.errors:
         return _fail("invalid_input", "입력값을 확인해 주세요: " + "; ".join(f"{e['label']}: {e['message']}" for e in v.errors),
                      errors=v.errors, missing=missing)

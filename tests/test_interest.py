@@ -91,7 +91,7 @@ def test_nothing_given_asks_for_every_required_value():
 
 
 def test_invalid_values_take_priority_over_missing_ones():
-    r = calc_interest(principal=500_000)
+    r = calc_interest(principal="천만원")                                  # 형식이 틀린 값 + 아직 못 받은 날짜들
     assert r["status"] == "invalid_input" and r["errors"][0]["field"] == "principal" and "만기일" in r["missing"]
 
 
@@ -170,3 +170,21 @@ def test_section_boundaries(months, label):
 def test_rate_changes_on_the_exact_month_boundary_day():
     day_before, on_day = run(termination_date="2026-01-31"), run(termination_date="2026-02-01")
     assert (day_before["rate_pct"], on_day["rate_pct"]) == ("0.100", "0.150")
+
+
+# ---------- 최소 가입금액 안내: '10만원 넣으면 이자 얼마야?'
+def test_below_minimum_principal_gets_the_notice_and_no_other_questions():
+    r = calc_interest(principal=100_000)                                   # 날짜가 하나도 없어도 날짜를 되묻지 않는다
+    assert r["status"] == "invalid_input" and r["message"].startswith("최소 가입금액은 100만원입니다.")
+    assert r["missing"] == [] and r["errors"][0]["code"] == "below_min_principal"
+    assert "interest_krw" not in r
+
+
+def test_below_minimum_notice_does_not_depend_on_the_other_values():
+    r = run(principal=100_000, termination_date="2026-07-20")
+    assert r["status"] == "invalid_input" and "최소 가입금액은 100만원입니다." in r["message"] and r["missing"] == []
+
+
+def test_other_invalid_values_keep_the_generic_message():
+    r = run(termination_date="2025-12-31")
+    assert r["status"] == "invalid_input" and "최소 가입금액" not in r["message"] and r["message"].startswith("입력값을 확인해 주세요")

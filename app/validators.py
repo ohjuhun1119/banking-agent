@@ -14,6 +14,7 @@ from decimal import Decimal, InvalidOperation
 from app.tools.dates import add_months
 
 MIN_PRINCIPAL = 1_000_000            # 최소 가입금액 100만 원
+MIN_DEPOSIT_NOTICE = "최소 가입금액은 100만원입니다."      # 가입금액이 모자랄 때 사용자에게 그대로 보여주는 문구
 MIN_TERM_MONTHS, MAX_TERM_MONTHS = 1, 60     # 계약기간 1개월 ~ 5년
 MAX_BASE_RATE = Decimal("20")        # 상식 범위 (0 초과 ~ 20% 이하)
 LABELS = {"principal": "원금", "start_date": "신규일", "maturity_date": "만기일",
@@ -30,6 +31,12 @@ class ValidationResult:
     @property
     def ok(self) -> bool:
         return not self.missing and not self.errors
+
+
+def below_min_message(amount: int) -> str:
+    """원금이 최소 가입금액보다 작을 때 사용자에게 보여줄 안내 (채팅과 계산 도구가 같은 문장을 쓴다)."""
+    return (f"{MIN_DEPOSIT_NOTICE} 입력하신 {amount:,}원은 『하나의 정기예금』에 가입할 수 없는 금액이라 이자를 계산하지 않습니다. "
+            "100만원 이상의 금액으로 다시 알려주세요.")
 
 
 def _blank(v) -> bool:
@@ -92,8 +99,8 @@ def validate_interest_inputs(principal=None, start_date=None, maturity_date=None
     parsed: dict = {}
     res = ValidationResult()
 
-    def err(fld: str, msg: str) -> None:
-        res.errors.append({"field": fld, "label": LABELS[fld], "message": msg})
+    def err(fld: str, msg: str, **extra) -> None:
+        res.errors.append({"field": fld, "label": LABELS[fld], "message": msg, **extra})
 
     for fld, value in raw.items():
         if _blank(value):
@@ -106,7 +113,7 @@ def validate_interest_inputs(principal=None, start_date=None, maturity_date=None
             err(fld, str(e))
 
     if "principal" in parsed and parsed["principal"] < MIN_PRINCIPAL:
-        err("principal", f"원금은 100만 원 이상이어야 합니다 (입력: {parsed['principal']:,}원)")
+        err("principal", f"{MIN_DEPOSIT_NOTICE} (입력: {parsed['principal']:,}원)", code="below_min_principal", value=parsed["principal"])
         parsed.pop("principal")
     if "base_rate" in parsed and not (0 < parsed["base_rate"] <= MAX_BASE_RATE):
         err("base_rate", f"기본금리는 0% 초과 20% 이하여야 합니다 (입력: {parsed['base_rate']}%)")
