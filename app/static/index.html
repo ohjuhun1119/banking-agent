@@ -17,6 +17,7 @@
     <button data-tab="chunks">청크</button>
     <button data-tab="check">일괄 확인</button>
     <button data-tab="chat">채팅</button>
+    <button data-tab="calc">이자 계산</button>
   </nav>
 
   <div id="settings">
@@ -84,6 +85,20 @@
         <button type="button" id="chat-stop" class="secondary" hidden>중지</button>
       </form>
       <p class="muted small">지금은 약관 근거로 규칙만 설명합니다 (이자 계산은 4~7일차에 도구로 연결). 답변은 참고용이니 아래 근거 카드를 함께 확인하세요.</p>
+    </section>
+
+    <section id="tab-calc" hidden>
+      <p class="muted">중도해지 이자 계산 도구를 직접 시험합니다. 계산은 모델이 아니라 코드가 하고, 사용한 가정을 결과와 함께 보여줍니다. 세전 기준입니다.</p>
+      <div id="calc-cases" class="chips"></div>
+      <form id="calc-form" class="calc-grid">
+        <label>원금 (원) <input id="c-principal" type="text" placeholder="10000000" autocomplete="off"></label>
+        <label>신규일 <input id="c-start" type="date"></label>
+        <label>만기일 <input id="c-maturity" type="date"></label>
+        <label>해지일 <input id="c-termination" type="date"></label>
+        <label>기본금리 (%) <input id="c-base" type="text" placeholder="경과 6개월 이상일 때만" autocomplete="off"></label>
+        <button type="submit">계산</button>
+      </form>
+      <div id="calc-result"></div>
     </section>
   </main>
 

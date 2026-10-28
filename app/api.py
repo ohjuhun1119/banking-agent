@@ -28,6 +28,8 @@ import rerank as rerank_lib  # noqa: E402
 from search import DEFAULT_MODE, DEFAULT_RERANK, search_terms  # noqa: E402
 
 from app import chat  # noqa: E402
+from app.tools import interest as interest_tool  # noqa: E402
+from app.tools import interest_cases  # noqa: E402
 
 CHUNKS = ROOT / "rag" / "chunks" / "chunks.jsonl"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -177,3 +179,22 @@ def chat_stream(req: ChatRequest):
     events = chat.answer_events(req.question, req.product or None, req.k, req.mode, req.rerank)
     return StreamingResponse(chat.sse(events), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+class CalcRequest(BaseModel):
+    principal: int | float | str | None = None
+    start_date: str | None = None
+    maturity_date: str | None = None
+    termination_date: str | None = None
+    base_rate: float | str | None = None
+
+
+@app.post("/api/calc")
+def api_calc(req: CalcRequest):
+    """중도해지 이자 계산 도구를 그대로 호출한다. 검증 실패도 오류가 아니라 status로 돌려준다 (에이전트가 읽는 형식과 같다)."""
+    return interest_tool.calc_interest(**req.model_dump())
+
+
+@app.get("/api/calc/cases")
+def api_calc_cases():
+    return interest_cases.CASES

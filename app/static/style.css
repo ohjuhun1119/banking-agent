@@ -66,3 +66,12 @@ td.mark { font-size:16px; text-align:center; } .m1 { color:var(--ok); } .m2 { co
 form#chat-form { display:flex; gap:8px; } form#chat-form input { flex:1; font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
 button.secondary { background:#fff; color:var(--text); border:1px solid var(--line); }
 button:disabled { opacity:.5; cursor:not-allowed; }
+
+/* 이자 계산 */
+.calc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; align-items:end; margin:12px 0; }
+.calc-grid label { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--muted); }
+.calc-grid input { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+#calc-result h4 { margin:14px 0 4px; font-size:14px; } #calc-result ul { margin:4px 0; padding-left:20px; }
+.calc-status { display:inline-block; padding:3px 12px; border-radius:999px; font-weight:600; font-size:13px; }
+.calc-status.ok { background:#e6f5ec; color:var(--ok); } .calc-status.warn { background:#fff4e0; color:var(--warn); } .calc-status.bad { background:#fdeaea; color:var(--bad); }
+.calc-ok { color:var(--ok); font-weight:600; } .calc-bad { color:var(--bad); font-weight:600; }

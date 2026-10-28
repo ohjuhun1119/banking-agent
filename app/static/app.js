@@ -72,7 +72,7 @@ $("#tabs").addEventListener("click", (ev) => {
   const name = ev.target.dataset && ev.target.dataset.tab;
   if (!name) return;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b === ev.target));
-  ["search", "chunks", "check", "chat"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
+  ["search", "chunks", "check", "chat", "calc"].forEach((t) => { $("#tab-" + t).hidden = t !== name; });
 });
 
 // ---------- 공통: 선택 상자 채우기 ----------
@@ -302,9 +302,65 @@ $("#chat-form").addEventListener("submit", (ev) => {
 });
 $("#chat-stop").addEventListener("click", () => { if (chatAbort) chatAbort.abort(); });
 
+// ---------- 이자 계산 탭 ----------
+const CALC_STATUS = {
+  ok: ["계산 완료", "ok"], need_base_rate: ["기본금리가 필요해요", "warn"], missing_info: ["값이 더 필요해요", "warn"],
+  invalid_input: ["입력값을 확인해 주세요", "bad"], not_early_termination: ["중도해지가 아니에요", "warn"],
+};
+let CALC_EXPECTED = null;                                   // 기준 사례(A~G)를 불러왔을 때만 기대값과 비교한다
+const won = (n) => `${Number(n).toLocaleString("ko-KR")}원`;
+
+function renderCalc(data) {
+  const box = $("#calc-result");
+  box.replaceChildren();
+  const [label, tone] = CALC_STATUS[data.status] || [data.status, "warn"];
+  box.append(h("div", { class: "calc-status " + tone }, label), h("p", {}, data.message || data.summary || ""));
+  if (data.errors && data.errors.length) box.append(h("ul", {}, data.errors.map((e) => h("li", {}, `${e.label}: ${e.message}`))));
+  if (data.missing && data.missing.length) box.append(h("p", { class: "muted" }, "필요한 값: " + data.missing.join(", ")));
+  if (data.status !== "ok") {
+    if (data.section) box.append(h("p", { class: "muted" }, `경과 ${data.elapsed_days}일 (${data.completed_months}개월) · ${data.section}`));
+    return;
+  }
+  const cells = [["세전 이자", won(data.interest_krw)], ["세전 지급 예상액", won(data.payout_krw)], ["중도해지금리", `연 ${data.rate_pct}%`],
+                 ["구간", data.section], ["경과 / 계약", `${data.elapsed_days}일 / ${data.contract_days}일 (${data.completed_months}개월)`]];
+  box.append(h("div", { class: "summary" }, cells.map(([k, v]) => h("div", { class: "sbox" }, h("b", {}, k), h("span", {}, v)))));
+  if (CALC_EXPECTED) {
+    const same = data.interest_krw === CALC_EXPECTED.interest;
+    box.append(h("p", { class: same ? "calc-ok" : "calc-bad" }, `케이스 ${CALC_EXPECTED.id} 기대값 ${won(CALC_EXPECTED.interest)} → ${same ? "일치 ✓" : "불일치 ✗"}`));
+  }
+  box.append(h("h4", {}, "계산식"), h("pre", { class: "text open" }, data.formula.join("\n")),
+             h("h4", {}, "사용한 가정"), h("ul", {}, data.assumptions.map((a) => h("li", {}, a))));
+  if (data.warnings.length) box.append(h("h4", {}, "주의"), h("ul", {}, data.warnings.map((w) => h("li", {}, w))));
+}
+
+async function runCalc() {
+  try {
+    const data = await api("/api/calc", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ principal: $("#c-principal").value, start_date: $("#c-start").value, maturity_date: $("#c-maturity").value,
+                             termination_date: $("#c-termination").value, base_rate: $("#c-base").value }),
+    });
+    renderCalc(data);
+  } catch (e) {
+    $("#calc-result").replaceChildren(h("p", { class: "msg err" }, e.message));
+  }
+}
+function fillCalc(c) {
+  $("#c-principal").value = c.principal; $("#c-start").value = c.start_date; $("#c-maturity").value = c.maturity_date;
+  $("#c-termination").value = c.termination_date; $("#c-base").value = c.base_rate == null ? "" : c.base_rate;
+  CALC_EXPECTED = c;
+  runCalc();
+}
+["c-principal", "c-start", "c-maturity", "c-termination", "c-base"].forEach((id) => $("#" + id).addEventListener("input", () => { CALC_EXPECTED = null; }));
+$("#calc-form").addEventListener("submit", (ev) => { ev.preventDefault(); runCalc(); });
+async function loadCalcCases() {
+  const cases = await api("/api/calc/cases");
+  cases.forEach((c) => $("#calc-cases").append(h("button", { type: "button", class: "chip", onclick: () => fillCalc(c) }, `케이스 ${c.id} · ${c.label}`)));
+}
+
 // ---------- 시작 ----------
 (async function init() {
   await loadStatus();
-  try { await loadMeta(); await loadChunkList(); await loadExamples(); }
+  try { await loadMeta(); await loadChunkList(); await loadExamples(); await loadCalcCases(); }
   catch (e) { $("#search-msg").className = "msg err"; $("#search-msg").textContent = e.message; }
 })();
