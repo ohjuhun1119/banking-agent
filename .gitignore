@@ -13,5 +13,6 @@ rag/extracted/
 rag/raw/
 rag/extracted/
 rag/chunks/
-rag/manual/hana_deposit_product_sheet.mdrag/models/
+rag/manual/hana_deposit_product_sheet.md
+rag/models/
 rag/models/rag/manual/hana_deposit_product_sheet.md
