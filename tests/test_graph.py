@@ -474,3 +474,19 @@ def test_today_word_uses_the_date_given_to_the_agent():
     assert res["trace"][0]["dropped"] == {}
     b, _ = agent(lambda msgs, n: ai(call("calc_interest", **BASE, termination_date="2025-03-05")) if n == 1 else AIMessage(content="끝"))
     assert b.ask(SAID + " 오늘 해지하면 이자는?", "s", today="2025-03-04")["trace"][0]["dropped"] == {"termination_date": "2025-03-05"}
+
+
+def test_when_the_model_repeats_the_tool_message_the_user_is_asked_for_the_rate():
+    """실제 모델은 되묻는 도구 메시지를 거의 그대로 읽어 준다. 그 메시지가 질문이어야 사용자가 무엇을 답할지 안다."""
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", **BASE, termination_date="2026-12-07"))
+        return AIMessage(content=last_tool_json(msgs)["message"])
+    a, _ = agent(fn)
+    res = a.ask(USER_Q, "s", today="2026-10-28")
+    assert "기본금리(연 %)는 얼마였나요?" in res["answer"] and res["trace"][0]["status"] == "need_base_rate"
+
+
+def test_rules_tell_the_model_to_end_clarifications_with_a_question():
+    t = g.system_text({"today": "2025-03-04"})
+    assert "질문으로 끝낸다" in t and "얼마였는지 사용자에게 질문한다" in t

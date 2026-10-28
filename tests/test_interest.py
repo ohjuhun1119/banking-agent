@@ -188,3 +188,22 @@ def test_below_minimum_notice_does_not_depend_on_the_other_values():
 def test_other_invalid_values_keep_the_generic_message():
     r = run(termination_date="2025-12-31")
     assert r["status"] == "invalid_input" and "최소 가입금액" not in r["message"] and r["message"].startswith("입력값을 확인해 주세요")
+
+
+# ---------- 되묻는 메시지는 질문으로 끝나야 한다 (모델이 도구 메시지를 거의 그대로 읽어 주므로) ----------
+def test_need_base_rate_message_asks_for_the_rate():
+    r = calc_interest(principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01", termination_date="2026-12-07")
+    assert r["status"] == "need_base_rate"
+    assert "11개월" in r["message"] and "기본금리(연 %)는 얼마였나요?" in r["message"] and "적용금리" in r["message"]
+    assert "?" in r["message"] and r["missing"] == ["기본금리"]
+
+
+def test_missing_info_message_asks_for_the_missing_values():
+    r = calc_interest(start_date="2026-01-01")
+    assert r["status"] == "missing_info"
+    assert r["message"] == "계산에 필요한 값이 없습니다: 원금, 만기일, 해지일. 이 값을 알려주세요."
+
+
+def test_rate_question_is_not_asked_when_the_rate_is_not_needed():
+    r = calc_interest(principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01", termination_date="2026-01-21")
+    assert r["status"] == "ok" and "?" not in r["summary"]

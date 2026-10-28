@@ -124,7 +124,7 @@ def calc_interest(principal=None, start_date=None, maturity_date=None, terminati
         return _fail("invalid_input", "입력값을 확인해 주세요: " + "; ".join(f"{e['label']}: {e['message']}" for e in v.errors),
                      errors=v.errors, missing=missing)
     if v.missing:
-        return _fail("missing_info", "계산에 필요한 값이 없습니다: " + ", ".join(missing), missing=missing)
+        return _fail("missing_info", "계산에 필요한 값이 없습니다: " + ", ".join(missing) + ". 이 값을 알려주세요.", missing=missing)
 
     c = v.clean
     start, maturity, termination = c["start_date"], c["maturity_date"], c["termination_date"]
@@ -144,8 +144,9 @@ def calc_interest(principal=None, start_date=None, maturity_date=None, terminati
         rr = compute_rate(months, c["base_rate"], elapsed, contract)
     except MissingBaseRate:
         return _fail("need_base_rate",
-                     f"신규일부터 {months}개월이 지나 6개월 이상 구간입니다. 계산하려면 신규일 당시 홈페이지에 고시된 계약기간별 기본금리(%)가 필요합니다. "
-                     "가입 시 앱에 표시된 적용금리(쿠폰 우대금리 포함)와 다를 수 있습니다.",
+                     f"신규일부터 {months}개월이 지나 6개월 이상 구간이라, 중도해지금리를 계산하려면 기본금리가 필요합니다. "
+                     "신규일 당시 홈페이지에 고시된 계약기간별 기본금리(연 %)는 얼마였나요? "
+                     "(가입 시 앱에 표시된 적용금리(쿠폰 우대금리 포함)와 다를 수 있습니다.)",
                      missing=[LABELS["base_rate"]], **common)
 
     interest = interest_won(c["principal"], rr.rate, elapsed)
