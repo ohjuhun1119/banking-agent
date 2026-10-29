@@ -344,3 +344,34 @@ def test_run_log_shows_what_the_code_did_for_the_model():
     heldout_run.run(agent=A(), only={"H1"}, log=lines.append)
     text = "\n".join(lines)
     assert "[말하지 않은 값 제외 base_rate]" in text and "[질문에서 채움 maturity_date]" in text and "[무시한 인자 filled_args]" in text and "[코드가 먼저 검색]" in text
+
+
+# ---------- 근거 표시: 실행기가 근거를 저장 · 표시하고 빠지면 표시한다 ----------
+def test_the_grader_flags_a_missing_evidence_card_only_when_the_run_recorded_evidence():
+    searched = [trace("search_terms", "ok")]
+    calc_done = [trace("calc_interest", "need_base_rate", args={"principal": 10_000_000, "start_date": "2026-01-01", "maturity_date": "2027-01-01", "termination_date": "2026-12-07"})]
+    assert "no_evidence" in heldout_run.grade(q("H9"), {**result("규칙이에요.", searched), "evidence": [], "today": "2026-10-28"})["flags"]
+    assert "no_evidence" not in heldout_run.grade(q("H9"), {**result("규칙이에요.", searched), "evidence": [{"kind": "약관"}], "today": "2026-10-28"})["flags"]
+    assert "no_evidence" not in heldout_run.grade(q("H9"), {**result("규칙이에요.", searched), "today": "2026-10-28"})["flags"]           # 옛 기록: 점검하지 않는다
+    assert "no_evidence" not in heldout_run.grade(q("H9"), {**result("약관에서 확인되지 않습니다.", [trace("search_terms", "not_found")]), "evidence": [], "today": "2026-10-28"})["flags"]
+    assert "no_evidence" in heldout_run.grade(q("H13"), {**result("기본금리는 얼마였나요?", calc_done), "evidence": [], "today": "2026-10-28"})["flags"]
+    assert "no_evidence" not in heldout_run.grade(q("H4"), {**result("값을 알려주세요.", [trace("calc_interest", "missing_info", args={"termination_date": "2026-10-28"})]), "evidence": [], "today": "2026-10-28"})["flags"]
+
+
+def test_run_saves_the_evidence_and_shows_the_forced_calc_marker():
+    class A:
+        def ask(self, question, session_id, today):
+            return {**result("값을 알려주세요.", [{**trace("calc_interest", "missing_info", args={"principal": 1}), "forced": True, "forced_kind": "calc"}]),
+                    "evidence": [{"kind": "계산"}, {"kind": "약관"}]}
+    lines = []
+    out = heldout_run.run(agent=A(), only={"H19"}, log=lines.append)
+    assert "[코드가 먼저 계산 호출]" in "\n".join(lines) and "근거: 계산, 약관" in "\n".join(lines)
+    assert out["rows"][0]["evidence"] == [{"kind": "계산"}, {"kind": "약관"}]
+
+
+def test_a_calculation_with_only_the_calc_card_is_flagged_as_missing_its_rule_source():
+    done = [trace("calc_interest", "ok", args={"principal": 10_000_000, "start_date": "2026-01-01", "maturity_date": "2027-01-01", "termination_date": "2026-12-07", "base_rate": 3.5})]
+    only_calc = heldout_run.grade(q("H6"), {**result("세전 이자는 1원이에요.", done), "evidence": [{"kind": "계산"}], "today": "2026-10-28"})["flags"]
+    assert "no_rule_source" in only_calc and "no_evidence" not in only_calc
+    both = heldout_run.grade(q("H6"), {**result("세전 이자는 1원이에요.", done), "evidence": [{"kind": "계산"}, {"kind": "약관"}], "today": "2026-10-28"})["flags"]
+    assert "no_rule_source" not in both and "no_evidence" not in both

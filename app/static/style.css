@@ -90,3 +90,5 @@ form#agent-form { display:flex; gap:8px; } form#agent-form input { flex:1; font:
 .agent-trace { font-size:12.5px; color:var(--muted); margin:2px 0 6px; } .agent-trace div { padding:1px 0; word-break:break-word; }
 .agent-trace .bad { color:var(--bad); } .agent-trace .warn { color:var(--warn); }
 .msg-bot.stopped { border-color:var(--warn); } .msg-bot.failed { border-color:var(--bad); color:var(--bad); }
+
+.agent-evidence { white-space:pre-wrap; font:12.5px/1.5 inherit; color:var(--muted); background:var(--panel, rgba(127,127,127,.08)); border-left:3px solid var(--accent, #4a7); padding:6px 10px; margin:6px 0; border-radius:4px; }

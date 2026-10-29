@@ -17,6 +17,8 @@
   asks_format           사용자에게 날짜를 YYYY-MM-DD 형식으로 입력하라고 안내함
   unknown_arg:<이름>    계산 도구에 없는 인자 이름을 넣음 (프롬프트의 내부 낱말을 베낌, H20)
   promises_after_tax    세후 이자를 알려 주겠다고 약속함 (도구는 세전만 계산)
+  no_evidence           검색 결과가 있었거나 계산이 끝났는데 근거 카드가 없음 (코드가 붙이는 근거 표시가 빠짐)
+  no_rule_source        계산이 끝났는데 중도해지 구간표의 약관 출처 카드가 없음 (근거 검색어가 실제 색인에서 그 청크를 못 찾았을 가능성)
   note_leak             도구의 내부 메모('사용자가 말하지 않은 값')가 답변에 노출됨
   model_error     모델 호출 실패
 실행: python eval/heldout_run.py --save eval/heldout/runs/short_name.json     (--only H1,H6: 일부만)
@@ -107,6 +109,13 @@ def grade(q: dict, res: dict) -> dict:
                 flags.append(f"unknown_arg:{name}")
     if promises_after_tax(ans):
         flags.append("promises_after_tax")
+    if "evidence" in res:                                     # 옛 기록에는 이 칸이 없어 점검하지 않는다
+        evidence = res["evidence"] or []
+        done = any(t.get("status") in ("ok", "need_base_rate") for t in calc)
+        if not evidence and (any(t.get("status") == "ok" for t in search) or done):
+            flags.append("no_evidence")                       # 근거가 있어야 할 답변(검색 결과가 있었거나 계산이 끝남)에 근거 카드가 없음
+        elif evidence and done and not any(c.get("kind") == "약관" for c in evidence):
+            flags.append("no_rule_source")                    # 계산 카드는 있는데 중도해지 구간표의 출처를 못 찾음 (고정 검색어가 실제 색인에서 그 청크를 못 찾은 경우)
     if tool_syntax(ans):
         flags.append("tool_syntax")
     if not_found_claim(ans) and not any(t.get("status") == "not_found" for t in search):
@@ -132,13 +141,15 @@ def run(agent=None, only: set[str] | None = None, log=print) -> dict:
                           + (f"[말하지 않은 값 제외 {','.join(t['dropped'])}]" if t.get("dropped") else "")
                           + (f"[질문에서 채움 {','.join(t['filled'])}]" if t.get("filled") else "")
                           + (f"[무시한 인자 {','.join(t['ignored'])}]" if t.get("ignored") else "")
-                          + ("[코드가 먼저 검색]" if t.get("forced") else "") for t in res.get("trace", [])) or "(도구 없음)"
+                          + (("[코드가 먼저 계산 호출]" if t.get("forced_kind") == "calc" else "[코드가 먼저 검색]") if t.get("forced") else "") for t in res.get("trace", [])) or "(도구 없음)"
         rows.append({"id": q["id"], "question": q["question"], "expect": q["expect"], "answer": res.get("answer"), "error": res.get("error"),
-                     "stop_reason": res.get("stop_reason"), "trace": res.get("trace", []), "tool_calls": res.get("tool_calls"),
+                     "stop_reason": res.get("stop_reason"), "trace": res.get("trace", []), "evidence": res.get("evidence") or [], "tool_calls": res.get("tool_calls"),
                      "model_calls": res.get("model_calls"), "ms": res.get("ms"), **g})
         if log:
             ans = (res.get("answer") or res.get("error") or "").replace("\n", " ")
+            ev = ", ".join(c["kind"] for c in res.get("evidence") or [])
             log(f"[{'OK' if g['behavior_ok'] and not g['flags'] else 'NG'}] {q['id']:<3} {q['expect']:<12} {tools}\n      답: {ans[:110]}"
+                + (f"\n      근거: {ev}" if ev else "")
                 + (f"\n      표시: {', '.join(g['flags'])}" if g["flags"] else ""))
     flags = Counter(f.split(":")[0] for r in rows for f in r["flags"])
     summary = {"n": len(rows), "behavior_ok": sum(r["behavior_ok"] for r in rows), "flags": dict(flags),

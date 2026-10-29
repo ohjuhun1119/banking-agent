@@ -860,3 +860,159 @@ def test_check_reply_finds_the_after_tax_promise():
     st = _state("세금 떼고 얼마예요?")
     assert g.check_reply(AIMessage(content="세후 이자도 알려드리겠습니다."), st)[0] == "aftertax"
     assert g.check_reply(AIMessage(content="세후 이자는 계산할 수 없어요. 세전 이자만 알려드릴 수 있어요."), st)[0] is None
+
+
+# ---------- 근거 표시 (1안): 코드가 붙이고 모델은 쓰지 않는다 ----------
+RULE_SRC = {"doc_title": "하나의 정기예금 요약 상품설명서", "section": "중도해지 산출근거", "page": 4, "review_no": "제2025-설명서-199호", "as_of": "2025-09-01"}
+
+
+def rule_search(calls=None):
+    def fn(q, **kw):
+        if calls is not None:
+            calls.append(q)
+        return {"status": "ok", "query": q, "results": [
+            {"rank": 1, "chunk_id": "a", "chunk_type": "약관_조", "source": {"doc_title": "기본약관", "article": "제9조"}, "text": "본문 A", "distance": 0.1},
+            {"rank": 2, "chunk_id": "r", "chunk_type": "중도해지", "source": RULE_SRC, "text": "본문 R", "distance": 0.2}]}
+    return fn
+
+
+CALC_Q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요? 기본금리는 3.5%예요."
+CALC_GOOD = "해지일 2026-12-07에 1000만원을 해지하면 세전 이자는 273,304원이에요."
+
+
+def calc_all(msgs, n):
+    return ai(call("calc_interest", principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01", termination_date="2026-12-07", base_rate=3.5)) if n == 1 \
+        else AIMessage(content=CALC_GOOD)
+
+
+def test_a_calculation_answer_gets_the_calc_card_and_the_rule_chunks_source_attached_by_code():
+    looked = []
+    a, m = agent(calc_all, search_fn=rule_search(looked))
+    res = a.ask(CALC_Q, "s", today=TODAY_H)
+    assert res["answer"] == CALC_GOOD                                           # 모델의 답변은 그대로 (근거는 따로 붙는다)
+    assert [c["kind"] for c in res["evidence"]] == ["계산", "약관"] and res["evidence"][1]["chunk_id"] == "r" and "text" not in res["evidence"][1]
+    assert looked == [g.LOOKUP_QUERY]                                           # 사용자의 질문이 아니라 중도해지 규칙을 찾는 고정 검색어
+    assert res["evidence_text"].startswith("근거\n- [계산]") and "273,304원" in res["evidence_text"] and "심의 제2025-설명서-199호" in res["evidence_text"]
+    assert res["model_calls"] == 2 and res["tool_calls"] == 1                   # 근거 찾기는 모델도 도구 한도도 쓰지 않는다
+
+
+def test_a_rule_answer_gets_the_searched_sources_and_no_body_text():
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="일부 해지")) if n == 1 else AIMessage(content="일부 해지는 약관에 따라 가능해요."), search_fn=rule_search())
+    res = a.ask("일부만 해지할 수 있어요?", "s")
+    assert [c["chunk_id"] for c in res["evidence"]] == ["a", "r"] and all(c["kind"] == "약관" for c in res["evidence"])
+    assert "본문" not in json.dumps(res["evidence"], ensure_ascii=False) and "본문" not in res["evidence_text"]
+
+
+def test_need_base_rate_shows_why_the_rate_is_needed_and_missing_info_shows_nothing():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01", termination_date="2026-12-07"))
+                 if n == 1 else AIMessage(content="신규일 당시 기본금리(연 %)는 얼마였나요?"), search_fn=rule_search())
+    res = a.ask("1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면?", "s", today=TODAY_H)
+    assert [c["kind"] for c in res["evidence"]] == ["약관"] and "경과 6개월 이상" in res["evidence"][0]["role"]
+    b, mb = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000)) if n == 1 else AIMessage(content="신규일과 만기일을 알려주세요."), search_fn=rule_search())
+    res2 = b.ask("1000만원 넣었어요. 이자 얼마예요?", "s", today=TODAY_H)
+    assert res2["evidence"] == [] and res2["evidence_text"] == ""
+
+
+def test_no_evidence_for_small_talk_handoff_limit_errors_and_replaced_answers():
+    a, m = agent(lambda msgs, n: AIMessage(content="안녕하세요!"), search_fn=rule_search())
+    assert a.ask("안녕하세요", "s")["evidence"] == []
+    h = a.ask("상담원 연결해줘", "s")
+    assert h["evidence"] == [] and h["evidence_text"] == "" and h["stop_reason"] == "handoff_not_ready"
+    b, mb = agent(lambda msgs, n: AIMessage(content="약관상 가능해요."), max_tool_calls=0, search_fn=rule_search())
+    assert b.ask("중도해지하면 이율이 어떻게 돼요?", "s")["evidence"] == []                     # 호출 한도에 걸림
+    c, mc = agent(lambda msgs, n: (_ for _ in ()).throw(RuntimeError("ollama off")))
+    assert c.ask("질문", "s")["evidence"] == []                                              # 모델 오류
+    d, md = agent(lambda msgs, n: ai(call("search_terms", query="x")) if n == 1 else AIMessage(content="利息很高"), search_fn=rule_search())
+    res = d.ask("해지하면?", "s")
+    assert res["answer"] == g.UNSAFE_TEXT and res["evidence"] == []                          # 점검에 걸려 대체된 답변에는 근거를 붙이지 않는다
+
+
+def test_evidence_is_per_turn_and_a_failing_lookup_never_breaks_the_answer():
+    state = {"n": 0}
+
+    def fn(msgs, n):
+        state["n"] += 1
+        return calc_all(msgs, n) if state["n"] <= 2 else AIMessage(content="네.")
+    a, m = agent(fn, search_fn=lambda q, **kw: (_ for _ in ()).throw(RuntimeError("검색 실패")))
+    res = a.ask(CALC_Q, "s", today=TODAY_H)
+    assert res["answer"] == CALC_GOOD and [c["kind"] for c in res["evidence"]] == ["계산"]    # 약관 카드만 빠진다
+    assert a.ask("고마워요", "s")["evidence"] == []                                          # 앞 질문의 근거가 남지 않는다
+
+
+def test_a_search_that_found_nothing_says_so_instead_of_citing_something_else():
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="대출 한도")) if n == 1 else AIMessage(content="약관에서 확인되지 않습니다."),
+                 search_fn=lambda q, **kw: {"status": "not_found", "query": q, "results": []})
+    res = a.ask("예금 대출 한도가 얼마예요?", "s")
+    assert res["evidence"] == [{"kind": "약관", "found": False, "role": "관련 약관을 찾지 못했습니다"}]
+
+
+# ---------- 계산을 알려 달라는 질문은 강제 검색 대신 강제 계산 호출 (H19) ----------
+def test_h19_an_amount_question_answered_without_tools_calls_the_calculator_first_not_the_search():
+    searched = []
+    seen_results = []
+
+    def fn(msgs, n):
+        if n == 1:
+            return AIMessage(content="이자 차이는 다음과 같습니다: 1개월 미만 연 0.10% …")          # 수정 전: 엉뚱한 구간표를 나열
+        seen_results.append(last_tool_json(msgs))
+        return AIMessage(content="원금과 신규일, 만기일을 알려주세요.")
+    a, m = agent(fn, search_fn=lambda q, **kw: searched.append(q) or rule_search()(q))
+    res = ask_held(a, "H19")
+    t = res["trace"][0]
+    assert searched == [] and t["name"] == "calc_interest" and t["forced"] is True and t["forced_kind"] == "calc"
+    assert seen_results[0]["status"] == "missing_info" and res["answer"] == "원금과 신규일, 만기일을 알려주세요." and res["tool_calls"] == 1
+    assert "0.10%" not in res["answer"] and res["evidence"] == []
+
+
+def test_a_forced_calculation_fills_whatever_the_question_already_says():
+    q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 이자 얼마 받아요?"
+    a, m = agent(lambda msgs, n: AIMessage(content="이자는 계산해 봐야 해요.") if n == 1 else AIMessage(content="해지일을 알려주세요."))
+    res = a.ask(q, "s", today=TODAY_H)
+    t = res["trace"][0]
+    assert t["forced_kind"] == "calc" and t["filled"] == {"principal": 10_000_000, "start_date": "2026-01-01", "maturity_date": "2027-01-01"}
+    assert t["status"] == "missing_info"                                            # 해지일만 없다
+
+
+def test_rule_and_method_questions_still_get_the_forced_search():
+    for q in ("예금 만기일이 지나도 안 찾았는데 지금 해지하면 이자는 어떻게 계산돼요?", "해지 신청만 해두고 돈은 내일 받아도 오늘 날짜 기준으로 이자 계산되나요?",
+              "1,200만 원 예금 중에 300만 원만 먼저 뺄 수 있어요?"):
+        executed = []
+        a, m = agent(lambda msgs, n: AIMessage(content="약관상 가능해요.") if n == 1 else AIMessage(content="검색 결과에 따르면 가능해요."),
+                     search_fn=lambda query, **kw: executed.append(query) or rule_search()(query))
+        res = a.ask(q, "s")
+        assert executed[:1] == [q] and res["trace"][0]["forced_kind"] == "search", q
+
+
+@pytest.mark.parametrize("question,reply,tools,expected", [
+    ("지금 해지하면 이자 얼마 받아요?", AIMessage(content="답"), [], "calc"), ("중도해지하면 이율이 어떻게 돼요?", AIMessage(content="답"), [], "search"),
+    ("안녕하세요", AIMessage(content="약관에서 확인되지 않습니다."), [], "search"), ("이자 얼마예요?", AIMessage(content="답"), [("calc_interest", {"status": "ok"})], None),
+    ("이자 얼마예요?", ai(call("calc_interest")), [], None), ("안녕하세요", AIMessage(content="안녕"), [], None), ("날씨 얼마나 나와요?", AIMessage(content="맑아요"), [], None),
+])
+def test_forced_tool_choice(question, reply, tools, expected):
+    assert g.forced_tool(reply, _state(question, tools)) == expected
+
+
+def test_the_command_line_prints_the_evidence_after_the_answer(capsys):
+    res = {"trace": [], "error": None, "answer": "답변이에요.", "tool_calls": 0, "model_calls": 1, "ms": 1, "stop_reason": None, "confirmed_text": "",
+           "evidence_text": "근거\n- [약관] 기본약관 · 제9조 (검색된 약관)"}
+    g._print_result(res)
+    out = capsys.readouterr().out
+    assert out.index("답변이에요.") < out.index("근거\n- [약관]")
+
+
+def test_evidence_of_an_earlier_turn_never_leaks_into_turns_that_skip_the_evidence_step():
+    """근거 노드를 거치지 않는 턴(상담원 요청 · 호출 한도)에서 앞 질문의 근거가 남으면 안 된다."""
+    state = {"n": 0}
+
+    def fn(msgs, n):
+        state["n"] += 1
+        if state["n"] <= 2:
+            return calc_all(msgs, n)
+        return ai(call("search_terms", query="a"), call("search_terms", query="b"))     # 한 번에 2개를 불러 한도(1)를 넘긴다
+    a, m = agent(fn, search_fn=rule_search(), max_tool_calls=1)
+    first = a.ask(CALC_Q, "s", today=TODAY_H)
+    assert [c["kind"] for c in first["evidence"]] == ["계산", "약관"]
+    handoff = a.ask("상담원 연결해줘", "s")
+    assert handoff["stop_reason"] == "handoff_not_ready" and handoff["evidence"] == [] and handoff["evidence_text"] == ""
+    limited = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
+    assert limited["stop_reason"] == "tool_limit" and limited["evidence"] == [] and limited["evidence_text"] == ""

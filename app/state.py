@@ -35,6 +35,7 @@ class AgentState(TypedDict, total=False):
     stop_reason: str | None
     error: str | None
     confirmed: dict
+    evidence: list[dict]
 
 
 _PARSERS = {"principal": parse_principal, "start_date": parse_date, "maturity_date": parse_date,

@@ -45,6 +45,7 @@ from langgraph.graph import END, START, StateGraph  # noqa: E402
 from app import tool_calling as tc  # noqa: E402
 from app.answer_check import (foreign_script, handoff_request, not_found_claim, promises_after_tax, tool_syntax,  # noqa: E402
                               unsupported_phone_numbers, ungrounded_values)
+from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evidence  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
@@ -232,13 +233,21 @@ def fallback_text(state: dict) -> str:
     return UNSAFE_TEXT
 
 
-def needs_forced_search(ai, state: dict) -> bool:
-    """도구를 하나도 안 부르고 끝내려는 답이 약관 질문이거나 '약관에서 확인되지 않는다'는 말이면 True (검색이 먼저다)."""
+def forced_tool(ai, state: dict) -> str | None:
+    """도구를 하나도 안 부르고 끝내려는 답에 코드가 먼저 부를 도구: 'calc' / 'search' / None.
+    예금 관련 낱말이 있거나 '약관에서 확인되지 않는다'는 말이면 검색이 먼저인데, 이자가 얼마인지 묻는 질문(calc_intent)은 약관 구간표를 나열하는 검색 대신
+    계산 도구를 먼저 불러 필요한 값을 되묻게 한다 (검증용 H19: 만기 한 달 전 해지인데 '1개월 미만 0.10%'부터 나열)."""
     msgs = state["messages"]
     if getattr(ai, "tool_calls", None) or any(isinstance(m, ToolMessage) for m in msgs[_turn_start(msgs):]):
-        return False
-    question = msgs[_turn_start(msgs)].content if msgs else ""
-    return bool(DOMAIN_WORDS.search(str(question))) or not_found_claim(str(ai.content))
+        return None
+    question = str(msgs[_turn_start(msgs)].content) if msgs else ""
+    if not (DOMAIN_WORDS.search(question) or not_found_claim(str(ai.content))):
+        return None
+    return "calc" if calc_intent(question) else "search"
+
+
+def needs_forced_search(ai, state: dict) -> bool:
+    return forced_tool(ai, state) is not None
 
 
 def forced_search_message(state: dict) -> AIMessage:
@@ -246,6 +255,12 @@ def forced_search_message(state: dict) -> AIMessage:
     question = str(msgs[_turn_start(msgs)].content).strip()
     return AIMessage(content="", tool_calls=[{"name": "search_terms", "args": {"query": question}, "id": f"forced-{uuid.uuid4().hex[:12]}", "type": "tool_call"}],
                      additional_kwargs={"forced_search": True})
+
+
+def forced_calc_message(state: dict) -> AIMessage:
+    """값 없이 계산 도구를 부른다: 도구 실행 단계가 질문에서 읽을 수 있는 값을 채우고, 부족한 값은 도구가 되묻는다."""
+    return AIMessage(content="", tool_calls=[{"name": "calc_interest", "args": {}, "id": f"forced-{uuid.uuid4().hex[:12]}", "type": "tool_call"}],
+                     additional_kwargs={"forced_calc": True})
 
 
 def make_agent_node(get_model):
@@ -261,7 +276,10 @@ def make_agent_node(get_model):
                 ai, calls = model.invoke(msgs + [SystemMessage(content=note)]), 2
                 if check_reply(ai, state)[0]:
                     ai = AIMessage(content=fallback_text(state))
-            if needs_forced_search(ai, state):                # 약관 질문에 검색 없이 답하려 하면 코드가 먼저 검색한다
+            kind = forced_tool(ai, state)                     # 도구 없이 답하려 하면 코드가 먼저 도구를 부른다
+            if kind == "calc":
+                ai = forced_calc_message(state)
+            elif kind == "search":
                 ai = forced_search_message(state)
         except Exception as e:                                # Ollama 꺼짐, 모델 없음 등
             return _rollback(state, f"모델 호출 실패 ({tc.TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {tc.TOOL_MODEL}'를 확인하세요.")
@@ -288,7 +306,9 @@ def make_tools_node(search_fn, timeout):
         trace = list(state.get("trace") or [])
         confirmed = dict(state.get("confirmed") or {})
         seen = {_args_key(t["name"], t["args"]) for t in trace}
-        forced = bool((getattr(last, "additional_kwargs", None) or {}).get("forced_search"))
+        kw = getattr(last, "additional_kwargs", None) or {}
+        forced_kind = "search" if kw.get("forced_search") else "calc" if kw.get("forced_calc") else None
+        forced = forced_kind is not None
         out, final_args = [], {}
         for call in last.tool_calls:
             name, args = call["name"], dict(call.get("args") or {})
@@ -318,7 +338,7 @@ def make_tools_node(search_fn, timeout):
             seen.add(key)
             count += 1
             trace.append({"name": name, "args": args, "status": result.get("status"), "ms": int((time.perf_counter() - t0) * 1000),
-                          "retried": retried, "duplicate": duplicate, "dropped": dropped, "filled": filled, "ignored": ignored, "forced": forced})
+                          "retried": retried, "duplicate": duplicate, "dropped": dropped, "filled": filled, "ignored": ignored, "forced": forced, "forced_kind": forced_kind})
             out.append(ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call.get("id") or "", name=name))
         messages = out
         if final_args:                                        # 모델의 호출 기록에도 지어낸 값이 남지 않게, 실제로 쓴 값으로 바꿔 둔다 (같은 id로 교체)
@@ -326,6 +346,20 @@ def make_tools_node(search_fn, timeout):
             messages = [AIMessage(content=last.content, tool_calls=fixed, id=last.id, additional_kwargs=last.additional_kwargs)] + out
         return {"messages": messages, "tool_calls": count, "trace": trace, "confirmed": confirmed}
     return tools
+
+
+def make_evidence_node(search_fn, timeout):
+    def evidence(state: dict) -> dict:
+        """최종 답변이 나간 뒤 코드가 근거 카드를 만든다 (모델은 관여하지 않는다). 점검에 걸려 대체된 답변에는 붙이지 않는다."""
+        last = state["messages"][-1]
+        if str(getattr(last, "content", "")) in (UNSAFE_TEXT, EMPTY_TEXT):
+            return {"evidence": []}
+
+        def lookup():
+            result, _ = run_guarded("search_terms", {"query": LOOKUP_QUERY}, timeout, search_fn)
+            return result
+        return {"evidence": build_evidence(_turn_tool_results(state), lookup)}
+    return evidence
 
 
 def limit_node(state: dict) -> dict:
@@ -353,13 +387,14 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
             return END
         calls = getattr(state["messages"][-1], "tool_calls", None) or []
         if not calls:
-            return END
+            return "evidence"                                 # 최종 답변: 코드가 근거 카드를 붙인다
         return "limit" if state.get("tool_calls", 0) + len(calls) > limit else "tools"
 
     builder = StateGraph(AgentState)
     builder.add_node("agent", make_agent_node(get_model))
     builder.add_node("tools", make_tools_node(search_fn, tool_timeout))
     builder.add_node("limit", limit_node)
+    builder.add_node("evidence", make_evidence_node(search_fn, tool_timeout))
     def entry(state: dict) -> str:                            # 이번 질문이 상담원 연결 요청이면 모델을 거치지 않는다
         last = state["messages"][-1]
         return "handoff" if isinstance(last, HumanMessage) and handoff_request(last.content) else "agent"
@@ -367,7 +402,8 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
     builder.add_node("handoff", handoff_node)
     builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff"})
     builder.add_edge("handoff", END)
-    builder.add_conditional_edges("agent", route, {"tools": "tools", "limit": "limit", END: END})
+    builder.add_conditional_edges("agent", route, {"tools": "tools", "limit": "limit", "evidence": "evidence", END: END})
+    builder.add_edge("evidence", END)
     builder.add_edge("tools", "agent")                        # 결과를 모델에 다시 전달
     builder.add_edge("limit", END)
     return builder.compile(checkpointer=checkpointer or MemorySaver())
@@ -387,13 +423,15 @@ class Agent:
         t0 = time.perf_counter()
         # confirmed와 messages는 일부러 넣지 않는다: 체크포인터에 저장된 세션 값이 이어진다
         final = self.graph.invoke({"messages": [HumanMessage(question)], "today": today, "tool_calls": 0, "model_calls": 0,
-                                   "trace": [], "stop_reason": None, "error": None}, cfg)
+                                   "trace": [], "stop_reason": None, "error": None, "evidence": []}, cfg)
         last = final["messages"][-1] if final.get("messages") else None
         answer = None if final.get("error") else (last.content if isinstance(last, AIMessage) and not last.tool_calls else None)
         confirmed = final.get("confirmed") or {}
         return {"answer": answer, "error": final.get("error"), "stop_reason": final.get("stop_reason"),
                 "tool_calls": final.get("tool_calls", 0), "model_calls": final.get("model_calls", 0), "trace": final.get("trace", []),
                 "confirmed": confirmed, "confirmed_text": describe_confirmed(confirmed), "session_id": session_id,
+                "evidence": [] if final.get("error") else final.get("evidence") or [],
+                "evidence_text": "" if final.get("error") else format_evidence(final.get("evidence") or []),
                 "ms": int((time.perf_counter() - t0) * 1000)}
 
     def reset(self, session_id: str = "default") -> None:
@@ -409,12 +447,14 @@ def _print_result(res: dict) -> None:
     for t in res["trace"]:
         flags = ((" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
                  + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else "")
-                 + (f" (질문에서 채움: {describe_dropped(t['filled'])})" if t.get("filled") else "") + (" (코드가 먼저 검색)" if t.get("forced") else ""))
+                 + (f" (질문에서 채움: {describe_dropped(t['filled'])})" if t.get("filled") else "") + ((" (코드가 먼저 계산 호출)" if t.get("forced_kind") == "calc" else " (코드가 먼저 검색)") if t.get("forced") else ""))
         print(f"  도구: {t['name']} {json.dumps(t['args'], ensure_ascii=False)} -> {t['status']} ({t['ms']}ms){flags}")
     if res["error"]:
         print(f"[오류] {res['error']}")
     else:
         print(res["answer"])
+        if res.get("evidence_text"):
+            print("\n" + res["evidence_text"])
     note = f"  (도구 {res['tool_calls']}회 · 모델 {res['model_calls']}회 · {res['ms']}ms"
     note += f" · 중단: {res['stop_reason']}" if res["stop_reason"] else ""
     print(note + ")")

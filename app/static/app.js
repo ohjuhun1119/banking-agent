@@ -443,7 +443,7 @@ function agentTrace(trace) {
     const dropped = Object.entries(t.dropped || {}), filled = Object.entries(t.filled || {});
     return h("div", { class: TRACE_TONE[t.status] || "" },
       `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
-      + (t.forced ? " · 코드가 먼저 검색" : "") + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
+      + (t.forced ? (t.forced_kind === "calc" ? " · 코드가 먼저 계산 호출" : " · 코드가 먼저 검색") : "") + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
       + (dropped.length ? ` · 말하지 않은 값 제외: ${dropped.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "")
       + (filled.length ? ` · 질문에서 채움: ${filled.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "") + ` · ${t.ms}ms`);
   }));
@@ -459,6 +459,7 @@ function renderAgentTurn(data, pending) {
     bubble.textContent = data.answer || "(빈 답변)";
     if (data.stop_reason) bubble.classList.add("stopped");
   }
+  if (data.evidence_text) pending.append(h("pre", { class: "agent-evidence" }, data.evidence_text));      // 코드가 붙인 근거 (모델이 쓴 것이 아니다)
   pending.append(h("div", { class: "muted small" }, `도구 ${data.tool_calls}회 · 모델 ${data.model_calls}회 · ${data.ms}ms` + (data.stop_reason ? ` · ${STOP_LABEL[data.stop_reason] || "중단: " + data.stop_reason}` : "")));
   $("#agent-confirmed").textContent = data.confirmed_text ? "확인된 값: " + data.confirmed_text : "";
 }

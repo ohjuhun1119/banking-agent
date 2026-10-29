@@ -100,3 +100,29 @@ def test_handoff_request_is_answered_without_calling_the_model(fresh):
     fresh(must_not_be_called)
     body = ask(question="상담원 연결해줘", session_id="h1").json()
     assert body["answer"] == g.HANDOFF_TEXT and body["stop_reason"] == "handoff_not_ready" and body["model_calls"] == 0 and body["error"] is None
+
+
+def test_ask_returns_the_evidence_the_code_attached():
+    import json
+
+    from langchain_core.messages import AIMessage
+    from app import graph as g
+
+    class Fake:
+        n = 0
+
+        def invoke(self, msgs):
+            Fake.n += 1
+            if Fake.n == 1:
+                return AIMessage(content="", tool_calls=[{"name": "calc_interest", "id": "c", "type": "tool_call", "args": {
+                    "principal": 10_000_000, "start_date": "2026-01-01", "maturity_date": "2027-01-01", "termination_date": "2026-12-07", "base_rate": 3.5}}])
+            return AIMessage(content="해지일 2026-12-07에 1000만원을 해지하면 세전 이자는 273,304원이에요.")
+
+    def search(q, **kw):
+        return {"status": "ok", "query": q, "results": [{"rank": 1, "chunk_id": "r", "chunk_type": "중도해지", "text": "본문", "source": {"doc_title": "상품설명서", "page": 4}}]}
+    api._agent = g.Agent(model=Fake(), search_fn=search)
+    r = client.post("/api/agent/ask", json={"question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요? 기본금리는 3.5%예요.", "session_id": "ev"})
+    assert r.status_code == 200
+    d = r.json()
+    assert [c["kind"] for c in d["evidence"]] == ["계산", "약관"] and d["evidence_text"].startswith("근거") and "상품설명서" in d["evidence_text"]
+    assert "본문" not in json.dumps(d["evidence"], ensure_ascii=False)
