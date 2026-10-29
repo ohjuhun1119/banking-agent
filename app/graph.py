@@ -29,7 +29,9 @@ import json
 import os
 import sys
 import threading
+import re
 import time
+import uuid
 from datetime import date
 from pathlib import Path
 
@@ -41,8 +43,10 @@ from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
-from app.answer_check import foreign_script, handoff_request, unsupported_phone_numbers  # noqa: E402
-from app.grounding import describe_dropped, ground_calc_args  # noqa: E402
+from app.answer_check import (foreign_script, handoff_request, not_found_claim, tool_syntax, unsupported_phone_numbers,  # noqa: E402
+                              ungrounded_values)
+from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
+from app.slots import fill_missing_from_text  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
 
 MAX_TOOL_CALLS = int(os.environ.get("MAX_TOOL_CALLS", "5"))          # 한 질문에서 부를 수 있는 도구 횟수 (노션 오류 처리 표: 예 5회)
@@ -62,7 +66,13 @@ RETRY_NOTES = {
     "language": "직전 답변에 한국어가 아닌 글자(중국어 · 일본어)가 섞였다. 한국어(한글)로만 다시 답한다.",
     "phone": ("직전 답변에 근거 없는 전화번호가 들어 있다. 전화번호는 도구 결과나 사용자가 말한 것만 말한다. "
               "없으면 번호 없이 하나은행 고객센터나 영업점에 문의하라고만 안내한다."),
+    "syntax": "직전 답변에 도구 호출 문법이 글로 들어 있다. 도구가 필요하면 직접 호출하고, 아니면 한국어 문장으로만 답한다.",
+    "ungrounded": ("직전 답변에 사용자가 말하지 않았고 도구 결과에도 없는 날짜 · 금액({values})이 들어 있다. 그 값은 말하지 않는다 (추측 · 가정도 안 된다). "
+                   "사용자가 말한 값과 도구 결과의 값만 쓰고, 모르는 값은 질문한다."),
+    "not_found": "검색 결과가 있는데 '약관에서 확인되지 않는다'고 했다. 검색 결과에 있는 내용으로 답한다.",
 }
+# 약관 · 이자 질문(예금 관련 낱말이 있는 질문)에 모델이 도구를 하나도 안 부르고 답하려 하면, 코드가 먼저 약관 검색을 실행해 근거로 준다
+DOMAIN_WORDS = re.compile(r"해지|해약|중도|만기|이자|이율|금리|약관|원금|예금|예치|가입|보호|과세|세금|재예치|인출|일부")
 
 # 도구 결과를 받은 뒤의 행동 규칙. 7일차에 근거 표시와 검색 -> 계산 연결을 다듬으면서 고친다.
 GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 고른다.
@@ -74,7 +84,10 @@ GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 �
 - 약관 검색 결과: 결과에 있는 내용만 답한다. not_found면 '약관에서 확인되지 않습니다'라고 안내한다.
 - error: 잠시 후 다시 시도하거나 상담원 연결을 이용해 달라고 안내한다.
 - need_base_rate, missing_info, invalid_input이면 설명만 하고 끝내지 말고, 필요한 값을 알려 달라는 질문으로 끝낸다.
-- 결과에 dropped_args가 있으면: 그 값은 사용자가 말하지 않아서 계산에 쓰지 않았다는 뜻이다. 계산에 필요한 값이면 사용자에게 묻는다.
+- 결과에 dropped_args가 있으면: 그 칸의 값은 사용자가 말하지 않아서 계산에 쓰지 않았다는 뜻이다. 그 값을 추측해서 말하지 말고, 필요하면 사용자에게 묻는다.
+- 결과에 filled_args가 있으면: 사용자가 말한 값을 질문에서 찾아 채운 것이다.
+- 사용자가 말하지 않은 날짜 · 금액은 답변에 쓰지 않는다 (추측 · 가정 · 예시도 안 된다).
+- 약관에서 확인되지 않습니다는 약관 검색 결과가 not_found일 때만 쓴다. 약관 질문은 먼저 검색 도구로 확인한다.
 같은 도구를 같은 값으로 다시 부르지 않는다. 결과가 나왔으면 그 결과로 답한다.
 한국어로만 답한다. 중국어 · 일본어 · 영어를 섞지 않는다.
 너는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 할 수 있다. 상담원 연결 · 계좌 조회 · 해지 처리 같은 실제 업무는 할 수 없다고 말한다. 전화번호나 주소는 도구 결과나 사용자가 말한 것만 말하고, 없으면 만들지 않는다."""
@@ -162,19 +175,74 @@ def _rollback(state: dict, reason: str) -> dict:
             "model_calls": state.get("model_calls", 0) + 1}
 
 
-def check_reply(ai, state: dict) -> str | None:
-    """모델 응답의 문제를 찾는다: 'language'(한자 · 가나 섞임) / 'phone'(근거 없는 전화번호) / None.
+def _turn_tool_results(state: dict) -> list[tuple[str, dict]]:
+    """이번 질문에서 나온 도구 결과 [(도구 이름, 결과 dict)]."""
+    msgs = state["messages"]
+    out = []
+    for m in msgs[_turn_start(msgs):]:
+        if isinstance(m, ToolMessage):
+            try:
+                out.append((m.name, json.loads(m.content)))
+            except (TypeError, ValueError):
+                out.append((m.name, {}))
+    return out
+
+
+def _allowed_texts(state: dict, whole_conversation: bool) -> list[str]:
+    """답변이 말해도 되는 근거 글: 사용자 말 + 도구 결과(+ 확인된 값). 전화번호는 이번 질문의 도구 결과만, 날짜 · 금액은 대화 전체의 도구 결과를 허용한다."""
+    msgs = state["messages"]
+    start = _turn_start(msgs)
+    texts = [m.content for i, m in enumerate(msgs) if isinstance(m, HumanMessage) or (isinstance(m, ToolMessage) and (whole_conversation or i >= start))]
+    texts.append(" ".join(str(v) for v in (state.get("confirmed") or {}).values()))
+    return texts
+
+
+def check_reply(ai, state: dict) -> tuple[str | None, str]:
+    """모델 응답의 문제를 찾는다. 반환: (문제, 설명). 문제: 'language'(한자 · 가나) / 'syntax'(도구 호출 문법이 글로 나옴) /
+    'phone'(근거 없는 전화번호) / 'ungrounded'(근거 없는 날짜 · 금액) / 'not_found'(검색 결과가 있는데 '확인되지 않는다'고 함) / None.
     도구 호출이면 검색어만, 최종 답변이면 본문 전체를 본다."""
     calls = getattr(ai, "tool_calls", None) or []
     if calls:
-        return "language" if any(foreign_script((c.get("args") or {}).get("query")) for c in calls if c.get("name") == "search_terms") else None
+        bad = any(foreign_script((c.get("args") or {}).get("query")) for c in calls if c.get("name") == "search_terms")
+        return ("language", "") if bad else (None, "")
     text = str(ai.content)
     if foreign_script(text):
-        return "language"
+        return "language", ""
+    if tool_syntax(text):
+        return "syntax", ""
+    if unsupported_phone_numbers(text, *_allowed_texts(state, whole_conversation=False)):
+        return "phone", ""
+    extra = ungrounded_values(text, _allowed_texts(state, whole_conversation=True), _today(state))
+    if extra:
+        return "ungrounded", ", ".join(extra)
+    results = _turn_tool_results(state)
+    if not_found_claim(text) and any(n == "search_terms" for n, _ in results) and not any(r.get("status") == "not_found" for n, r in results):
+        return "not_found", ""
+    return None, ""
+
+
+def fallback_text(state: dict) -> str:
+    """점검을 통과하지 못한 답변 대신 보낼 문구: 도구가 사용자에게 값을 물어보는 중이었다면 그 도구의 질문을, 아니면 고정 문구를."""
+    for name, result in reversed(_turn_tool_results(state)):
+        if result.get("status") in ("missing_info", "need_base_rate") and isinstance(result.get("message"), str):
+            return result["message"]
+    return UNSAFE_TEXT
+
+
+def needs_forced_search(ai, state: dict) -> bool:
+    """도구를 하나도 안 부르고 끝내려는 답이 약관 질문이거나 '약관에서 확인되지 않는다'는 말이면 True (검색이 먼저다)."""
     msgs = state["messages"]
-    start = _turn_start(msgs)
-    allowed = [m.content for i, m in enumerate(msgs) if isinstance(m, HumanMessage) or (isinstance(m, ToolMessage) and i >= start)]
-    return "phone" if unsupported_phone_numbers(text, *allowed) else None
+    if getattr(ai, "tool_calls", None) or any(isinstance(m, ToolMessage) for m in msgs[_turn_start(msgs):]):
+        return False
+    question = msgs[_turn_start(msgs)].content if msgs else ""
+    return bool(DOMAIN_WORDS.search(str(question))) or not_found_claim(str(ai.content))
+
+
+def forced_search_message(state: dict) -> AIMessage:
+    msgs = state["messages"]
+    question = str(msgs[_turn_start(msgs)].content).strip()
+    return AIMessage(content="", tool_calls=[{"name": "search_terms", "args": {"query": question}, "id": f"forced-{uuid.uuid4().hex[:12]}", "type": "tool_call"}],
+                     additional_kwargs={"forced_search": True})
 
 
 def make_agent_node(get_model):
@@ -184,11 +252,14 @@ def make_agent_node(get_model):
             msgs = prompt_messages(state)
             model = get_model()
             ai, calls = model.invoke(msgs), 1
-            problem = check_reply(ai, state)
+            problem, detail = check_reply(ai, state)
             if problem:                                       # 한 번만 다시 시키고, 그래도 문제면 고정 문구로 바꾼다
-                ai, calls = model.invoke(msgs + [SystemMessage(content=RETRY_NOTES[problem])]), 2
-                if check_reply(ai, state):
-                    ai = AIMessage(content=UNSAFE_TEXT)
+                note = RETRY_NOTES[problem].format(values=detail)
+                ai, calls = model.invoke(msgs + [SystemMessage(content=note)]), 2
+                if check_reply(ai, state)[0]:
+                    ai = AIMessage(content=fallback_text(state))
+            if needs_forced_search(ai, state):                # 약관 질문에 검색 없이 답하려 하면 코드가 먼저 검색한다
+                ai = forced_search_message(state)
         except Exception as e:                                # Ollama 꺼짐, 모델 없음 등
             return _rollback(state, f"모델 호출 실패 ({tc.TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {tc.TOOL_MODEL}'를 확인하세요.")
         if not getattr(ai, "tool_calls", None) and not str(ai.content).strip():
@@ -214,29 +285,38 @@ def make_tools_node(search_fn, timeout):
         trace = list(state.get("trace") or [])
         confirmed = dict(state.get("confirmed") or {})
         seen = {_args_key(t["name"], t["args"]) for t in trace}
-        out = []
+        forced = bool((getattr(last, "additional_kwargs", None) or {}).get("forced_search"))
+        out, final_args = [], {}
         for call in last.tool_calls:
             name, args = call["name"], dict(call.get("args") or {})
             key, t0 = _args_key(name, args), time.perf_counter()
-            duplicate, dropped = key in seen, {}
+            duplicate, dropped, filled = key in seen, {}, {}
             if duplicate:                                     # 같은 호출을 또 하는 반복을 끊는다 (한도에는 센다)
                 result, retried = {"status": "duplicate", "message": "같은 도구를 같은 값으로 이미 불렀습니다. 앞의 결과로 답하세요."}, False
             else:
                 run_args = args
-                if name == "calc_interest":                   # 사용자가 말하지 않은 값은 빼고 도구가 되묻게 한다
+                if name == "calc_interest":                   # 말하지 않은 값은 빼고, 말했는데 모델이 빠뜨린 칸은 채운다
                     run_args, dropped = ground_calc_args(args, said, _today(state), confirmed)
+                    run_args, filled = fill_missing_from_text(run_args, said, _today(state))
+                    final_args[call.get("id")] = run_args
                 result, retried = run_guarded(name, run_args, timeout, search_fn)
-                if dropped:
-                    result = {**result, "dropped_args": dropped,
+                if dropped:                                   # 값은 말하지 않는다: 모델이 지어낸 값을 따라 말하지 않게 칸 이름만 알린다
+                    result = {**result, "dropped_args": [FIELD_LABELS.get(k, k) for k in dropped],
                               "note": f"사용자가 말하지 않은 값({describe_dropped(dropped)})은 계산에 쓰지 않았습니다."}
+                if filled:
+                    result = {**result, "filled_args": {FIELD_LABELS.get(k, k): v for k, v in filled.items()}}
                 if name == "calc_interest":
                     confirmed.update(accepted_values(run_args))
             seen.add(key)
             count += 1
             trace.append({"name": name, "args": args, "status": result.get("status"), "ms": int((time.perf_counter() - t0) * 1000),
-                          "retried": retried, "duplicate": duplicate, "dropped": dropped})
+                          "retried": retried, "duplicate": duplicate, "dropped": dropped, "filled": filled, "forced": forced})
             out.append(ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call.get("id") or "", name=name))
-        return {"messages": out, "tool_calls": count, "trace": trace, "confirmed": confirmed}
+        messages = out
+        if final_args:                                        # 모델의 호출 기록에도 지어낸 값이 남지 않게, 실제로 쓴 값으로 바꿔 둔다 (같은 id로 교체)
+            fixed = [{**c, "args": final_args[c.get("id")]} if c.get("id") in final_args else c for c in last.tool_calls]
+            messages = [AIMessage(content=last.content, tool_calls=fixed, id=last.id, additional_kwargs=last.additional_kwargs)] + out
+        return {"messages": messages, "tool_calls": count, "trace": trace, "confirmed": confirmed}
     return tools
 
 
@@ -320,7 +400,8 @@ class Agent:
 def _print_result(res: dict) -> None:
     for t in res["trace"]:
         flags = ((" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
-                 + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else ""))
+                 + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else "")
+                 + (f" (질문에서 채움: {describe_dropped(t['filled'])})" if t.get("filled") else "") + (" (코드가 먼저 검색)" if t.get("forced") else ""))
         print(f"  도구: {t['name']} {json.dumps(t['args'], ensure_ascii=False)} -> {t['status']} ({t['ms']}ms){flags}")
     if res["error"]:
         print(f"[오류] {res['error']}")

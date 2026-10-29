@@ -1,0 +1,337 @@
+{
+ "source": "검증용 20문항 실제 모델 실행 (수정 전, 2026-10-28)의 화면 출력에서 옮김. 답변은 출력에 잘린 그대로, trace의 args는 모델이 넘긴 값",
+ "rows": [
+  {
+   "id": "H1",
+   "answer": "만기일을 알려주시면 정확한 이자 계산이 가능합니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 10000000,
+      "start_date": "2025-06-01",
+      "termination_date": "2026-10-28"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H2",
+   "answer": "계산에 필요한 값이 부족합니다: 만기일, 해지일. 이 값을 알려주세요.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 5000000,
+      "start_date": "2026-03-10",
+      "termination_date": "2026-04-20"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "termination_date": "2026-04-20"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H3",
+   "answer": "계산에 필요한 정보가 부족합니다. 원금과 신규일, 만기일을 알려주시면 정확한 이자 금액을 알려드릴 수 있습니다. 알려주신 원금은 2000만원, 신규일은2026-05-28입니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 20000000,
+      "start_date": "2026-05-28",
+      "termination_date": "2026-10-28"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "principal": 20000000,
+      "start_date": "2026-05-28"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H4",
+   "answer": "계산을 위해서는 원금, 신규일, 만기일이 필요합니다. 원금은 가입 시입력하신 금액이고, 신규일은 2025-12-01이었습니다. 만기일은 오늘인 2026-10-28입니다. 이 값을 알려주시면 정확한",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "start_date": "2025-12-01",
+      "termination_date": "2026-10-28",
+      "principal": 10000000
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "principal": 10000000,
+      "start_date": "2025-12-01"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H5",
+   "answer": "계산을 위해서는 신규일과 만기일이 필요합니다. 신규일은 언제인가요?만기일은 2026년 12월 28일입니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 3.2,
+      "maturity_date": "2026-12-28",
+      "principal": 15000000,
+      "start_date": "2026-10-28",
+      "termination_date": "2026-10-28"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "start_date": "2026-10-28",
+      "maturity_date": "2026-12-28"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H6",
+   "answer": "해지일을 알려주시면 정확한 이자 계산이 가능합니다. 해지일은 언제인가요?",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "principal": 7000000,
+      "start_date": "2025-09-15",
+      "termination_date": "2026-07-31"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "termination_date": "2026-07-31"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H7",
+   "answer": "약관에 따르면, 『하나의 정기예금』은 만기 전에 해지할 때 중도해지금리를 적용합니다. 중도해지금리는 가입일부터 해지일 전일까지 기간에 따라 달라집니다. 6개월 이상 경과 시에는 가입(재예치) 당시 기본금리를 기준으로 합니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 이자"
+     },
+     "status": "ok",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H8",
+   "answer": "해지일을 YYYY-MM-DD 형식으로 입력해 주세요. 예를 들어, 오늘 날짜가2026-10-28이면 '2026-10-28'와 같이 입력해 주세요. 신규일과 만기일도 알려주시면 감사하겠습니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 2.8,
+      "principal": 30000000,
+      "termination_date": "오늘"
+     },
+     "status": "invalid_input",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H9",
+   "answer": "중도해지는 만기일 이전까지 가능하며, 만기 전에 해지하면 가입(재예치) 당시 해당 상품의 기본금리에 따라 중도해지 이율이 적용됩니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 이율"
+     },
+     "status": "ok",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H10",
+   "answer": "약관에서 확인되지 않습니다.",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H11",
+   "answer": "약관에서 확인되지 않습니다. 일부해지와 관련된 내용을 알려주시면 도와드리겠습니다.",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H12",
+   "answer": "네, 해지 시의 이자율을 확인해볼 수 있습니다. 하지만 정확한 해지 이자율을 확인하기 위해서는 가입 시점의 기본금리가 필요합니다. 신규일 당시 홈페이지에 고시된 계약기간별 기본금리가 얼마였는지 알려",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H13",
+   "answer": "만기일을 알려주시면 정확한 계산이 가능합니다. 만기일은 언제인가요?",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "start_date": "2026-04-02",
+      "termination_date": "2026-10-15",
+      "principal": 10000000
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H14",
+   "answer": "(calc_interest {\"termination_date\": \"2026-10-28\", \"principal\": 10000000})",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H15",
+   "answer": "중도해지 시 적용되는 이율 규칙은 다음과 같습니다:  1. 1개월 미만:연 0.10% 2. 1개월 이상 ~ 3개월 미만: 연 0.15% 3. 3개월 이상 ~ 6개월 미만: 연0.20%",
+   "error": null,
+   "trace": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 이율"
+     },
+     "status": "ok",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H16",
+   "answer": "계산에 필요한 값이 부족합니다: 신규일, 만기일, 해지일을 알려주세요. 사용자가 말하지 않은 값(신규일 2026-10-28, 만기일 2027-10-28, 해지일 2026-04-28)은 계산에 사용되",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "base_rate": 3,
+      "maturity_date": "2027-10-28",
+      "principal": 5000000,
+      "start_date": "2026-10-28",
+      "termination_date": "2026-04-28"
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "start_date": "2026-10-28",
+      "maturity_date": "2027-10-28",
+      "termination_date": "2026-04-28"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H17",
+   "answer": "해지 신청 후 돈을 받아보시는 날짜 기준으로 이자 계산은 되지 않습니다. 하나의 정기예금의 경우, 해지일 기준으로 이자 계산이 이루어집니다. 오늘 날짜 기준으로 계산하려면 해지일을 알려주시면 됩니다",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H18",
+   "answer": "『하나의 정기예금』의 약관에 따르면, 일부 금액만 해지할 때는 중도해지로 처리됩니다. 만기일 이전 2회까지 가능하며, 해지 금액에 대해서는 중도해지금리를 적용합니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "search_terms",
+     "args": {
+      "query": "중도해지 일부 금액"
+     },
+     "status": "ok",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {}
+    }
+   ]
+  },
+  {
+   "id": "H19",
+   "answer": "만기일과 해지일을 알려주시면 두 경우의 이자 차이를 계산해 드릴 수있습니다. 만기일과 해지일을 입력해 주세요.",
+   "error": null,
+   "trace": []
+  },
+  {
+   "id": "H20",
+   "answer": "계산을 위해서는 원금, 신규일, 만기일이 필요합니다. 원금은 예를 들어 1000만원이라고 가정했고, 신규일은 2023년 1월 1일로 잡았습니다. 이 값을 알려주시면 정확한 계산을 도와드리겠습니다.",
+   "error": null,
+   "trace": [
+    {
+     "name": "calc_interest",
+     "args": {
+      "termination_date": "2026-10-28",
+      "start_date": "2023-01-01",
+      "principal": 10000000
+     },
+     "status": "missing_info",
+     "ms": 1,
+     "retried": false,
+     "duplicate": false,
+     "dropped": {
+      "principal": 10000000,
+      "start_date": "2023-01-01"
+     }
+    }
+   ]
+  }
+ ]
+}

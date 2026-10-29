@@ -83,3 +83,85 @@ def test_ordinary_questions_are_not_handoff_requests(text):
 
 def test_handoff_request_ignores_non_text():
     assert handoff_request(None) is False
+
+
+# ---------- 답변 본문의 날짜 · 금액 · 도구 문법 · '약관에서 확인되지 않습니다' ----------
+from datetime import date  # noqa: E402
+
+from app.answer_check import not_found_claim, tool_syntax, ungrounded_values  # noqa: E402
+
+TODAY = date(2026, 10, 28)
+# 검증용 20문항 실제 모델 결과(수정 전)의 답변 (출력에 잘린 부분까지)
+REAL = {
+    "H3": ("정기예금 2천 넣은 지 5개월쯤 됐어요. 지금 해지하면 이자 얼마 받을까요?",
+           "계산에 필요한 정보가 부족합니다. 원금과 신규일, 만기일을 알려주시면 정확한 이자 금액을 알려드릴 수 있습니다. 알려주신 원금은 2000만원, 신규일은2026-05-28입니다.",
+           ["2026-05-28", "20,000,000원"]),
+    "H4": ("작년 12월에 가입한 예금 오늘 해지하려고 하는데 이자가 얼마나 될까요?",
+           "계산을 위해서는 원금, 신규일, 만기일이 필요합니다. 원금은 가입 시입력하신 금액이고, 신규일은 2025-12-01이었습니다. 만기일은 오늘인 2026-10-28입니다.",
+           ["2025-12-01"]),                                                    # 2026-10-28은 오늘이라 허용 (만기일이라고 한 것은 이 점검이 못 잡는다)
+    "H5": ("금리 연 3.2%로 1,500만 원 넣었어요. 만기까지 두 달 남았는데 지금 깨면 이자 얼마나 손해예요?",
+           "계산을 위해서는 신규일과 만기일이 필요합니다. 신규일은 언제인가요?만기일은 2026년 12월 28일입니다.", ["2026-12-28"]),
+    "H16": ("500만 원을 연 3%로 1년 예치했는데 6개월 만에 깨면 이자 얼마나 붙어요?",
+            "계산에 필요한 값이 부족합니다: 신규일, 만기일, 해지일을 알려주세요. 사용자가 말하지 않은 값(신규일 2026-10-28, 만기일 2027-10-28, 해지일 2026-04-28)은 계산에 사용되",
+            ["2026-04-28", "2027-10-28"]),
+    "H20": ("해지 날짜를 오늘로 잡으면 세금 떼고 실제로 얼마 들어오는지 알려줄 수 있어요?",
+            "계산을 위해서는 원금, 신규일, 만기일이 필요합니다. 원금은 예를 들어 1000만원이라고 가정했고, 신규일은 2023년 1월 1일로 잡았습니다.",
+            ["2023-01-01", "10,000,000원"]),
+}
+
+
+@pytest.mark.parametrize("qid", list(REAL))
+def test_values_the_real_model_invented_in_its_answers_are_found(qid):
+    question, answer, expected = REAL[qid]
+    assert sorted(ungrounded_values(answer, [question], TODAY)) == sorted(expected)
+
+
+def test_a_good_real_answer_with_tool_results_passes():
+    q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요?"
+    tool = '{"status": "ok", "interest_krw": 273304, "principal": 10000000, "termination_date": "2026-12-07", "start_date": "2026-01-01"}'
+    a = ("해지일 2026-12-07에 1000만원을 해지하면, 경과 340일(11개월) 동안의 중도해지금리 연 2.934%에 따라 세전 이자는 273,304원입니다. "
+         "이자 = 원금 10,000,000원 × 2.934% × 340일 / 365일 = 273,304원 (원 미만 절사)")
+    assert ungrounded_values(a, [q, tool], TODAY) == []
+    assert ungrounded_values(a, [q], TODAY) == ["273,304원"]                      # 도구 결과가 없으면 계산한 이자 금액은 근거가 없다
+
+
+@pytest.mark.parametrize("answer,allowed,expected", [
+    ("오늘은 2026-10-28이에요", [], []), ("신규일은 2026-01-01이에요", ["2026-01-01에 가입"], []),
+    ("신규일은 2026-01-01이에요", ["1월 1일에 가입"], []),                       # 연도 없이 말한 날짜: 올해면 허용
+    ("신규일은 2025-01-01이에요", ["1월 1일에 가입"], ["2025-01-01"]),            # 다른 해는 허용하지 않는다
+    ("12월 7일에 해지하신다고 하셨어요", ["2026-12-07에 해지"], []), ("12월 8일에 해지하신다고 하셨어요", ["2026-12-07에 해지"], ["12월 8일"]),
+    ("만기일은 2027-10-28입니다", ["오늘 해지하면 얼마예요"], ["2027-10-28"]),    # 월 · 일이 오늘과 같아도 연도가 다르면 허용하지 않는다
+    ("원금 천만 원이시군요", ["1000만원 넣었어요"], []), ("원금 2천만 원이시군요", ["1000만원 넣었어요"], ["20,000,000원"]),
+    ("이자는 273,304원이에요", ['{"interest_krw": 273304}'], []), ("이자는 273,305원이에요", ['{"interest_krw": 273304}'], ["273,305원"]),
+    ("만기 전에 해지하면 340일 동안 연 2.934%가 적용돼요", [], []),                # 작은 숫자 · 금리 · '만기'의 '만'은 점검하지 않는다
+    ("최소 가입금액은 100만원이에요", ['{"text": "최소 가입금액은 100만원"}'], []), ("만원 단위로", [], []), ("", [], []),
+])
+def test_ungrounded_values(answer, allowed, expected):
+    assert ungrounded_values(answer, allowed, TODAY) == expected
+
+
+def test_ungrounded_values_ignores_non_text():
+    assert ungrounded_values(None, ["x"], TODAY) == [] and ungrounded_values("2026-01-01", [None, 3], TODAY) == ["2026-01-01"]
+
+
+@pytest.mark.parametrize("text", [
+    '(calc_interest {"termination_date": "2026-10-28", "principal": 10000000})', "search_terms(query=중도해지)", '{"query": "중도해지"}',
+    "<tool_call>", "calc_interest를 호출합니다", "{'name': 'calc_interest'}",
+])
+def test_tool_syntax_in_the_answer_is_detected(text):
+    assert tool_syntax(text)
+
+
+@pytest.mark.parametrize("text", ["세전 이자는 273,304원입니다.", "중도해지 이율은 약관에 따라 달라요 (예: 연 0.10%)", "{중괄호}만 있어요", "", "이자 계산 도구로 계산했어요"])
+def test_ordinary_answers_are_not_tool_syntax(text):
+    assert not tool_syntax(text)
+
+
+@pytest.mark.parametrize("text", ["약관에서 확인되지 않습니다.", "약관에서 확인되지 않습니다. 일부해지와 관련된 내용을 알려주시면", "약관에는 확인할 수 없습니다", "약관에서 확인할 수 없어요", "약관에 확인되지 않아요"])
+def test_not_found_claim_is_detected(text):
+    assert not_found_claim(text)
+
+
+@pytest.mark.parametrize("text", ["약관에 따르면 일부 해지가 가능합니다", "확인되지 않았어요", "약관 내용을 확인했어요", "", None])
+def test_other_statements_are_not_not_found_claims(text):
+    assert not not_found_claim(text)

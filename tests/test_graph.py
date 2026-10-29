@@ -372,7 +372,7 @@ def test_cli_one_shot_and_chat(monkeypatch, capsys):
     g.main(["--chat", "--session", "t"])
     out = capsys.readouterr().out
     assert fake.asked == [("질문1", "t"), ("/reset", "t"), ("질문2", "t")]
-    assert "답:질문1" in out and "calc_interest" in out and "(재시도함)" in out and "말하지 않은 값 제외: 기본금리 3.5" in out and "확인된 값: 원금 10,000,000원" in out
+    assert "답:질문1" in out and "calc_interest" in out and "(재시도함)" in out and "말하지 않은 값 제외: 기본금리" in out and "확인된 값: 원금 10,000,000원" in out
     with pytest.raises(SystemExit):
         g.main([])                                                         # 질문도 --chat도 없으면 사용법을 보여준다
 
@@ -391,7 +391,8 @@ def test_invented_base_rate_is_dropped_so_the_tool_asks_instead_of_calculating()
     res = a.ask(USER_Q, "s", today="2026-10-28")
     result = last_tool_json(m.seen[1])
     assert result["status"] == "need_base_rate" and "interest_krw" not in result                   # 계산하지 않고 되묻는다
-    assert result["dropped_args"] == {"base_rate": 3.5} and "기본금리 3.5" in result["note"]
+    assert result["dropped_args"] == ["기본금리"] and "3.5" not in json.dumps(result, ensure_ascii=False)         # 모델이 따라 말하지 않게 값은 알리지 않는다
+    assert "기본금리" in result["note"]
     assert res["trace"][0]["dropped"] == {"base_rate": 3.5} and res["trace"][0]["status"] == "need_base_rate"
     assert "base_rate" not in res["confirmed"] and res["confirmed"]["termination_date"] == "2026-12-07"
     assert "기본금리" in res["answer"]
@@ -514,7 +515,7 @@ def test_conversation_continues_normally_after_a_handoff_request():
     a, m = agent(lambda msgs, n: AIMessage(content="일반 답변"))
     a.ask("안녕하세요", "s")
     handoff = a.ask("상담원 연결해줘", "s")
-    after = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
+    after = a.ask("그럼 다른 걸 물어볼게요", "s")
     assert handoff["stop_reason"] == "handoff_not_ready" and m.n == 2                         # 일반 질문 둘만 모델을 불렀다
     assert after["answer"] == "일반 답변" and after["stop_reason"] is None and after["model_calls"] == 1
     assert len(a.history("s")) == 6
@@ -522,7 +523,7 @@ def test_conversation_continues_normally_after_a_handoff_request():
 
 def test_chinese_in_the_answer_is_retried_once_in_korean():
     a, m = agent(lambda msgs, n: AIMessage(content=REAL_CHINESE_REPLY if n == 1 else KOREAN_OK))
-    res = a.ask("이 예금 설명해줘", "s")
+    res = a.ask("이거 뭐예요?", "s")
     assert res["answer"] == KOREAN_OK and res["model_calls"] == 2
     retry_note = m.seen[1][-1]
     assert isinstance(retry_note, SystemMessage) and "한국어" in retry_note.content and "중국어" in retry_note.content
@@ -531,16 +532,16 @@ def test_chinese_in_the_answer_is_retried_once_in_korean():
 
 def test_chinese_that_survives_the_retry_is_replaced_by_a_fixed_korean_message():
     a, m = agent(lambda msgs, n: AIMessage(content=REAL_CHINESE_REPLY))
-    res = a.ask("이 예금 설명해줘", "s")
+    res = a.ask("이거 뭐예요?", "s")
     assert res["answer"] == g.UNSAFE_TEXT and res["model_calls"] == 2 and m.n == 2 and "拨" not in res["answer"]
 
 
 def test_invented_phone_number_is_retried_and_then_blocked():
     a, m = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY if n == 1 else KOREAN_OK))
-    res = a.ask("이 예금 문의처가 어디예요?", "s")
+    res = a.ask("문의처가 어디예요?", "s")
     assert res["answer"] == KOREAN_OK and "근거 없는 전화번호" in m.seen[1][-1].content
     b, mb = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY))
-    blocked = b.ask("이 예금 문의처가 어디예요?", "s")
+    blocked = b.ask("문의처가 어디예요?", "s")
     assert blocked["answer"] == g.UNSAFE_TEXT and "1544" not in blocked["answer"] and mb.n == 2
 
 
@@ -585,11 +586,12 @@ def test_chinese_search_query_is_retried_before_the_tool_runs():
     assert executed == ["중도해지 이율"] and res["model_calls"] == 3 and res["answer"] == "끝"
 
 
-def test_chinese_search_query_that_survives_the_retry_runs_nothing():
+def test_chinese_search_query_that_survives_the_retry_is_never_run_the_code_searches_the_users_own_words_instead():
     executed = []
     a, m = agent(lambda msgs, n: ai(call("search_terms", query="中途解约利率")), search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
     res = a.ask("해지하면 이율이 어떻게 돼요?", "s")
-    assert executed == [] and res["answer"] == g.UNSAFE_TEXT and res["tool_calls"] == 0 and res["model_calls"] == 2
+    assert executed == ["해지하면 이율이 어떻게 돼요?"] and "中途解约利率" not in executed        # 중국어 검색어는 실행되지 않는다
+    assert res["trace"][0]["forced"] is True and res["answer"] == g.UNSAFE_TEXT                       # 이후에도 모델이 중국어만 내면 고정 문구
 
 
 def test_text_next_to_a_tool_call_is_not_checked_only_the_query():
@@ -603,3 +605,212 @@ def test_text_next_to_a_tool_call_is_not_checked_only_the_query():
 def test_rules_tell_the_model_to_use_korean_only_and_not_to_invent_contacts():
     t = g.system_text({"today": "2025-03-04"})
     assert "한국어로만 답한다" in t and "상담원 연결 · 계좌 조회 · 해지 처리" in t and "전화번호나 주소는 도구 결과나 사용자가 말한 것만" in t
+
+
+# ---------- 검증용 20문항의 실제 모델 실패를 그대로 재현 (수정 후 기대 동작) ----------
+import sys as _sys  # noqa: E402
+
+_sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "eval"))
+HELD = {q["id"]: q["question"] for q in json.loads((Path(__file__).resolve().parents[1] / "eval" / "heldout" / "questions.json").read_text(encoding="utf-8"))["questions"]}
+TODAY_H = "2026-10-28"
+
+
+def ask_held(a, qid, session="h"):
+    return a.ask(HELD[qid], session, today=TODAY_H)
+
+
+def test_h1_the_maturity_date_the_model_forgot_is_filled_and_the_tool_answers_not_early_termination():
+    """수정 전: 모델이 질문에 적힌 만기일을 안 넣어 만기일을 또 물었다."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000, start_date="2025-06-01", termination_date="2026-10-28")) if n == 1
+                 else AIMessage(content="해지일이 만기일 이후라 중도해지가 아니에요."))
+    res = ask_held(a, "H1")
+    result = last_tool_json(m.seen[1])
+    assert result["status"] == "not_early_termination" and result["filled_args"] == {"만기일": "2026-06-01"}
+    assert res["trace"][0]["filled"] == {"maturity_date": "2026-06-01"} and res["confirmed"]["maturity_date"] == "2026-06-01"
+
+
+def test_h13_next_year_maturity_is_filled_and_the_base_rate_is_asked():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000, start_date="2026-04-02", termination_date="2026-10-15")) if n == 1
+                 else AIMessage(content="신규일 당시 기본금리(연 %)는 얼마였나요?"))
+    res = ask_held(a, "H13")
+    assert last_tool_json(m.seen[1])["status"] == "need_base_rate" and res["trace"][0]["filled"] == {"maturity_date": "2027-04-02"}
+    assert "기본금리" in res["answer"]
+
+
+def test_h6_the_stated_maturity_is_filled_and_the_approximate_termination_is_asked_about():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=7_000_000, start_date="2025-09-15", termination_date="2026-07-31")) if n == 1
+                 else AIMessage(content="해지일을 날짜로 알려주세요."))
+    res = ask_held(a, "H6")
+    t = res["trace"][0]
+    assert t["filled"] == {"maturity_date": "2026-09-15"} and t["dropped"] == {"termination_date": "2026-07-31"}      # '7월 말'은 정확한 날짜가 아니다
+    assert last_tool_json(m.seen[1])["status"] == "missing_info"
+
+
+def test_h2_the_wrong_relative_date_the_model_computed_is_replaced_by_the_codes_own_calculation():
+    """수정 전: 모델이 '다음 달 20일'을 2026-04-20으로 계산했다 (맞는 값은 2026-11-20)."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=5_000_000, start_date="2026-03-10", termination_date="2026-04-20")) if n == 1
+                 else AIMessage(content="만기일을 알려주세요."))
+    res = ask_held(a, "H2")
+    t = res["trace"][0]
+    assert t["dropped"] == {"termination_date": "2026-04-20"} and t["filled"] == {"termination_date": "2026-11-20"}
+    assert res["confirmed"]["termination_date"] == "2026-11-20"
+
+
+def test_h3_h4_h20_invented_values_never_reach_the_model_again():
+    """수정 전: 가드가 계산에서는 값을 뺐지만 모델의 호출 기록과 도구 결과에 지어낸 값이 남아, 답변에 '알려주신 원금은 2000만원, 신규일은 2026-05-28'이라고 썼다."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=20_000_000, start_date="2026-05-28", termination_date="2026-10-28")) if n == 1
+                 else AIMessage(content="원금과 신규일, 만기일을 알려주세요."))
+    res = ask_held(a, "H3")
+    seen_by_model = json.dumps([[getattr(x, "content", ""), getattr(x, "tool_calls", [])] for x in m.seen[1]], ensure_ascii=False, default=str)
+    assert "2026-05-28" not in seen_by_model and "20000000" not in seen_by_model                              # 두 번째 호출에서 모델이 본 것에 없다
+    hist_call = next(x for x in a.history("h") if isinstance(x, AIMessage) and x.tool_calls)
+    assert hist_call.tool_calls[0]["args"] == {"termination_date": "2026-10-28"} and hist_call.tool_calls[0]["id"]      # 호출 기록도 실제로 쓴 값으로 정리
+    result = last_tool_json(m.seen[1])
+    assert result["dropped_args"] == ["원금", "신규일"] and result["status"] == "missing_info"
+    assert res["trace"][0]["dropped"] == {"principal": 20_000_000, "start_date": "2026-05-28"}                 # 디버깅용 기록에는 남는다
+
+
+def test_an_answer_that_states_invented_values_is_retried_then_replaced_by_the_tools_own_question():
+    bad = "알려주신 원금은 2000만원, 신규일은 2026-05-28입니다. 만기일을 알려주세요."
+
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", principal=20_000_000, start_date="2026-05-28", termination_date="2026-10-28"))
+        return AIMessage(content=bad if n == 2 else "원금과 신규일, 만기일을 알려주세요.")
+    a, m = agent(fn)
+    res = ask_held(a, "H3")
+    assert res["answer"] == "원금과 신규일, 만기일을 알려주세요." and res["model_calls"] == 3
+    assert "2026-05-28" in m.seen[2][-1].content and "20,000,000원" in m.seen[2][-1].content                  # 다시 시킬 때는 어떤 값이 문제인지 알려준다
+    b, mb = agent(lambda msgs, n: ai(call("calc_interest", principal=20_000_000, start_date="2026-05-28", termination_date="2026-10-28")) if n == 1
+                  else AIMessage(content=bad))
+    res2 = ask_held(b, "H3")
+    assert res2["answer"] == "계산에 필요한 값이 없습니다: 원금, 신규일, 만기일. 이 값을 알려주세요."              # 다시 시켜도 문제면 도구의 질문을 그대로
+
+
+def test_h5_the_start_date_equal_to_today_and_the_made_up_maturity_do_not_produce_a_zero_interest_result():
+    """수정 전 유일하게 가드가 계산을 막은 경우: 모델이 신규일 = 해지일 = 오늘로 지어내 '세전 이자 0원'이 나올 뻔했다."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", base_rate=3.2, maturity_date="2026-12-28", principal=15_000_000, start_date="2026-10-28",
+                                         termination_date="2026-10-28")) if n == 1 else AIMessage(content="신규일은 언제인가요?"))
+    res = ask_held(a, "H5")
+    assert res["trace"][0]["status"] == "missing_info" and set(res["trace"][0]["dropped"]) == {"start_date", "maturity_date"}
+
+
+def test_h8_a_word_the_user_never_said_in_a_date_field_is_dropped_not_shown_as_a_format_error():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", base_rate=2.8, principal=30_000_000, termination_date="오늘")) if n == 1
+                 else AIMessage(content="신규일, 만기일, 해지일을 알려주세요."))
+    res = ask_held(a, "H8")
+    assert res["trace"][0]["status"] == "missing_info" and res["trace"][0]["dropped"] == {"termination_date": "오늘"}
+    assert "YYYY" not in json.dumps(last_tool_json(m.seen[1]), ensure_ascii=False)
+
+
+def test_h14_tool_call_syntax_in_the_answer_is_retried_and_the_code_searches_first_if_it_stays():
+    executed = []
+    leak = '(calc_interest {"termination_date": "2026-10-28", "principal": 10000000})'
+    a, m = agent(lambda msgs, n: AIMessage(content=leak) if n <= 2 else AIMessage(content="만기 후에는 약관에 따라 이자가 계산돼요."),
+                 search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = ask_held(a, "H14")
+    assert executed == [HELD["H14"]] and res["trace"][0]["forced"] is True and "calc_interest" not in res["answer"]
+    assert res["answer"] == "만기 후에는 약관에 따라 이자가 계산돼요." and res["model_calls"] == 3
+    assert "도구 호출 문법" in m.seen[1][-1].content
+
+
+def test_h10_h11_a_not_found_claim_without_any_search_makes_the_code_search_first():
+    """수정 전: 검색도 안 하고 '약관에서 확인되지 않습니다'라고 했다 (약관에는 일부해지 규칙이 있다)."""
+    executed = []
+    a, m = agent(lambda msgs, n: AIMessage(content="약관에서 확인되지 않습니다.") if n == 1 else AIMessage(content="일부해지는 약관에 따라 가능해요."),
+                 search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = ask_held(a, "H10")
+    assert executed == [HELD["H10"]] and res["answer"] == "일부해지는 약관에 따라 가능해요." and res["trace"][0]["forced"] is True
+
+
+def test_not_found_is_allowed_when_the_search_really_found_nothing():
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="대출 한도")) if n == 1 else AIMessage(content="약관에서 확인되지 않습니다."),
+                 search_fn=lambda q, **kw: {"status": "not_found", "query": q, "results": []})
+    res = a.ask("예금 대출 한도가 얼마예요?", "s")
+    assert res["answer"] == "약관에서 확인되지 않습니다." and res["model_calls"] == 2
+
+
+def test_not_found_claim_when_the_search_found_results_is_retried_with_a_note():
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="일부 해지")) if n == 1
+                 else AIMessage(content="약관에서 확인되지 않습니다." if n == 2 else "일부 해지는 약관에서 확인돼요."))
+    res = a.ask("일부만 해지할 수 있어요?", "s")
+    assert res["answer"] == "일부 해지는 약관에서 확인돼요." and "검색 결과가 있는데" in m.seen[2][-1].content
+
+
+def test_small_talk_and_off_topic_questions_are_not_searched():
+    executed = []
+    for q in ("안녕하세요", "고마워요, 잘 알겠어요", "오늘 서울 날씨 어때요?"):
+        a, m = agent(lambda msgs, n: AIMessage(content="네."), search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+        res = a.ask(q, "s")
+        assert res["answer"] == "네." and res["tool_calls"] == 0
+    assert executed == []
+
+
+def test_a_domain_question_answered_without_tools_is_searched_first_and_the_forced_search_counts_toward_the_limit():
+    executed = []
+    a, m = agent(lambda msgs, n: AIMessage(content="약관상 가능해요.") if n == 1 else AIMessage(content="검색 결과에 따르면 가능해요."),
+                 search_fn=lambda q, **kw: executed.append(q) or search_ok(q))
+    res = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
+    assert executed == ["중도해지하면 이율이 어떻게 돼요?"] and res["tool_calls"] == 1 and res["answer"] == "검색 결과에 따르면 가능해요."
+    b, mb = agent(lambda msgs, n: AIMessage(content="약관상 가능해요."), max_tool_calls=0)
+    assert b.ask("중도해지하면 이율이 어떻게 돼요?", "s")["stop_reason"] == "tool_limit"
+
+
+def test_a_good_answer_after_a_real_calculation_passes_the_checks():
+    q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요? 기본금리는 3.5%예요."
+    good = "해지일 2026-12-07에 1000만원을 해지하면 세전 이자는 273,304원이에요."
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01",
+                                         termination_date="2026-12-07", base_rate=3.5)) if n == 1 else AIMessage(content=good))
+    res = a.ask(q, "s", today=TODAY_H)
+    assert res["answer"] == good and res["model_calls"] == 2 and res["trace"][0]["status"] == "ok" and res["trace"][0]["dropped"] == {}
+
+
+def test_an_interest_amount_the_model_computed_itself_is_blocked():
+    q = "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요? 기본금리는 3.5%예요."
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01",
+                                         termination_date="2026-12-07", base_rate=3.5)) if n == 1 else AIMessage(content="세전 이자는 280,000원이에요."))
+    res = a.ask(q, "s", today=TODAY_H)
+    assert res["answer"] == g.UNSAFE_TEXT                                       # 도구가 준 273,304원이 아닌 금액은 말할 수 없다
+
+
+# ---------- 점검 도우미 ----------
+def _state(question, tool_results=(), confirmed=None, today=TODAY_H):
+    msgs = [HumanMessage(question)]
+    for i, (name, res) in enumerate(tool_results):
+        msgs += [AIMessage(content="", tool_calls=[call(name)]), ToolMessage(content=json.dumps(res, ensure_ascii=False), tool_call_id=str(i), name=name)]
+    return {"messages": msgs, "today": today, "confirmed": confirmed or {}}
+
+
+def test_fallback_text_prefers_the_tools_own_question():
+    st = _state("q", [("calc_interest", {"status": "need_base_rate", "message": "기본금리는 얼마였나요?"})])
+    assert g.fallback_text(st) == "기본금리는 얼마였나요?"
+    assert g.fallback_text(_state("q", [("calc_interest", {"status": "ok", "message": "x"})])) == g.UNSAFE_TEXT and g.fallback_text(_state("q")) == g.UNSAFE_TEXT
+
+
+@pytest.mark.parametrize("question,reply,tools,expected", [
+    ("중도해지하면?", AIMessage(content="답"), [], True), ("안녕하세요", AIMessage(content="안녕하세요"), [], False),
+    ("안녕하세요", AIMessage(content="약관에서 확인되지 않습니다."), [], True),                                       # 도메인 낱말이 없어도 '확인되지 않는다'는 말이면 검색이 먼저
+    ("중도해지하면?", AIMessage(content="답"), [("search_terms", {"status": "ok"})], False),                        # 이미 도구를 불렀다
+    ("중도해지하면?", ai(call("search_terms", query="x")), [], False),                                              # 도구를 부르는 중이다
+])
+def test_needs_forced_search(question, reply, tools, expected):
+    assert g.needs_forced_search(reply, _state(question, tools)) is expected
+
+
+@pytest.mark.parametrize("reply,tools,confirmed,problem", [
+    ("세전 이자는 273,304원이에요.", [("calc_interest", {"interest_krw": 273304})], {}, None),
+    ("세전 이자는 273,304원이에요.", [], {}, "ungrounded"),
+    ("신규일은 2026-01-01이에요.", [], {"start_date": "2026-01-01"}, None),                                         # 확인된 값은 허용
+    ("(calc_interest {})", [], {}, "syntax"), ("利息", [], {}, "language"), ("고객센터 1544-1111", [], {}, "phone"),
+    ("약관에서 확인되지 않습니다.", [("search_terms", {"status": "ok"})], {}, "not_found"),
+    ("약관에서 확인되지 않습니다.", [("search_terms", {"status": "not_found"})], {}, None),
+])
+def test_check_reply_problems(reply, tools, confirmed, problem):
+    assert g.check_reply(AIMessage(content=reply), _state("1000만원 넣었어요", tools, confirmed))[0] == problem
+
+
+def test_amounts_from_an_earlier_turns_tool_result_are_allowed_but_phone_numbers_are_not():
+    st = {"messages": [HumanMessage("첫 질문"), ToolMessage(content='{"interest_krw": 273304, "text": "고객센터 1599-1111"}', tool_call_id="1", name="calc_interest"),
+                       AIMessage(content="앞 답"), HumanMessage("방금 계산한 이자가 얼마였죠?")], "today": TODAY_H}
+    assert g.check_reply(AIMessage(content="273,304원이었어요."), st)[0] is None
+    assert g.check_reply(AIMessage(content="고객센터 1599-1111로 문의하세요."), st)[0] == "phone"

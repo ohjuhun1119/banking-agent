@@ -1,0 +1,110 @@
+{
+ "frozen_on": "2026-10-28",
+ "today": "2026-10-28",
+ "n_questions": 20,
+ "said_kept": [
+  24,
+  24
+ ],
+ "derived_kept": [
+  2,
+  3
+ ],
+ "rejected": [
+  {
+   "id": "H6",
+   "field": "termination_date",
+   "value": "2026-07-31",
+   "kind": "derived",
+   "question": "2025년 9월 15일에 가입해서 2026년 9월 15일 만기인 700만 원 예금, 7월 말에 해지하면 이자 좀 계산해 주세요."
+  }
+ ],
+ "probes": [
+  {
+   "id": "H3",
+   "field": "start_date",
+   "value": "2026-05-28",
+   "why": "'5개월쯤'을 날짜로 계산",
+   "dropped": true
+  },
+  {
+   "id": "H3",
+   "field": "principal",
+   "value": 20000000,
+   "why": "'2천'을 2천만 원으로 해석",
+   "dropped": true
+  },
+  {
+   "id": "H4",
+   "field": "start_date",
+   "value": "2025-12-01",
+   "why": "'작년 12월'에 일을 붙임",
+   "dropped": true
+  },
+  {
+   "id": "H7",
+   "field": "start_date",
+   "value": "2026-02-28",
+   "why": "'8개월'을 날짜로 계산",
+   "dropped": true
+  },
+  {
+   "id": "H9",
+   "field": "base_rate",
+   "value": 3.5,
+   "why": "예시 금리 베끼기",
+   "dropped": true
+  },
+  {
+   "id": "H12",
+   "field": "base_rate",
+   "value": 3.5,
+   "why": "예시 금리 베끼기",
+   "dropped": true
+  },
+  {
+   "id": "H19",
+   "field": "maturity_date",
+   "value": "2026-11-28",
+   "why": "'만기 한 달 전'을 날짜로 계산",
+   "dropped": true
+  },
+  {
+   "id": "H20",
+   "field": "principal",
+   "value": 10000000,
+   "why": "원금을 지어냄",
+   "dropped": true
+  },
+  {
+   "id": "H5",
+   "field": "maturity_date",
+   "value": "2026-12-28",
+   "why": "'두 달 남았는데'를 날짜로 계산",
+   "dropped": true
+  },
+  {
+   "id": "H16",
+   "field": "start_date",
+   "value": "2026-04-28",
+   "why": "'6개월 만에'를 날짜로 계산",
+   "dropped": true
+  },
+  {
+   "id": "H8",
+   "field": "termination_date",
+   "value": "2026-10-28",
+   "why": "오늘/지금이라고 안 했는데 오늘로 넣음",
+   "dropped": true
+  },
+  {
+   "id": "H2",
+   "field": "maturity_date",
+   "value": "2027-03-10",
+   "why": "말하지 않은 만기일",
+   "dropped": true
+  }
+ ],
+ "probes_not_caught": [],
+ "handoff_false_positives": []
+}

@@ -440,11 +440,12 @@ const FIELD_LABEL = { principal: "원금", start_date: "신규일", maturity_dat
 
 function agentTrace(trace) {
   return h("div", { class: "agent-trace" }, trace.map((t) => {
-    const dropped = Object.entries(t.dropped || {});
+    const dropped = Object.entries(t.dropped || {}), filled = Object.entries(t.filled || {});
     return h("div", { class: TRACE_TONE[t.status] || "" },
       `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
-      + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
-      + (dropped.length ? ` · 말하지 않은 값 제외: ${dropped.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "") + ` · ${t.ms}ms`);
+      + (t.forced ? " · 코드가 먼저 검색" : "") + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
+      + (dropped.length ? ` · 말하지 않은 값 제외: ${dropped.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "")
+      + (filled.length ? ` · 질문에서 채움: ${filled.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "") + ` · ${t.ms}ms`);
   }));
 }
 

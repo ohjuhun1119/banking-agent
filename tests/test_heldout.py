@@ -78,6 +78,9 @@ def trace(name, status, **kw):
     return {"name": name, "args": kw.get("args", {}), "status": status, "ms": 1, "retried": False, "duplicate": False, "dropped": kw.get("dropped", {})}
 
 
+H6_ARGS = {"principal": 7_000_000, "start_date": "2025-09-15", "maturity_date": "2026-09-15", "termination_date": "2026-07-31"}
+
+
 def result(answer="", tr=(), error=None):
     return {"answer": answer, "error": error, "stop_reason": None, "trace": list(tr), "tool_calls": len(tr), "model_calls": 1, "ms": 5}
 
@@ -90,12 +93,12 @@ def test_asked_user_is_a_rough_check():
 @pytest.mark.parametrize("qid,res,ok,flags", [
     ("H9", result("적용됩니다.", [trace("search_terms", "ok")]), True, []),
     ("H9", result("적용됩니다."), False, ["wrong_behavior"]),                                        # 검색 없이 답함
-    ("H6", result("기본금리를 알려주세요?", [trace("calc_interest", "need_base_rate")]), True, []),
-    ("H6", result("이자는 1원입니다.", [trace("calc_interest", "ok")]), True, ["fabricated_ok"]),       # 계산이 ok로 끝나면 지어낸 값이 통과한 것
+    ("H6", result("기본금리를 알려주세요?", [trace("calc_interest", "need_base_rate", args=H6_ARGS)]), True, []),
+    ("H6", result("이자는 1원입니다.", [trace("calc_interest", "ok", args=H6_ARGS)]), True, ["fabricated_ok"]),       # 계산이 ok로 끝나면 지어낸 값이 통과한 것
     ("H8", result("신규일을 알려주세요."), True, []),                                                    # calc_partial: 도구 없이 되물어도 통과
     ("H8", result("이자는 계산할 수 없습니다."), False, ["wrong_behavior"]),
-    ("H3", result("원금 단위를 알려주세요.", [trace("calc_interest", "missing_info")]), True, []),
-    ("H3", result("2천만 원이면 이자는…", [trace("calc_interest", "ok")]), False, ["wrong_behavior", "fabricated_ok"]),   # 되묻지 않고 지어낸 값으로 계산
+    ("H3", result("원금 단위를 알려주세요.", [trace("calc_interest", "missing_info", args={"termination_date": "2026-10-28"})]), True, []),
+    ("H3", result("2천만 원이면 이자는…", [trace("calc_interest", "ok", args={"termination_date": "2026-10-28"})]), False, ["wrong_behavior", "fabricated_ok"]),   # 되묻지 않고 지어낸 값으로 계산
     ("H12", result("고객센터에 문의해 주세요?", [trace("search_terms", "ok")]), True, []),
     ("H12", result("확인할 수 있습니다.", [trace("search_terms", "ok")]), False, ["wrong_behavior"]),    # search_ask는 되묻기도 필요
     ("H9", result("적용됩니다. 利息", [trace("search_terms", "ok")]), True, ["foreign_script"]),
@@ -183,3 +186,110 @@ def test_measure_reports_probes_that_slip_through(tmp_path, monkeypatch):
 def test_measure_reports_handoff_false_positives(tmp_path):
     res = heldout_guard.measure(synthetic(tmp_path, "상담원 연결해줘", {}))
     assert res["handoff_false_positives"] == ["X1"]
+
+
+# ---------- 강화한 채점기로 수정 전 실제 기록을 다시 채점 (기준선) ----------
+FIXTURE = ROOT / "tests" / "fixtures" / "heldout_before_fix.json"
+BASELINE_FLAGS = {          # 수정 전 실제 모델 결과를 지금의 채점 기준으로 본 것: 수정 후 이보다 나빠지면 안 된다
+    "H1": ["omitted_stated:maturity_date", "reasked_stated:maturity_date"], "H2": ["omitted_derived:termination_date"], "H3": ["ungrounded_in_answer"],
+    "H4": ["ungrounded_in_answer"], "H5": ["ungrounded_in_answer"], "H6": ["omitted_stated:maturity_date", "omitted_derived:termination_date"],
+    "H7": ["wrong_behavior"],            # 출력에 잘린 답변이라 되묻는 부분이 안 보임 (저장된 전문으로 재채점하면 다를 수 있다)
+    "H8": ["asks_format"], "H9": [], "H10": ["wrong_behavior", "unsupported_not_found"], "H11": ["wrong_behavior", "unsupported_not_found"], "H12": ["wrong_behavior"],
+    "H13": ["omitted_derived:maturity_date"], "H14": ["wrong_behavior", "ungrounded_in_answer", "tool_syntax"], "H15": [], "H16": ["ungrounded_in_answer", "note_leak"],
+    "H17": ["wrong_behavior"], "H18": [], "H19": [], "H20": ["ungrounded_in_answer"],
+}
+
+
+def test_the_strengthened_grader_sees_what_the_lenient_one_missed():
+    out = heldout_run.rescore(FIXTURE, log=None)
+    assert {r["id"]: r["flags"] for r in out["rows"]} == BASELINE_FLAGS
+    s = out["summary"]
+    assert s["n"] == 20 and s["all_clean"] == 4 and s["flags"]["ungrounded_in_answer"] == 6 and s["flags"]["omitted_derived"] == 3
+    assert out["kind"] == "heldout_rescore" and out["rows"][0]["trace"] and out["rows"][0]["question"] == HELD_Q["H1"]
+
+
+HELD_Q = {q["id"]: q["question"] for q in QUESTIONS}
+
+
+def test_effective_fields_subtract_what_the_code_dropped_and_add_what_it_filled():
+    calls = [{"args": {"principal": 1, "start_date": "2026-05-28", "base_rate": None}, "dropped": {"start_date": "2026-05-28"}, "filled": {"maturity_date": "2027-01-01"}}]
+    assert heldout_run.effective_fields(calls) == {"principal", "maturity_date"}
+    assert heldout_run.effective_fields([{"args": {"principal": 1}}, {"args": {"start_date": "2026-01-01"}}]) == {"principal", "start_date"}
+
+
+def test_a_filled_maturity_date_clears_the_omission_flag():
+    """수정 후 기대: 모델이 만기일을 빠뜨려도 코드가 채우면 '빠뜨림' 표시가 사라진다."""
+    row = json.loads(FIXTURE.read_text(encoding="utf-8"))["rows"][0]                       # H1
+    assert "omitted_stated:maturity_date" in heldout_run.grade(q("H1"), {**row, "today": "2026-10-28"})["flags"]
+    row["trace"][0]["filled"] = {"maturity_date": "2026-06-01"}
+    row["answer"] = "해지일이 만기일 이후라 중도해지가 아니에요."
+    assert heldout_run.grade(q("H1"), {**row, "today": "2026-10-28"})["flags"] == []
+
+
+@pytest.mark.parametrize("qid,answer,flag", [
+    ("H9", "약관에 따라 가능해요. 만기일을 알려주세요.", None),                                  # 이 문항에는 만기일 gold가 없다
+    ("H1", "해지일이 만기일 이후라 중도해지가 아니에요.", None),                                  # 되묻는 문장이 아니면 표시하지 않는다
+    ("H1", "만기일은 언제인가요?", "reasked_stated:maturity_date"), ("H1", "원금이 얼마였는지 알려주세요.", "reasked_stated:principal"),
+])
+def test_reasked_stated_only_when_asking_for_a_value_the_user_already_gave(qid, answer, flag):
+    tr = [trace("calc_interest", "missing_info", args={"principal": 10_000_000, "start_date": "2025-06-01", "maturity_date": "2026-06-01", "termination_date": "2026-10-28"})]
+    flags = heldout_run.grade(q(qid), {**result(answer, tr), "today": "2026-10-28"})["flags"]
+    assert (flag in flags) if flag else not any(f.startswith("reasked") for f in flags)
+
+
+def test_not_found_claim_is_fine_after_a_not_found_search_and_ungrounded_values_are_skipped_for_search_turns():
+    flags = heldout_run.grade(q("H9"), {**result("약관에서 확인되지 않습니다.", [trace("search_terms", "not_found")]), "today": "2026-10-28"})["flags"]
+    assert "unsupported_not_found" not in flags
+    flags = heldout_run.grade(q("H9"), {**result("최소 가입금액은 100만원이에요. 2026-03-20 기준이에요.", [trace("search_terms", "ok")]), "today": "2026-10-28"})["flags"]
+    assert "ungrounded_in_answer" not in flags
+
+
+def test_rescore_main_prints_and_saves(tmp_path, capsys):
+    out = tmp_path / "rescored.json"
+    heldout_run.main(["--rescore", str(FIXTURE), "--save", str(out)])
+    text = capsys.readouterr().out
+    assert "깨끗한 것 4/20" in text and "ungrounded_in_answer 6" in text and "저장:" in text
+    assert json.loads(out.read_text(encoding="utf-8"))["summary"]["all_clean"] == 4
+
+
+# ---------- 수정 전 실제 모델이 한 계산 호출을 수정된 그래프에 그대로 다시 넣어 보기 (모델이 아니라 기록의 재생) ----------
+from langchain_core.messages import AIMessage  # noqa: E402
+
+from app.graph import Agent  # noqa: E402
+
+REPLAY_EXPECTED = {            # 문항: (수정 전 상태, 수정 후 상태, 코드가 채운 칸, 코드가 뺀 칸)
+    "H1": ("missing_info", "not_early_termination", {"maturity_date"}, set()),          # 만기일을 또 묻던 것이 해지일이 만기 이후라는 안내로
+    "H2": ("missing_info", "missing_info", {"termination_date"}, {"termination_date"}),  # 모델이 틀리게 계산한 2026-04-20을 빼고 2026-11-20을 채움
+    "H3": ("missing_info", "missing_info", set(), {"principal", "start_date"}),
+    "H4": ("missing_info", "missing_info", set(), {"principal", "start_date"}),
+    "H5": ("missing_info", "missing_info", set(), {"start_date", "maturity_date"}),
+    "H6": ("missing_info", "missing_info", {"maturity_date"}, {"termination_date"}),     # 만기일은 채우고, '7월 말'은 정확한 날짜를 되묻는다
+    "H8": ("invalid_input", "missing_info", set(), {"termination_date"}),                # 'YYYY-MM-DD로 입력해 주세요' 대신 값 부족 안내
+    "H13": ("missing_info", "need_base_rate", {"maturity_date"}, set()),                 # 핵심 경로(기본금리 되묻기)에 도달
+    "H16": ("missing_info", "missing_info", set(), {"start_date", "maturity_date", "termination_date"}),
+    "H20": ("missing_info", "missing_info", set(), {"principal", "start_date"}),
+}
+
+
+class ReplayModel:
+    def __init__(self, call):
+        self.call, self.n = call, 0
+
+    def invoke(self, messages):
+        self.n += 1
+        if self.n == 1:
+            return AIMessage(content="", tool_calls=[{"name": "calc_interest", "args": self.call["args"], "id": "c1"}])
+        return AIMessage(content="값을 알려주세요.")
+
+
+@pytest.mark.parametrize("qid", list(REPLAY_EXPECTED))
+def test_recorded_real_model_calls_now_end_in_better_tool_states(qid):
+    before, after, filled, dropped = REPLAY_EXPECTED[qid]
+    row = next(r for r in json.loads(FIXTURE.read_text(encoding="utf-8"))["rows"] if r["id"] == qid)
+    call = next(t for t in row["trace"] if t["name"] == "calc_interest")
+    assert call["status"] == before                                                       # 기록이 맞는지
+    agent = Agent(model=ReplayModel(call), search_fn=lambda query, **kw: {"status": "not_found", "query": query, "results": []})
+    res = agent.ask(HELD_Q[qid], "replay", "2026-10-28")
+    t = res["trace"][0]
+    assert t["status"] == after and set(t["filled"]) == filled and set(t["dropped"]) == dropped
+    assert t["status"] != "ok"                                                            # 이 20문항은 어느 것도 ok로 끝나면 안 된다
