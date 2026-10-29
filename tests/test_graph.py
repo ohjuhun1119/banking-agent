@@ -186,7 +186,7 @@ def test_tool_call_limit_stops_the_loop_and_suggests_a_human():
     a, m = agent(lambda msgs, n: ai(call("search_terms", query=f"검색{n}")), search_fn=spy)
     res = a.ask("q", "s")
     assert res["stop_reason"] == "tool_limit" and res["tool_calls"] == 5 and executed == [f"검색{i}" for i in range(1, 6)]
-    assert res["answer"] == g.LIMIT_TEXT and "상담원" in res["answer"] and m.n == 6
+    assert res["answer"] == g.LIMIT_TEXT and "고객센터" in res["answer"] and "상담원" not in res["answer"] and m.n == 6
     hist = a.history("s")
     assert isinstance(hist[-3], AIMessage) and hist[-3].tool_calls                        # 부르려던 호출
     assert json.loads(hist[-2].content)["status"] == "skipped" and hist[-2].tool_call_id == hist[-3].tool_calls[0]["id"]
@@ -814,3 +814,49 @@ def test_amounts_from_an_earlier_turns_tool_result_are_allowed_but_phone_numbers
                        AIMessage(content="앞 답"), HumanMessage("방금 계산한 이자가 얼마였죠?")], "today": TODAY_H}
     assert g.check_reply(AIMessage(content="273,304원이었어요."), st)[0] is None
     assert g.check_reply(AIMessage(content="고객센터 1599-1111로 문의하세요."), st)[0] == "phone"
+
+
+
+# ---------- 작은 수정들 (검증용 수정 후 실제 모델 결과: H20 등) ----------
+def test_an_argument_name_the_tool_does_not_have_is_ignored_not_an_error():
+    """H20: 모델이 프롬프트의 낱말을 베껴 계산 도구 인자에 filled_args를 넣어 invalid_input이 됐다."""
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", termination_date="2026-10-28", filled_args=["termination_date"])) if n == 1
+                 else AIMessage(content="원금과 신규일, 만기일을 알려주세요."))
+    res = ask_held(a, "H20")
+    t = res["trace"][0]
+    assert t["status"] == "missing_info" and t["ignored"] == ["filled_args"]               # invalid_input이 아니다
+    hist_call = next(x for x in a.history("h") if isinstance(x, AIMessage) and x.tool_calls)
+    assert "filled_args" not in hist_call.tool_calls[0]["args"]                              # 호출 기록에서도 정리
+
+
+def test_the_prompt_does_not_teach_the_model_the_internal_result_keys():
+    t = g.system_text({"today": "2025-03-04"})
+    assert "dropped_args" not in t and "filled_args" not in t
+    assert "사용자가 말하지 않은 값은 계산에 쓰지 않았다" in t and "질문에서 찾아 채웠다" in t and "세후 이자" in t and "약속하지 않는다" in t
+    assert "상담원 연결을 이용" not in t and "고객센터나 영업점" in t
+
+
+def test_result_note_explains_both_dropped_and_filled_values_in_words():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=7_000_000, start_date="2025-09-15", termination_date="2026-07-31")) if n == 1
+                 else AIMessage(content="해지일을 날짜로 알려주세요."))
+    ask_held(a, "H6")
+    result = last_tool_json(m.seen[1])
+    assert "해지일" in result["note"] and "만기일" in result["note"] and "채웠습니다" in result["note"]
+    assert result["dropped_args"] == ["해지일"] and result["filled_args"] == {"만기일": "2026-09-15"}
+
+
+def test_a_promise_of_after_tax_interest_is_retried_then_replaced_by_the_tools_question():
+    promise = "원금과 가입일을 알려주시면 세전 이자와 세후 이자를 알려드리겠습니다."
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", termination_date="2026-10-28")) if n == 1
+                 else AIMessage(content=promise if n == 2 else "세전 이자만 계산할 수 있어요. 원금과 신규일, 만기일을 알려주세요."))
+    res = ask_held(a, "H20")
+    assert res["answer"].startswith("세전 이자만") and "세후 이자를 알려드리겠습니다" not in res["answer"]
+    assert "세후 금액은 약속하지" in m.seen[2][-1].content
+    b, mb = agent(lambda msgs, n: ai(call("calc_interest", termination_date="2026-10-28")) if n == 1 else AIMessage(content=promise))
+    assert ask_held(b, "H20")["answer"] == "계산에 필요한 값이 없습니다: 원금, 신규일, 만기일. 이 값을 알려주세요."
+
+
+def test_check_reply_finds_the_after_tax_promise():
+    st = _state("세금 떼고 얼마예요?")
+    assert g.check_reply(AIMessage(content="세후 이자도 알려드리겠습니다."), st)[0] == "aftertax"
+    assert g.check_reply(AIMessage(content="세후 이자는 계산할 수 없어요. 세전 이자만 알려드릴 수 있어요."), st)[0] is None

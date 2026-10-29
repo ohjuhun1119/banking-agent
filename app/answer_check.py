@@ -48,6 +48,8 @@ def handoff_request(text) -> bool:
 
 _TOOL_SYNTAX = re.compile(r"(?<![A-Za-z_])(?:calc_interest|search_terms)(?![A-Za-z_])|<tool_call>|\{\s*[\"'][A-Za-z_]+[\"']\s*:")
 _NOT_FOUND = re.compile(r"약관(?:에서|에는|에)?\s*(?:는\s*)?확인(?:되지|할 수)\s*(?:않|없)")
+_AFTER_TAX = re.compile(r"세후[^.?!\n]*(?:드리겠|드릴게|드릴께|드립니다|알려\s?드리|계산해\s?드리|제공해\s?드리|알려\s?줄|계산해\s?줄)")
+_NEGATION = re.compile(r"못|수\s?없|않|불가")
 MIN_AMOUNT = 10_000                                    # 이 금액 미만의 숫자(340일, 2.934%의 '934' 등)는 점검하지 않는다
 
 
@@ -81,3 +83,10 @@ def ungrounded_values(answer, allowed_texts, today: date | None = None) -> list[
         if amount >= MIN_AMOUNT and amount not in ok.amounts:
             out.append(f"{amount:,}원")
     return out
+
+
+def promises_after_tax(text) -> bool:
+    """세후 이자(세금을 뺀 금액)를 알려 주겠다고 약속하는 문장이 있는가. 이 도구는 세전 이자만 계산한다 (검증용 실제 모델 결과 H20)."""
+    if not isinstance(text, str):
+        return False
+    return any(_AFTER_TAX.search(sent) and not _NEGATION.search(sent) for sent in re.split(r"[.?!\n]", text))

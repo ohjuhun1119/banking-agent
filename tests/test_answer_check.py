@@ -165,3 +165,24 @@ def test_not_found_claim_is_detected(text):
 @pytest.mark.parametrize("text", ["약관에 따르면 일부 해지가 가능합니다", "확인되지 않았어요", "약관 내용을 확인했어요", "", None])
 def test_other_statements_are_not_not_found_claims(text):
     assert not not_found_claim(text)
+
+
+
+# ---------- 세후 이자 약속 (이 도구는 세전 이자만 계산한다) ----------
+from app.answer_check import promises_after_tax  # noqa: E402
+
+
+@pytest.mark.parametrize("text", [
+    "원금과 가입일을 알려주시면 세전 이자와 세후 이자를 알려드리겠습니다.", "세후 금액도 계산해 드릴게요", "세후 이자까지 제공해 드립니다.",
+    "세후 실수령액을 알려드릴게요.", "먼저 세전 이자를 구하고, 세후 이자도 계산해 드리겠습니다",
+])
+def test_a_promise_of_after_tax_interest_is_detected(text):
+    assert promises_after_tax(text)
+
+
+@pytest.mark.parametrize("text", [
+    "세후 이자는 계산할 수 없어요.", "세후 이자는 알려드리지 못해요", "세후 이자는 원천징수 세액을 뺀 금액이에요.", "세전 이자만 알려드릴 수 있어요.",
+    "세후 금액은 안내해 드릴 수 없습니다.", "세전 이자를 계산해 드릴게요.", "", None,
+])
+def test_explaining_or_refusing_after_tax_is_not_a_promise(text):
+    assert not promises_after_tax(text)

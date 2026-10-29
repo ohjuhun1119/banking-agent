@@ -15,6 +15,8 @@
   tool_syntax           답변에 도구 호출 문법이 새어 나옴
   unsupported_not_found 검색 결과가 not_found가 아닌데 '약관에서 확인되지 않습니다'라고 함
   asks_format           사용자에게 날짜를 YYYY-MM-DD 형식으로 입력하라고 안내함
+  unknown_arg:<이름>    계산 도구에 없는 인자 이름을 넣음 (프롬프트의 내부 낱말을 베낌, H20)
+  promises_after_tax    세후 이자를 알려 주겠다고 약속함 (도구는 세전만 계산)
   note_leak             도구의 내부 메모('사용자가 말하지 않은 값')가 답변에 노출됨
   model_error     모델 호출 실패
 실행: python eval/heldout_run.py --save eval/heldout/runs/short_name.json     (--only H1,H6: 일부만)
@@ -33,8 +35,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.answer_check import foreign_script, not_found_claim, phone_numbers, tool_syntax, ungrounded_values  # noqa: E402
+from app.answer_check import foreign_script, not_found_claim, phone_numbers, promises_after_tax, tool_syntax, ungrounded_values  # noqa: E402
 from app.graph import Agent  # noqa: E402
+from app.tool_calling import CALC_ARGS  # noqa: E402
 
 QUESTIONS = ROOT / "eval" / "heldout" / "questions.json"
 
@@ -48,7 +51,12 @@ def asked_user(answer: str) -> bool:
 
 
 LABELS = {"principal": "원금", "start_date": "신규일", "maturity_date": "만기일", "termination_date": "해지일", "base_rate": "기본금리"}
-ASK_WORDS = ("알려", "입력", "언제", "필요")
+ASK_WORDS = "알려|입력|언제|얼마|말씀"            # 칸 이름 바로 뒤(조사 한 글자까지)에 이 낱말이 와야 '그 값을 또 물었다'고 본다
+
+
+def asks_for(sentence: str, label: str) -> bool:
+    """문장이 label(칸 이름)의 값을 알려 달라고 하는가. '신규일부터 6개월이 지나' · '신규일 당시 …기본금리는 얼마였나요'는 아니다 (H13 오탐)."""
+    return bool(re.search(rf"{label}(?:을|를|은|는|이|가)?\s*(?:{ASK_WORDS})", sentence))
 
 
 def effective_fields(calls: list[dict]) -> set[str]:
@@ -88,11 +96,17 @@ def grade(q: dict, res: dict) -> dict:
                 flags.append(f"{'omitted_stated' if v['kind'] == 'said' else 'omitted_derived'}:{fld}")
         for sentence in re.split(r"[.?!\n]", ans):           # 이미 말한 값을 또 물었는지
             for fld, v in gold.items():
-                if v["kind"] == "said" and LABELS[fld] in sentence and any(w in sentence for w in ASK_WORDS) and f"reasked_stated:{fld}" not in flags:
+                if v["kind"] == "said" and asks_for(sentence, LABELS[fld]) and f"reasked_stated:{fld}" not in flags:
                     flags.append(f"reasked_stated:{fld}")
     if ans and not search and not any(t.get("status") == "ok" for t in calc):
         if ungrounded_values(ans, [q.get("question", "")], date.fromisoformat(res.get("today") or "2026-10-28")):
             flags.append("ungrounded_in_answer")
+    for t in calc:                                            # 도구에 없는 인자 이름을 넣었는지 (프롬프트의 낱말을 베낀 것)
+        for name in sorted(set(t.get("args") or {}) - set(CALC_ARGS)):
+            if f"unknown_arg:{name}" not in flags:
+                flags.append(f"unknown_arg:{name}")
+    if promises_after_tax(ans):
+        flags.append("promises_after_tax")
     if tool_syntax(ans):
         flags.append("tool_syntax")
     if not_found_claim(ans) and not any(t.get("status") == "not_found" for t in search):
@@ -115,7 +129,10 @@ def run(agent=None, only: set[str] | None = None, log=print) -> dict:
         res = agent.ask(q["question"], f"heldout-{q['id']}", data["today"])
         g = grade(q, {**res, "today": data["today"]})
         tools = "; ".join(f"{t['name']}({','.join(f'{k}={v}' for k, v in t['args'].items())})->{t['status']}"
-                          + (f"[말하지 않은 값 제외 {','.join(t['dropped'])}]" if t.get("dropped") else "") for t in res.get("trace", [])) or "(도구 없음)"
+                          + (f"[말하지 않은 값 제외 {','.join(t['dropped'])}]" if t.get("dropped") else "")
+                          + (f"[질문에서 채움 {','.join(t['filled'])}]" if t.get("filled") else "")
+                          + (f"[무시한 인자 {','.join(t['ignored'])}]" if t.get("ignored") else "")
+                          + ("[코드가 먼저 검색]" if t.get("forced") else "") for t in res.get("trace", [])) or "(도구 없음)"
         rows.append({"id": q["id"], "question": q["question"], "expect": q["expect"], "answer": res.get("answer"), "error": res.get("error"),
                      "stop_reason": res.get("stop_reason"), "trace": res.get("trace", []), "tool_calls": res.get("tool_calls"),
                      "model_calls": res.get("model_calls"), "ms": res.get("ms"), **g})

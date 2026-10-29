@@ -293,3 +293,54 @@ def test_recorded_real_model_calls_now_end_in_better_tool_states(qid):
     t = res["trace"][0]
     assert t["status"] == after and set(t["filled"]) == filled and set(t["dropped"]) == dropped
     assert t["status"] != "ok"                                                            # 이 20문항은 어느 것도 ok로 끝나면 안 된다
+
+
+# ---------- 채점기 보정 (수정 후 실제 모델 결과를 본 뒤): 오탐 제거와 새 점검 ----------
+AFTER_FIXTURE = ROOT / "tests" / "fixtures" / "heldout_after_fix.json"
+AFTER_FLAGS = {             # 수정 후 실제 모델 결과(화면 출력에서 옮긴 12문항)를 보정한 채점기로 본 것
+    "H1": [], "H3": [], "H4": [], "H5": [], "H8": [], "H9": [], "H13": [], "H15": [], "H16": [], "H18": [],
+    "H19": ["wrong_behavior"], "H20": ["unknown_arg:filled_args", "promises_after_tax"],
+}
+
+
+def test_the_corrected_grader_on_the_after_fix_run():
+    out = heldout_run.rescore(AFTER_FIXTURE, log=None)
+    assert {r["id"]: r["flags"] for r in out["rows"]} == AFTER_FLAGS
+    assert out["summary"]["all_clean"] == 10 and out["summary"]["n"] == 12
+
+
+def test_the_before_fix_baseline_does_not_change_with_the_corrected_grader():
+    out = heldout_run.rescore(FIXTURE, log=None)
+    assert {r["id"]: r["flags"] for r in out["rows"]} == BASELINE_FLAGS and out["summary"]["all_clean"] == 4
+
+
+@pytest.mark.parametrize("sentence,label,expected", [
+    ("만기일을 알려주시면 정확한 계산이 가능합니다", "만기일", True), ("만기일은 언제인가요?", "만기일", True), ("원금을 입력해 주세요", "원금", True),
+    ("기본금리는 얼마였나요?", "기본금리", True), ("만기일이 알려지지 않았습니다", "만기일", True),        # 이미 말한 값을 모른다고 하는 것도 표시한다
+    ("만기일은 2027-01-01로 계산했습니다", "만기일", False), ("만기일 이후라 중도해지가 아닙니다", "만기일", False),
+    # H13 오탐: 기본금리를 묻는 안내 문장이 '신규일'을 또 묻는 것으로 읽히면 안 된다
+    ("신규일부터 6개월이 지나 6개월 이상 구간이라, 중도해지금리를 계산하려면 기본금리가 필요합니다", "신규일", False),
+    ("신규일 당시 홈페이지에 고시된 계약기간별 기본금리(연 %)는 얼마였나요?", "신규일", False),
+    ("신규일 당시 홈페이지에 고시된 계약기간별 기본금리(연 %)는 얼마였나요?", "기본금리", False),
+])
+def test_asks_for_only_when_the_label_is_what_is_asked_for(sentence, label, expected):
+    assert heldout_run.asks_for(sentence, label) is expected
+
+
+def test_unknown_argument_and_after_tax_promise_flags():
+    tr = [trace("calc_interest", "invalid_input", args={"termination_date": "2026-10-28", "filled_args": ["termination_date"], "note": "x"})]
+    flags = heldout_run.grade(q("H20"), {**result("세후 이자를 알려드리겠습니다.", tr), "today": "2026-10-28"})["flags"]
+    assert "unknown_arg:filled_args" in flags and "unknown_arg:note" in flags and "promises_after_tax" in flags
+    clean = heldout_run.grade(q("H20"), {**result("세후 이자는 계산할 수 없고 세전 이자만 알려드릴 수 있어요.", [trace("calc_interest", "missing_info", args={"termination_date": "2026-10-28"})]), "today": "2026-10-28"})["flags"]
+    assert clean == []
+
+
+def test_run_log_shows_what_the_code_did_for_the_model():
+    class A:
+        def ask(self, question, session_id, today):
+            return result("값을 알려주세요.", [{**trace("calc_interest", "missing_info", args={"principal": 1}, dropped={"base_rate": 3.5}),
+                                            "filled": {"maturity_date": "2026-06-01"}, "ignored": ["filled_args"], "forced": True}])
+    lines = []
+    heldout_run.run(agent=A(), only={"H1"}, log=lines.append)
+    text = "\n".join(lines)
+    assert "[말하지 않은 값 제외 base_rate]" in text and "[질문에서 채움 maturity_date]" in text and "[무시한 인자 filled_args]" in text and "[코드가 먼저 검색]" in text

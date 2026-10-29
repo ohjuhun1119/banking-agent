@@ -43,8 +43,8 @@ from langgraph.checkpoint.memory import MemorySaver  # noqa: E402
 from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
-from app.answer_check import (foreign_script, handoff_request, not_found_claim, tool_syntax, unsupported_phone_numbers,  # noqa: E402
-                              ungrounded_values)
+from app.answer_check import (foreign_script, handoff_request, not_found_claim, promises_after_tax, tool_syntax,  # noqa: E402
+                              unsupported_phone_numbers, ungrounded_values)
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
@@ -55,7 +55,7 @@ OLD_TOOL_CHARS = 300                                                 # 이전 �
 RECURSION_LIMIT = 25                                                 # 그래프 단계 수의 안전 한도 (정상 흐름은 13단계 이하)
 
 LIMIT_TEXT = ("도구를 너무 많이 호출해서 여기서 멈췄어요. 질문을 조금 더 구체적으로 다시 알려주시거나, "
-              "상담원 연결을 요청해 주세요.")
+              "하나은행 고객센터나 영업점에 문의해 주세요.")           # 상담원 연결 기능이 생기는 8일차 전까지는 연결을 안내하지 않는다
 EMPTY_TEXT = "답변을 만들지 못했어요. 질문을 한 번 더 알려주세요."
 UNSAFE_TEXT = ("확인되지 않은 내용이 섞여 답변을 드리지 못했어요. 질문을 조금 바꿔 다시 물어봐 주시거나, "
                "하나은행 고객센터나 영업점에 문의해 주세요.")
@@ -70,6 +70,7 @@ RETRY_NOTES = {
     "ungrounded": ("직전 답변에 사용자가 말하지 않았고 도구 결과에도 없는 날짜 · 금액({values})이 들어 있다. 그 값은 말하지 않는다 (추측 · 가정도 안 된다). "
                    "사용자가 말한 값과 도구 결과의 값만 쓰고, 모르는 값은 질문한다."),
     "not_found": "검색 결과가 있는데 '약관에서 확인되지 않는다'고 했다. 검색 결과에 있는 내용으로 답한다.",
+    "aftertax": "직전 답변이 세후 이자를 알려 주겠다고 약속했다. 이 도구는 세전 이자만 계산한다. 세후 금액은 약속하지 말고, 계산하는 이자가 세전이라고 밝힌다.",
 }
 # 약관 · 이자 질문(예금 관련 낱말이 있는 질문)에 모델이 도구를 하나도 안 부르고 답하려 하면, 코드가 먼저 약관 검색을 실행해 근거로 준다
 DOMAIN_WORDS = re.compile(r"해지|해약|중도|만기|이자|이율|금리|약관|원금|예금|예치|가입|보호|과세|세금|재예치|인출|일부")
@@ -82,15 +83,15 @@ GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 �
 - invalid_input: message를 사용자에게 전하고 값을 다시 확인해 달라고 한다.
 - not_early_termination: 계산하지 않았다고 알리고 message의 안내를 전한다.
 - 약관 검색 결과: 결과에 있는 내용만 답한다. not_found면 '약관에서 확인되지 않습니다'라고 안내한다.
-- error: 잠시 후 다시 시도하거나 상담원 연결을 이용해 달라고 안내한다.
+- error: 잠시 후 다시 시도하거나 하나은행 고객센터나 영업점에 문의해 달라고 안내한다.
 - need_base_rate, missing_info, invalid_input이면 설명만 하고 끝내지 말고, 필요한 값을 알려 달라는 질문으로 끝낸다.
-- 결과에 dropped_args가 있으면: 그 칸의 값은 사용자가 말하지 않아서 계산에 쓰지 않았다는 뜻이다. 그 값을 추측해서 말하지 말고, 필요하면 사용자에게 묻는다.
-- 결과에 filled_args가 있으면: 사용자가 말한 값을 질문에서 찾아 채운 것이다.
+- 결과에 '사용자가 말하지 않은 값은 계산에 쓰지 않았다'는 메모가 있으면: 그 칸의 값은 사용자가 말하지 않은 것이다. 그 값을 추측해서 말하지 말고, 필요하면 사용자에게 묻는다.
+- 결과에 '사용자가 말한 값을 질문에서 찾아 채웠다'는 메모가 있으면: 그 값은 사용자가 말한 값이다.
 - 사용자가 말하지 않은 날짜 · 금액은 답변에 쓰지 않는다 (추측 · 가정 · 예시도 안 된다).
 - 약관에서 확인되지 않습니다는 약관 검색 결과가 not_found일 때만 쓴다. 약관 질문은 먼저 검색 도구로 확인한다.
 같은 도구를 같은 값으로 다시 부르지 않는다. 결과가 나왔으면 그 결과로 답한다.
 한국어로만 답한다. 중국어 · 일본어 · 영어를 섞지 않는다.
-너는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 할 수 있다. 상담원 연결 · 계좌 조회 · 해지 처리 같은 실제 업무는 할 수 없다고 말한다. 전화번호나 주소는 도구 결과나 사용자가 말한 것만 말하고, 없으면 만들지 않는다."""
+너는 『하나의 정기예금』 약관 안내와 중도해지 세전 이자 계산만 할 수 있다. 세후 이자(세금을 뺀 금액)는 계산하지 못하므로 약속하지 않는다. 상담원 연결 · 계좌 조회 · 해지 처리 같은 실제 업무는 할 수 없다고 말한다. 전화번호나 주소는 도구 결과나 사용자가 말한 것만 말하고, 없으면 만들지 않는다."""
 
 
 # ---------- 프롬프트 ----------
@@ -199,7 +200,7 @@ def _allowed_texts(state: dict, whole_conversation: bool) -> list[str]:
 
 def check_reply(ai, state: dict) -> tuple[str | None, str]:
     """모델 응답의 문제를 찾는다. 반환: (문제, 설명). 문제: 'language'(한자 · 가나) / 'syntax'(도구 호출 문법이 글로 나옴) /
-    'phone'(근거 없는 전화번호) / 'ungrounded'(근거 없는 날짜 · 금액) / 'not_found'(검색 결과가 있는데 '확인되지 않는다'고 함) / None.
+    'phone'(근거 없는 전화번호) / 'aftertax'(세후 이자를 알려 주겠다고 약속) / 'ungrounded'(근거 없는 날짜 · 금액) / 'not_found'(검색 결과가 있는데 '확인되지 않는다'고 함) / None.
     도구 호출이면 검색어만, 최종 답변이면 본문 전체를 본다."""
     calls = getattr(ai, "tool_calls", None) or []
     if calls:
@@ -212,6 +213,8 @@ def check_reply(ai, state: dict) -> tuple[str | None, str]:
         return "syntax", ""
     if unsupported_phone_numbers(text, *_allowed_texts(state, whole_conversation=False)):
         return "phone", ""
+    if promises_after_tax(text):
+        return "aftertax", ""
     extra = ungrounded_values(text, _allowed_texts(state, whole_conversation=True), _today(state))
     if extra:
         return "ungrounded", ", ".join(extra)
@@ -290,27 +293,32 @@ def make_tools_node(search_fn, timeout):
         for call in last.tool_calls:
             name, args = call["name"], dict(call.get("args") or {})
             key, t0 = _args_key(name, args), time.perf_counter()
-            duplicate, dropped, filled = key in seen, {}, {}
+            duplicate, dropped, filled, ignored = key in seen, {}, {}, []
             if duplicate:                                     # 같은 호출을 또 하는 반복을 끊는다 (한도에는 센다)
                 result, retried = {"status": "duplicate", "message": "같은 도구를 같은 값으로 이미 불렀습니다. 앞의 결과로 답하세요."}, False
             else:
                 run_args = args
                 if name == "calc_interest":                   # 말하지 않은 값은 빼고, 말했는데 모델이 빠뜨린 칸은 채운다
-                    run_args, dropped = ground_calc_args(args, said, _today(state), confirmed)
+                    ignored = sorted(set(args) - set(tc.CALC_ARGS))      # 도구에 없는 인자 이름(프롬프트의 낱말을 베낀 것 등)은 무시한다
+                    run_args, dropped = ground_calc_args({k: v for k, v in args.items() if k in tc.CALC_ARGS}, said, _today(state), confirmed)
                     run_args, filled = fill_missing_from_text(run_args, said, _today(state))
                     final_args[call.get("id")] = run_args
                 result, retried = run_guarded(name, run_args, timeout, search_fn)
+                notes = []
                 if dropped:                                   # 값은 말하지 않는다: 모델이 지어낸 값을 따라 말하지 않게 칸 이름만 알린다
-                    result = {**result, "dropped_args": [FIELD_LABELS.get(k, k) for k in dropped],
-                              "note": f"사용자가 말하지 않은 값({describe_dropped(dropped)})은 계산에 쓰지 않았습니다."}
+                    result = {**result, "dropped_args": [FIELD_LABELS.get(k, k) for k in dropped]}
+                    notes.append(f"사용자가 말하지 않은 값({describe_dropped(dropped)})은 계산에 쓰지 않았습니다.")
                 if filled:
                     result = {**result, "filled_args": {FIELD_LABELS.get(k, k): v for k, v in filled.items()}}
+                    notes.append(f"사용자가 말한 값({describe_dropped(filled)})을 질문에서 찾아 채웠습니다.")
+                if notes:
+                    result = {**result, "note": " ".join(notes)}
                 if name == "calc_interest":
                     confirmed.update(accepted_values(run_args))
             seen.add(key)
             count += 1
             trace.append({"name": name, "args": args, "status": result.get("status"), "ms": int((time.perf_counter() - t0) * 1000),
-                          "retried": retried, "duplicate": duplicate, "dropped": dropped, "filled": filled, "forced": forced})
+                          "retried": retried, "duplicate": duplicate, "dropped": dropped, "filled": filled, "ignored": ignored, "forced": forced})
             out.append(ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call.get("id") or "", name=name))
         messages = out
         if final_args:                                        # 모델의 호출 기록에도 지어낸 값이 남지 않게, 실제로 쓴 값으로 바꿔 둔다 (같은 id로 교체)
