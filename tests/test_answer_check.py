@@ -186,3 +186,32 @@ def test_a_promise_of_after_tax_interest_is_detected(text):
 ])
 def test_explaining_or_refusing_after_tax_is_not_a_promise(text):
     assert not promises_after_tax(text)
+
+
+# ---------- 상담 요청 확인 답('네')과 접수 · 연결 주장 (8일차) ----------
+from app.answer_check import claims_handoff_done, is_affirmative  # noqa: E402
+
+
+@pytest.mark.parametrize("text", ["네", "네.", "네, 저장해 주세요", "응 저장해줘", "예", "좋아요", "그래", "맞아요 부탁해요", "저장해줘", "넵"])
+def test_short_yes_answers_are_affirmative(text):
+    assert is_affirmative(text)
+
+
+@pytest.mark.parametrize("text", ["아니요", "아니요 괜찮아요", "네 그런데 이자는요?", "됐어요", "취소할게요", "이자 얼마예요", "", None, "네" + "가" * 40, "네, 저장 안 해도 돼요"])
+def test_other_replies_are_not_affirmative(text):
+    assert not is_affirmative(text)
+
+
+@pytest.mark.parametrize("text", [
+    "상담 요청을 접수했어요.", "접수번호는 1234예요", "상담원이 연결해 드릴게요", "상담원이 곧 연결됩니다", "상담 요청이 저장됐어요", "문의가 접수되었습니다", "상담원이 연락드리겠습니다",
+])
+def test_claims_that_a_request_was_saved_or_an_agent_will_connect_are_found(text):
+    assert claims_handoff_done(text)
+
+
+@pytest.mark.parametrize("text", [
+    "상담 요청을 저장할까요? 저장을 원하시면 '네'라고 답해 주세요.", "상담원 연결은 직접 할 수 없어요.", "원하시면 상담 요청을 저장해 드릴 수 있어요.", "상담 요청은 아직 저장하지 않았어요",
+    "중도해지 이자는 세전으로 계산돼요.", "", None,
+])
+def test_questions_refusals_and_ordinary_answers_are_not_claims(text):
+    assert not claims_handoff_done(text)

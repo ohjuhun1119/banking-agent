@@ -186,7 +186,7 @@ def test_tool_call_limit_stops_the_loop_and_suggests_a_human():
     a, m = agent(lambda msgs, n: ai(call("search_terms", query=f"검색{n}")), search_fn=spy)
     res = a.ask("q", "s")
     assert res["stop_reason"] == "tool_limit" and res["tool_calls"] == 5 and executed == [f"검색{i}" for i in range(1, 6)]
-    assert res["answer"] == g.LIMIT_TEXT and "고객센터" in res["answer"] and "상담원" not in res["answer"] and m.n == 6
+    assert res["answer"] == g.LIMIT_TEXT and g.HANDOFF_CONFIRM_MARK in res["answer"] and "상담원" not in res["answer"] and m.n == 6     # 저장할지 묻는다 (연결한다고 하지 않는다)
     hist = a.history("s")
     assert isinstance(hist[-3], AIMessage) and hist[-3].tool_calls                        # 부르려던 호출
     assert json.loads(hist[-2].content)["status"] == "skipped" and hist[-2].tool_call_id == hist[-3].tool_calls[0]["id"]
@@ -341,7 +341,7 @@ def test_real_chatollama_gets_tool_result_in_the_second_request(monkeypatch):
     assert second[2]["tool_calls"][0]["function"]["name"] == "calc_interest"
     assert json.loads(second[3]["content"])["interest_krw"] == 63013
     assert "2025-03-04" in second[0]["content"] and sent[1]["options"]["temperature"] == 0
-    assert [t["function"]["name"] for t in sent[1]["tools"]] == ["search_terms", "calc_interest"]
+    assert [t["function"]["name"] for t in sent[1]["tools"]] == ["search_terms", "calc_interest", "request_handoff"]      # 8일차: 세 번째 도구
 
 
 # ---------- 입력 검사 ----------
@@ -500,15 +500,16 @@ REAL_FABRICATED_REPLY = "상담원 연결을 요청해주시면 됩니다. 고�
 
 
 @pytest.mark.parametrize("question", ["상담원 연결해줘", "상담원 연결 요청"])        # 스크린샷의 두 질문
-def test_handoff_request_is_answered_without_the_model_and_without_promising_anything(question):
+def test_handoff_request_saves_the_request_and_never_promises_a_connection(question):
+    from app.tools import handoff as hf
     a, m = agent(lambda msgs, n: AIMessage(content=REAL_FABRICATED_REPLY))
     res = a.ask(question, "s")
-    assert m.n == 0 and res["model_calls"] == 0 and res["tool_calls"] == 0                   # 모델을 부르지 않는다
-    assert res["answer"] == g.HANDOFF_TEXT and res["stop_reason"] == "handoff_not_ready" and res["error"] is None
-    assert "아직 지원하지 않아요" in res["answer"] and "1544" not in res["answer"]
-    for promise in ("잠시 기다려", "연결될 때까지", "접수", "연결해 드릴게요"):                    # 연결해 주는 것처럼 말하지 않는다
+    assert m.n == 0 and res["model_calls"] == 0 and res["tool_calls"] == 1                   # 모델을 부르지 않고, 저장 도구 한 번
+    assert res["stop_reason"] == "handoff_saved" and res["error"] is None and res["answer"].startswith("상담 요청을 저장했어요")
+    assert "접수번호는" in res["answer"] and "연결해 주지는 않아요" in res["answer"] and "1544" not in res["answer"]
+    for promise in ("잠시 기다려", "연결될 때까지", "연결해 드릴게요"):                              # 연결해 주는 것처럼 말하지 않는다
         assert promise not in res["answer"]
-    assert [type(x).__name__ for x in a.history("s")] == ["HumanMessage", "AIMessage"]
+    assert hf.count_requests() == 1 and res["trace"][0]["name"] == "request_handoff" and res["trace"][0]["forced_kind"] == "handoff"
 
 
 def test_conversation_continues_normally_after_a_handoff_request():
@@ -516,7 +517,7 @@ def test_conversation_continues_normally_after_a_handoff_request():
     a.ask("안녕하세요", "s")
     handoff = a.ask("상담원 연결해줘", "s")
     after = a.ask("그럼 다른 걸 물어볼게요", "s")
-    assert handoff["stop_reason"] == "handoff_not_ready" and m.n == 2                         # 일반 질문 둘만 모델을 불렀다
+    assert handoff["stop_reason"] == "handoff_saved" and m.n == 2                             # 일반 질문 둘만 모델을 불렀다
     assert after["answer"] == "일반 답변" and after["stop_reason"] is None and after["model_calls"] == 1
     assert len(a.history("s")) == 6
 
@@ -604,7 +605,7 @@ def test_text_next_to_a_tool_call_is_not_checked_only_the_query():
 
 def test_rules_tell_the_model_to_use_korean_only_and_not_to_invent_contacts():
     t = g.system_text({"today": "2025-03-04"})
-    assert "한국어로만 답한다" in t and "상담원 연결 · 계좌 조회 · 해지 처리" in t and "전화번호나 주소는 도구 결과나 사용자가 말한 것만" in t
+    assert "한국어로만 답한다" in t and "계좌 조회 · 해지 처리" in t and "request_handoff" in t and "전화번호나 주소는 도구 결과나 사용자가 말한 것만" in t
 
 
 # ---------- 검증용 20문항의 실제 모델 실패를 그대로 재현 (수정 후 기대 동작) ----------
@@ -917,7 +918,7 @@ def test_no_evidence_for_small_talk_handoff_limit_errors_and_replaced_answers():
     a, m = agent(lambda msgs, n: AIMessage(content="안녕하세요!"), search_fn=rule_search())
     assert a.ask("안녕하세요", "s")["evidence"] == []
     h = a.ask("상담원 연결해줘", "s")
-    assert h["evidence"] == [] and h["evidence_text"] == "" and h["stop_reason"] == "handoff_not_ready"
+    assert h["evidence"] == [] and h["evidence_text"] == "" and h["stop_reason"] == "handoff_saved"
     b, mb = agent(lambda msgs, n: AIMessage(content="약관상 가능해요."), max_tool_calls=0, search_fn=rule_search())
     assert b.ask("중도해지하면 이율이 어떻게 돼요?", "s")["evidence"] == []                     # 호출 한도에 걸림
     c, mc = agent(lambda msgs, n: (_ for _ in ()).throw(RuntimeError("ollama off")))
@@ -1013,6 +1014,6 @@ def test_evidence_of_an_earlier_turn_never_leaks_into_turns_that_skip_the_eviden
     first = a.ask(CALC_Q, "s", today=TODAY_H)
     assert [c["kind"] for c in first["evidence"]] == ["계산", "약관"]
     handoff = a.ask("상담원 연결해줘", "s")
-    assert handoff["stop_reason"] == "handoff_not_ready" and handoff["evidence"] == [] and handoff["evidence_text"] == ""
+    assert handoff["stop_reason"] == "handoff_saved" and handoff["evidence"] == [] and handoff["evidence_text"] == ""
     limited = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
     assert limited["stop_reason"] == "tool_limit" and limited["evidence"] == [] and limited["evidence_text"] == ""

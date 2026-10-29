@@ -12,6 +12,8 @@ calc_interest()는 항상 dict를 돌려주고 status로 다음 행동을 알려
 """
 from __future__ import annotations
 
+from datetime import timedelta
+
 import math
 from dataclasses import dataclass
 from decimal import Decimal
@@ -159,6 +161,10 @@ def calc_interest(principal=None, start_date=None, maturity_date=None, terminati
         warnings.append("기본금리는 경과 6개월 미만 구간에서 쓰이지 않아 무시했습니다")
     if elapsed == 0:
         warnings.append("신규일 당일 해지라 이자가 0원입니다")
+    gap = (maturity - termination).days
+    if maturity.weekday() >= 5 and termination.weekday() < 5 and all((termination + timedelta(days=k)).weekday() >= 5 for k in range(1, gap)):
+        warnings.append(f"만기일({maturity.isoformat()})이 휴일(토 · 일)이고 해지일이 직전 영업일입니다. 이 경우 중도해지가 아니라 만기 해지(약정금리)로 "
+                        "처리될 수 있어 이 금액과 다를 수 있습니다. 정확한 금액은 은행에 확인해야 합니다 (공휴일은 이 도구가 알지 못합니다)")
     formula = [rr.formula, f"이자 = 원금 {c['principal']:,}원 × {rr.rate}% × {elapsed}일 / {DAY_COUNT}일 = {interest:,}원 (원 미만 절사)"]
     return {
         "status": "ok", **common, "rate_pct": str(rr.rate), "interest_krw": interest, "payout_krw": c["principal"] + interest,

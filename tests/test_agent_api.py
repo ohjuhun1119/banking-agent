@@ -99,7 +99,8 @@ def test_handoff_request_is_answered_without_calling_the_model(fresh):
         raise AssertionError("상담원 연결 요청에는 모델을 부르면 안 된다")
     fresh(must_not_be_called)
     body = ask(question="상담원 연결해줘", session_id="h1").json()
-    assert body["answer"] == g.HANDOFF_TEXT and body["stop_reason"] == "handoff_not_ready" and body["model_calls"] == 0 and body["error"] is None
+    assert body["answer"].startswith("상담 요청을 저장했어요") and "접수번호는" in body["answer"]                 # 저장에 성공했을 때만 접수번호를 말한다
+    assert body["stop_reason"] == "handoff_saved" and body["model_calls"] == 0 and body["error"] is None
 
 
 def test_ask_returns_the_evidence_the_code_attached():

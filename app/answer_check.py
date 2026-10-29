@@ -90,3 +90,22 @@ def promises_after_tax(text) -> bool:
     if not isinstance(text, str):
         return False
     return any(_AFTER_TAX.search(sent) and not _NEGATION.search(sent) for sent in re.split(r"[.?!\n]", text))
+
+
+_AFFIRM = re.compile(r"^\s*(?:네|넵|예|응|어|그래|좋아|맞아|저장|부탁|해\s?줘|해\s?주세요|그렇게|그럼)")
+_NEGATIVE = re.compile(r"아니|아뇨|괜찮|됐|취소|싫|안\s?해|하지\s?마")
+_HANDOFF_DONE = re.compile(r"접수번호|(?:상담|요청|문의)[^.?!\n]{0,12}(?:접수|저장)\s?(?:했|됐|되었|해\s?드렸|완료)|상담원[^.?!\n]{0,14}(?:연결해\s?드(?:리|렸)|연결됩니다|연락\s?드리)|연결해\s?드릴게")
+_NOT_DONE = re.compile(r"못|수\s?없|않|아직|전에|할까요|드릴까요|원하시면")
+
+
+def is_affirmative(text) -> bool:
+    """'네' · '네, 저장해 주세요' 같은 짧은 긍정 답인가 (질문이 섞였거나 부정이 있으면 아니다)."""
+    return (isinstance(text, str) and len(text.strip()) <= 30 and "?" not in text and "?" not in text
+            and bool(_AFFIRM.search(text)) and not _NEGATIVE.search(text))
+
+
+def claims_handoff_done(text) -> bool:
+    """상담 요청이 접수 · 저장됐거나 상담원이 연결된다고 말하는가. 접수번호는 코드가 저장한 뒤에만 만든다: 모델이 쓴 답변의 접수 주장은 근거가 없다."""
+    if not isinstance(text, str):
+        return False
+    return any(_HANDOFF_DONE.search(s) and not _NOT_DONE.search(s) for s in re.split(r"[.?!\n]", text))

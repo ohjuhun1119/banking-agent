@@ -106,7 +106,7 @@ def test_roles_are_read_from_a_label_before_or_a_keyword_right_after_the_date(te
      [("2026-01-01", None), ("2028-01-01", None), ("2026-10-28", "termination")]),                 # 범위 괄호는 라벨이 아니다
     ("2000만원을 2026-03-15에 1년 만기(2027-03-15)로 넣었어요. 오늘 해지하면", [("2026-03-15", None), ("2027-03-15", "maturity"), ("2026-10-28", "termination")]),
     ("2026년 1월 1일에 천만 원을 1년 만기로 넣었는데 2026년 3월 2일에 해지하면", [("2026-01-01", None), ("2026-03-02", "termination")]),   # '1년 만기'는 기간
-    ("해지 날짜를 오늘로 잡으면 세금 떼고 실제로 얼마 들어오는지", [("2026-10-28", None)]),
+    ("해지 날짜를 오늘로 잡으면 세금 떼고 실제로 얼마 들어오는지", [("2026-10-28", "termination")]),           # '해지 날짜를'은 라벨 (검증용 H20)
 ])
 def test_ambiguous_phrases_leave_the_role_unknown_instead_of_guessing(text, expected):
     assert roles(text) == expected
@@ -148,3 +148,11 @@ def test_a_label_written_after_the_date_is_not_reused_as_the_next_dates_label():
     assert roles("2026-01-01 가입 2027-01-01 만기") == [("2026-01-01", "start"), ("2027-01-01", "maturity")]
     # 라벨을 날짜 앞에 쓰는 표기도 그대로
     assert roles("신규 2026-01-01, 만기 2027-01-01, 해지 2026-12-07") == [("2026-01-01", "start"), ("2027-01-01", "maturity"), ("2026-12-07", "termination")]
+
+
+@pytest.mark.parametrize("text,role", [
+    ("해지 날짜를 오늘로 잡으면", "termination"), ("해지 날짜는 2026-12-07", "termination"), ("해약 날짜를 내일로", "termination"), ("해지 날은 어제였어요", "termination"),
+    ("가입 날짜를 오늘로", None),             # '가입 날짜'는 해지가 아니다 (라벨은 해지 쪽만 넓혔다)
+])
+def test_termination_date_labels_with_the_word_date(text, role):
+    assert date_mentions(text, TODAY)[0].role == role

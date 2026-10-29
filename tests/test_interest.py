@@ -207,3 +207,30 @@ def test_missing_info_message_asks_for_the_missing_values():
 def test_rate_question_is_not_asked_when_the_rate_is_not_needed():
     r = calc_interest(principal=10_000_000, start_date="2026-01-01", maturity_date="2027-01-01", termination_date="2026-01-21")
     assert r["status"] == "ok" and "?" not in r["summary"]
+
+
+# ---------- 만기일이 주말이고 해지일이 직전 영업일 (오류 처리 표 8번, 8일차) ----------
+from app.tools.interest import calc_interest as _calc  # noqa: E402
+
+_WEEKEND_BASE = dict(principal=10_000_000, start_date="2025-12-05", base_rate=3.5)          # 2026-12-05는 토요일, 12-06은 일요일
+
+
+def _holiday_warnings(r):
+    return [w for w in r.get("warnings", []) if "휴일" in w]
+
+
+@pytest.mark.parametrize("maturity,termination,expected", [
+    ("2026-12-05", "2026-12-04", 1),          # 토요일 만기, 금요일 해지
+    ("2026-12-06", "2026-12-04", 1),          # 일요일 만기, 금요일 해지 (사이에 토요일뿐)
+    ("2026-12-05", "2026-12-03", 0),          # 목요일 해지: 사이에 영업일(금요일)이 있다
+    ("2026-12-06", "2026-12-05", 0),          # 토요일 해지는 영업일이 아니다
+    ("2026-12-04", "2026-12-03", 0),          # 평일 만기
+])
+def test_weekend_maturity_with_a_termination_on_the_last_business_day_gets_a_bank_check_warning(maturity, termination, expected):
+    r = _calc(termination_date=termination, maturity_date=maturity, **_WEEKEND_BASE)
+    assert r["status"] == "ok" and len(_holiday_warnings(r)) == expected          # 금액은 그대로 계산하고 경고만 붙인다
+
+
+def test_the_weekend_warning_names_the_date_and_says_the_bank_must_confirm_and_that_public_holidays_are_unknown():
+    w = _holiday_warnings(_calc(termination_date="2026-12-04", maturity_date="2026-12-05", **_WEEKEND_BASE))[0]
+    assert "2026-12-05" in w and "만기 해지(약정금리)" in w and "은행에 확인" in w and "공휴일은 이 도구가 알지 못합니다" in w

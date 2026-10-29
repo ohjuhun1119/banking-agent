@@ -37,6 +37,12 @@ VARIANTS = ("short", "detailed", "examples")
 DEFAULT_VARIANT = os.environ.get("TOOL_VARIANT", "detailed")
 CALC_ARGS = ("principal", "start_date", "maturity_date", "termination_date", "base_rate")
 TOOL_NAMES = ("search_terms", "calc_interest")
+HANDOFF_NAME = "request_handoff"                 # 에이전트 그래프에서만 모델에 붙이는 세 번째 도구 (5일차 측정 대상이 아님)
+HANDOFF_SPEC = {"type": "function", "function": {
+    "name": HANDOFF_NAME,
+    "description": ("사용자가 사람 상담원과 얘기하고 싶다거나 연결을 원한다는 뜻을 보일 때만 부른다 (예: '사람이랑 얘기하고 싶어요'). "
+                    "이 도구는 저장하지 않는다: 저장해도 되는지 사용자에게 물어볼 문장을 돌려준다. 약관 질문이나 이자 계산 질문에는 부르지 않는다."),
+    "parameters": {"type": "object", "properties": {}, "required": []}}}
 
 SYSTEM_PROMPT = """너는 하나은행 『하나의 정기예금』 상담 도우미다. 오늘 날짜는 {today}이다.
 필요하면 도구를 호출하고, 도구가 필요 없는 질문에는 도구 없이 짧게 답한다.
@@ -114,10 +120,10 @@ class ToolCallingError(RuntimeError):
     """모델 호출 실패 (Ollama가 꺼져 있음, 모델 없음 등)."""
 
 
-def get_model(variant: str = DEFAULT_VARIANT):
-    """도구가 연결된 ChatOllama. temperature 0으로 같은 질문에 같은 결과가 나오게 한다 (흔들림은 --repeat로 확인)."""
+def get_model(variant: str = DEFAULT_VARIANT, extra_tools=()):
+    """도구가 연결된 ChatOllama. temperature 0으로 같은 질문에 같은 결과가 나오게 한다 (흔들림은 --repeat로 확인). extra_tools: 에이전트가 더 붙이는 도구 정의."""
     from langchain_ollama import ChatOllama
-    return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX).bind_tools(tool_specs(variant))
+    return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX).bind_tools(tool_specs(variant) + list(extra_tools))
 
 
 def _to_lc(messages: list[dict]):

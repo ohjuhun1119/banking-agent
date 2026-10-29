@@ -435,7 +435,7 @@ $("#tools-form").addEventListener("submit", (ev) => { ev.preventDefault(); askTo
 const AGENT_SESSION = "web-" + Math.random().toString(36).slice(2, 10);       // 서버가 이 이름으로 대화를 저장한다
 const TRACE_TONE = { ok: "", not_found: "warn", missing_info: "warn", need_base_rate: "warn", invalid_input: "warn", duplicate: "warn", error: "bad", unknown_tool: "bad" };
 
-const STOP_LABEL = { tool_limit: "중단: 도구 호출 한도", model_error: "중단: 모델 오류", handoff_not_ready: "안내: 상담원 연결은 아직 지원하지 않음" };
+const STOP_LABEL = { tool_limit: "중단: 도구 호출 한도", model_error: "중단: 모델 오류", handoff_saved: "안내: 상담 요청 저장됨", handoff_failed: "오류: 상담 요청 저장 실패" };
 const FIELD_LABEL = { principal: "원금", start_date: "신규일", maturity_date: "만기일", termination_date: "해지일", base_rate: "기본금리" };
 
 function agentTrace(trace) {
@@ -443,7 +443,7 @@ function agentTrace(trace) {
     const dropped = Object.entries(t.dropped || {}), filled = Object.entries(t.filled || {});
     return h("div", { class: TRACE_TONE[t.status] || "" },
       `🔧 ${t.name}(${Object.entries(t.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")}) → ${t.status}`
-      + (t.forced ? (t.forced_kind === "calc" ? " · 코드가 먼저 계산 호출" : " · 코드가 먼저 검색") : "") + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
+      + (t.forced ? (t.forced_kind === "handoff" ? " · 코드가 상담 요청 저장" : t.forced_kind === "calc" ? " · 코드가 먼저 계산 호출" : " · 코드가 먼저 검색") : "") + (t.retried ? " · 재시도함" : "") + (t.duplicate ? " · 같은 호출 반복, 실행 안 함" : "")
       + (dropped.length ? ` · 말하지 않은 값 제외: ${dropped.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "")
       + (filled.length ? ` · 질문에서 채움: ${filled.map(([k, v]) => `${FIELD_LABEL[k] || k} ${v}`).join(", ")}` : "") + ` · ${t.ms}ms`);
   }));
