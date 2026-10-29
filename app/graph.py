@@ -471,7 +471,8 @@ class Agent:
     def ask(self, question: str, session_id: str = "default", today: str | None = None) -> dict:
         if today:
             date.fromisoformat(today)                         # 잘못된 날짜는 여기서 ValueError
-        cfg = {"configurable": {"thread_id": session_id}, "recursion_limit": RECURSION_LIMIT}
+        cfg = {"configurable": {"thread_id": session_id}, "recursion_limit": RECURSION_LIMIT,
+               "run_name": "banking-agent-turn", "tags": ["banking-agent"], "metadata": {"session_id": session_id}}      # LANGSMITH_TRACING=true일 때 구분용 (꺼져 있으면 무시)
         t0 = time.perf_counter()
         # confirmed와 messages는 일부러 넣지 않는다: 체크포인터에 저장된 세션 값이 이어진다
         final = self.graph.invoke({"messages": [HumanMessage(question)], "today": today, "tool_calls": 0, "model_calls": 0,

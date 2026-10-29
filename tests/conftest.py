@@ -6,3 +6,5 @@ import pytest
 def _temporary_handoff_db(tmp_path, monkeypatch):
     from app.tools import handoff
     monkeypatch.setattr(handoff, "DB_PATH", tmp_path / "handoff.sqlite3")
+    from app import traces
+    monkeypatch.setattr(traces, "DB_PATH", tmp_path / "traces.sqlite3")

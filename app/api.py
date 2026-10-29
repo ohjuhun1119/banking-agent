@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
 
@@ -30,6 +30,7 @@ from search import DEFAULT_MODE, DEFAULT_RERANK, search_terms  # noqa: E402
 from app import chat  # noqa: E402
 from app import tool_calling  # noqa: E402
 from app import graph as agent_graph  # noqa: E402
+from app import traces  # noqa: E402
 from app.tools import interest as interest_tool  # noqa: E402
 from app.tools import interest_cases  # noqa: E402
 
@@ -272,12 +273,59 @@ class AgentResetRequest(BaseModel):
 def api_agent_ask(req: AgentAskRequest):
     """한 질문을 에이전트에게 보낸다. 모델 호출이 실패해도 200으로 돌려주고 error 필드에 이유를 담는다 (그 질문은 대화에 남지 않는다)."""
     try:
-        return get_agent().ask(req.question.strip(), req.session_id, req.today)
+        res = get_agent().ask(req.question.strip(), req.session_id, req.today)
     except ValueError as e:                                  # 존재하지 않는 날짜 (예: 2026-13-45)
         raise HTTPException(status_code=422, detail=f"today가 올바른 날짜가 아닙니다: {e}")
+    res["trace_id"] = traces.record(res, req.question.strip())       # 도구 선택 과정을 남긴다 (실패해도 응답은 그대로)
+    return res
 
 
 @app.post("/api/agent/reset")
 def api_agent_reset(req: AgentResetRequest):
     get_agent().reset(req.session_id)
     return {"session_id": req.session_id, "reset": True}
+
+
+# ---------- 9일차: 공개 엔드포인트 /chat (세션 ID, 답변, 사용한 도구 목록, 근거, 응답 시간) ----------
+class PublicChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    session_id: str = Field("default", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    today: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="시험용으로 오늘 날짜를 고정할 때만 쓴다 (YYYY-MM-DD)")
+
+
+def chat_payload(res: dict, trace_id: int | None) -> dict:
+    """/chat 응답: 화면용 상세(trace의 인자 원본 등)는 빼고 호출한 도구 목록과 근거만 돌려준다. 인자 원본은 트레이스 저장소(trace_id)에서 본다."""
+    tools = [{"name": t["name"], "status": t["status"], "forced": t.get("forced_kind") if t.get("forced") else None, "retried": bool(t.get("retried")),
+              "dropped": sorted(t.get("dropped") or {}), "filled": sorted(t.get("filled") or {}), "ms": t.get("ms")} for t in res.get("trace") or []]
+    return {"session_id": res["session_id"], "answer": res["answer"], "error": res["error"], "stop_reason": res["stop_reason"], "tools": tools,
+            "evidence": res.get("evidence") or [], "evidence_text": res.get("evidence_text") or "", "tool_calls": res["tool_calls"], "model_calls": res["model_calls"],
+            "ms": res["ms"], "trace_id": trace_id}
+
+
+@app.post("/chat")
+def chat_endpoint(req: PublicChatRequest):
+    """한 질문에 답한다. 같은 session_id로 보내면 앞 대화와 확인된 값을 이어 받는다. 모델을 쓸 수 없으면 503(error에 이유)."""
+    question = req.question.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="question이 비어 있습니다")
+    try:
+        res = get_agent().ask(question, req.session_id, req.today)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"today가 올바른 날짜가 아닙니다: {e}")
+    body = chat_payload(res, traces.record(res, question))
+    return JSONResponse(body, status_code=503 if res["error"] else 200)
+
+
+@app.delete("/chat/{session_id}")
+def chat_reset(session_id: str):
+    """그 세션의 대화와 확인된 값을 지운다."""
+    import re
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session_id):
+        raise HTTPException(status_code=422, detail="session_id는 영문 · 숫자 · - · _ 64자까지입니다")
+    get_agent().reset(session_id)
+    return {"session_id": session_id, "reset": True}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "model": tool_calling.TOOL_MODEL, "trace_log": traces.enabled()}
