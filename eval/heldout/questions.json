@@ -1,0 +1,277 @@
+{
+ "frozen_on": "2026-10-28",
+ "today": "2026-10-28",
+ "provenance": "사용자가 전달한 20문항. 작성자 미확인 (검증용으로 인정하려면 시스템 내용을 모르는 사람이 써야 함)",
+ "labeling": "정답 값(gold)은 측정 전에 Claude가 질문만 보고 작성했다. kind=said는 질문에 적힌 값(오늘 · 지금 포함), derived는 상대 날짜 해석이나 계산이 필요한 값. 해석이 들어간 라벨이다",
+ "prediction_before_measuring": "said는 모두 근거를 찾고(24/24), derived는 모두 빠질 것(0/3). 현재 규칙이 상대 날짜(다음 달 · 내년 · 7월 말)를 인정하지 않기 때문",
+ "rule": "이 문항의 실패를 보고 규칙을 고치지 않는다. 고치는 것은 개발용 38건에서 드러난 유형만. 고친 뒤 이 문항을 한 번만 다시 잰다",
+ "expect_legend": {
+  "calc": "값이 충분해 계산 도구를 불러야 함",
+  "calc_partial": "아는 값만 넣고 부족한 값은 되물어야 함",
+  "ask": "정확한 값이 없어 되물어야 함",
+  "search": "약관 검색 도구를 불러야 함",
+  "search_ask": "약관 검색과 되묻기가 모두 필요"
+ },
+ "questions": [
+  {
+   "id": "H1",
+   "question": "정기예금 1,000만 원을 2025년 6월 1일에 들었고 2026년 6월 1일 만기인데, 오늘 해지하면 이자 얼마예요?",
+   "expect": "calc",
+   "gold": {
+    "principal": {
+     "value": 10000000,
+     "kind": "said"
+    },
+    "start_date": {
+     "value": "2025-06-01",
+     "kind": "said"
+    },
+    "maturity_date": {
+     "value": "2026-06-01",
+     "kind": "said"
+    },
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "해지일(오늘)이 만기일 이후라 중도해지가 아님: 도구가 not_early_termination을 돌려줘야 한다"
+  },
+  {
+   "id": "H2",
+   "question": "3월 10일에 500만 원 넣었는데 다음 달 20일에 깨면 이자 얼마나 나와요?",
+   "expect": "calc_partial",
+   "gold": {
+    "principal": {
+     "value": 5000000,
+     "kind": "said"
+    },
+    "start_date": {
+     "value": "2026-03-10",
+     "kind": "said"
+    },
+    "termination_date": {
+     "value": "2026-11-20",
+     "kind": "derived"
+    }
+   },
+   "note": "'다음 달 20일'은 상대 날짜(오늘 기준 계산), 만기일을 말하지 않음 -> 되물어야 한다"
+  },
+  {
+   "id": "H3",
+   "question": "정기예금 2천 넣은 지 5개월쯤 됐어요. 지금 해지하면 이자 얼마 받을까요?",
+   "expect": "ask",
+   "gold": {
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "'2천'은 단위가 모호(2천만 원?)하고 '5개월쯤'은 정확한 날짜가 아님 -> 원금 단위와 신규일을 되물어야 한다"
+  },
+  {
+   "id": "H4",
+   "question": "작년 12월에 가입한 예금 오늘 해지하려고 하는데 이자가 얼마나 될까요?",
+   "expect": "ask",
+   "gold": {
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "'작년 12월'은 일이 없음, 원금 · 만기일 없음 -> 되물어야 한다"
+  },
+  {
+   "id": "H5",
+   "question": "금리 연 3.2%로 1,500만 원 넣었어요. 만기까지 두 달 남았는데 지금 깨면 이자 얼마나 손해예요?",
+   "expect": "calc_partial",
+   "gold": {
+    "principal": {
+     "value": 15000000,
+     "kind": "said"
+    },
+    "base_rate": {
+     "value": 3.2,
+     "kind": "said"
+    },
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "신규일 · 만기일을 정확히 말하지 않음 -> 되물어야 한다. '손해'는 만기까지 갔을 때와의 비교(만기 이자는 도구 범위 밖)"
+  },
+  {
+   "id": "H6",
+   "question": "2025년 9월 15일에 가입해서 2026년 9월 15일 만기인 700만 원 예금, 7월 말에 해지하면 이자 좀 계산해 주세요.",
+   "expect": "calc",
+   "gold": {
+    "principal": {
+     "value": 7000000,
+     "kind": "said"
+    },
+    "start_date": {
+     "value": "2025-09-15",
+     "kind": "said"
+    },
+    "maturity_date": {
+     "value": "2026-09-15",
+     "kind": "said"
+    },
+    "termination_date": {
+     "value": "2026-07-31",
+     "kind": "derived"
+    }
+   },
+   "note": "'7월 말'은 정확한 날짜가 아님(해석 필요). 경과 10개월이라 기본금리를 되물어야 한다"
+  },
+  {
+   "id": "H7",
+   "question": "가입한 지 8개월 됐는데 지금 해지하면 원금 말고 이자도 받을 수 있나요?",
+   "expect": "search_ask",
+   "gold": {
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "규칙 질문(중도해지 이자 지급 여부)이면서 정확한 날짜가 없음"
+  },
+  {
+   "id": "H8",
+   "question": "금리 2.8%짜리 정기예금 3천만 원을 만기 전에 해지하면 이자가 어떻게 돼요?",
+   "expect": "calc_partial",
+   "gold": {
+    "principal": {
+     "value": 30000000,
+     "kind": "said"
+    },
+    "base_rate": {
+     "value": 2.8,
+     "kind": "said"
+    }
+   },
+   "note": "날짜가 하나도 없음 -> 되물어야 한다"
+  },
+  {
+   "id": "H9",
+   "question": "올해 1월에 든 예금이 있는데 만기 전에 해지하면 중도해지 이율이 적용되나요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문"
+  },
+  {
+   "id": "H10",
+   "question": "1,200만 원 예금 중에 300만 원만 먼저 뺄 수 있어요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(일부해지). 금액은 계산 입력이 아님"
+  },
+  {
+   "id": "H11",
+   "question": "정기예금 일부만 해지할 수 있는지, 가능하면 남은 금액은 기존 만기까지 유지되나요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(일부해지)"
+  },
+  {
+   "id": "H12",
+   "question": "가입할 때 금리를 잘 모르겠는데 해지 이자 확인할 수 있나요?",
+   "expect": "search_ask",
+   "gold": {},
+   "note": "기본금리를 어디서 확인하는지 안내가 필요"
+  },
+  {
+   "id": "H13",
+   "question": "4월 2일에 1,000만 원 가입했고 만기는 내년 4월 2일이에요, 10월 15일에 해지하면 얼마 받아요?",
+   "expect": "calc",
+   "gold": {
+    "principal": {
+     "value": 10000000,
+     "kind": "said"
+    },
+    "start_date": {
+     "value": "2026-04-02",
+     "kind": "said"
+    },
+    "maturity_date": {
+     "value": "2027-04-02",
+     "kind": "derived"
+    },
+    "termination_date": {
+     "value": "2026-10-15",
+     "kind": "said"
+    }
+   },
+   "note": "'내년 4월 2일'은 상대 연도. 오늘(2026-10-28)보다 과거인 10월 15일을 해지일로 말함. 경과 6개월 이상이라 기본금리를 되물어야 한다"
+  },
+  {
+   "id": "H14",
+   "question": "예금 만기일이 지나도 안 찾았는데 지금 해지하면 이자는 어떻게 계산돼요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(만기 후 이자)"
+  },
+  {
+   "id": "H15",
+   "question": "중도해지하면 처음 약정한 금리는 아예 못 받는 건가요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(중도해지 이율)"
+  },
+  {
+   "id": "H16",
+   "question": "500만 원을 연 3%로 1년 예치했는데 6개월 만에 깨면 이자 얼마나 붙어요?",
+   "expect": "calc_partial",
+   "gold": {
+    "principal": {
+     "value": 5000000,
+     "kind": "said"
+    },
+    "base_rate": {
+     "value": 3.0,
+     "kind": "said"
+    }
+   },
+   "note": "신규일 · 만기일 · 해지일이 없음 -> 되물어야 한다"
+  },
+  {
+   "id": "H17",
+   "question": "해지 신청만 해두고 돈은 내일 받아도 오늘 날짜 기준으로 이자 계산되나요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(해지일 기준). 약관에 없으면 not_found"
+  },
+  {
+   "id": "H18",
+   "question": "정기예금 해지할 때 일부 금액만 찾으면 중도해지로 처리돼요?",
+   "expect": "search",
+   "gold": {},
+   "note": "약관 질문(일부해지)"
+  },
+  {
+   "id": "H19",
+   "question": "만기 한 달 전인데 지금 해지하는 거랑 만기까지 기다리는 거랑 이자 차이가 많이 나나요?",
+   "expect": "calc_partial",
+   "gold": {
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "원금 · 금리 없음. 만기까지 기다릴 때의 이자는 도구 범위 밖"
+  },
+  {
+   "id": "H20",
+   "question": "해지 날짜를 오늘로 잡으면 세금 떼고 실제로 얼마 들어오는지 알려줄 수 있어요?",
+   "expect": "calc_partial",
+   "gold": {
+    "termination_date": {
+     "value": "2026-10-28",
+     "kind": "said"
+    }
+   },
+   "note": "세금은 계산 범위 밖(세전 이자만): 세전이라고 밝혀야 한다. 원금 등 없음"
+  }
+ ]
+}
