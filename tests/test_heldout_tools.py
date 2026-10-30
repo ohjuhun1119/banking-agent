@@ -192,3 +192,56 @@ def test_rebuilding_the_dev_set_never_touches_the_held_out_rows(tmp_path, monkey
     assert [r for r in ht.load_rows(out) if r["split"] == "held_out"] == held_before and ht.verify() == []
     assert out.read_text(encoding="utf-8").startswith(dev_only)            # 개발용 부분은 그대로, 검증용은 뒤에 붙어 있다
     assert bq.main(["--check"]) == 0                                       # 검증용이 있어도 개발용 비교는 통과한다
+
+
+# ---------- 정답 검토(show)와 작성자 정정(writer) ----------
+def labeled_two(files):
+    q, _ = files
+    ht.intake("질문 하나\n질문 둘", "미확인")
+    rows = ht.load_rows(q)
+    rows[1].update(category="calc_base_rate", note="해석 메모", gold={"behavior": "ask_base_rate", "tools": ["calc_interest"], "tools_allowed": [], "missing": ["기본금리"],
+                   "calc": {"args": {"principal": 10_000_000, "start_date": "2026-01-10"}, "status": "need_base_rate"}, "unsupported": ["termination_date"],
+                   "chunks": ["c1"], "traps": ["t1"], "must_say_any": ["세전", "세금"], "must_not": ["확정"], "weak_check": True})
+    rows[2].update(category="rule", gold={"behavior": "search", "tools": ["search_terms"], "tools_allowed": ["calc_interest"]})
+    ht.save_rows(rows, q)
+    return q
+
+
+def test_show_prints_the_question_the_gold_and_the_writer_in_plain_words(files):
+    labeled_two(files)
+    out = ht.show()
+    first = out.split("\n\n")[0]
+    assert first.startswith("X001 [calc_base_rate] ask_base_rate | 질문 하나")
+    for part in ("필수 도구: calc_interest", "계산 입력: 원금 10000000, 신규일 2026-01-10 → 상태 need_base_rate", "되물을 칸: 기본금리", "날짜가 정확하지 않아 되물어야 하는 칸: 해지일",
+                 "정답 청크(하나라도 근거 카드에 있어야 함): c1", "함정 청크(정답보다 앞서면 안 됨): t1", "있어야 할 말(하나): 세전 · 세금", "있으면 안 되는 말: 확정", "(느슨한 채점", "해석: 해석 메모",
+                 "작성자: 미확인"):
+        assert part in first, part
+    assert "불러도 되는 도구: calc_interest" in out and "필수 도구: search_terms" in out            # 둘째 문항
+
+
+def test_show_marks_questions_without_gold_never_shows_dev_rows_and_can_filter_by_id(files):
+    ht.intake("질문 하나\n질문 둘", "친구")
+    out = ht.show()
+    assert "(정답 없음)" in out and "개발용 질문" not in out and out.count("작성자:") == 2
+    assert ht.show(ids={"X002"}).startswith("X002") and "X001" not in ht.show(ids={"X002"}) and ht.show(ids={"X999"}) == ""
+
+
+def test_the_writer_can_be_corrected_for_all_or_some_questions_and_never_breaks_the_freeze(files):
+    q = labeled_two(files)
+    ht.freeze("Claude")
+    assert ht.set_writer("친구 A (은행 앱 사용자, 시스템을 모름)", ids={"X001"}) == 1
+    assert ht.show(ids={"X001"}).endswith("작성자: 친구 A (은행 앱 사용자, 시스템을 모름)") and "작성자: 미확인" in ht.show(ids={"X002"})
+    assert ht.set_writer("  다른 AI (시스템을 모름)  ") == 2 and {r["writer"] for r in ht.load_rows(q) if r["split"] == "held_out"} == {"다른 AI (시스템을 모름)"}
+    assert ht.verify() == []                                                      # 작성자는 고정 지문에 없어 고정 뒤에도 고칠 수 있다
+    assert all("writer" not in r for r in ht.load_rows(q) if r["split"] == "dev")                                     # 개발용 줄은 건드리지 않는다
+    with pytest.raises(RuntimeError, match="비울 수 없습니다"):
+        ht.set_writer("   ")
+
+
+def test_the_command_line_show_and_writer(files, capsys):
+    labeled_two(files)
+    assert ht.main(["show", "--ids", "X001"]) == 0 and "X001 [calc_base_rate]" in capsys.readouterr().out
+    assert ht.main(["writer", "친구 B"]) == 0 and "2문항의 작성자를 고쳤어요" in capsys.readouterr().out
+    assert ht.main(["writer", "친구 C", "--ids", "X999"]) == 1 and "고칠 문항이 없어요" in capsys.readouterr().out
+    assert ht.main(["writer", " "]) == 1 and "비울 수 없습니다" in capsys.readouterr().out
+    assert ht.main(["show", "--ids", "X999"]) == 1 and "보여 줄 검증용 문항이 없어요" in capsys.readouterr().out

@@ -5,6 +5,8 @@
   2) 정답(gold)은 측정 전에 질문만 보고 쓴다 (분류 · 행동 · 도구 · 값). 시스템의 답을 보고 고치지 않는다.
   3) python eval/heldout_tools.py freeze --labeler "정답을 쓴 사람"             정답이 모두 있는지 확인하고 지문(sha256)을 eval/held_out_manifest.json에 기록한다. 한 번만 할 수 있다.
   4) python eval/run_eval.py --split held_out --save ...                         고정이 깨지지 않았을 때만 실행되고, 실행은 마일스톤마다 한 번만 허용한다 (--allow-repeat로 예외).
+  python eval/heldout_tools.py show [--ids X001,X002]   문항과 정답을 읽기 쉽게 보여 준다 (고정하기 전에 정답을 검토할 때)
+  python eval/heldout_tools.py writer "작성자"          작성자 칸을 고친다 (고정 지문에 들어 있지 않아 고정 뒤에도 고칠 수 있다)
   python eval/heldout_tools.py status | verify
 고정이 필요한 이유: 문항이나 정답을 보고 고치면 그 문항은 개발용이 된다 (6일차 검증용 20문항이 그랬다).
 """
@@ -25,7 +27,8 @@ from eval.build_questions import BEHAVIORS, CATEGORIES, TODAY  # noqa: E402
 
 QUESTIONS = ROOT / "eval" / "questions.jsonl"
 MANIFEST = ROOT / "eval" / "held_out_manifest.json"
-FIELDS = ("question", "today", "category", "gold")
+FIELDS = ("question", "today", "category", "gold")      # 고정 지문에 들어가는 칸. writer · note · tags는 빠져 있어 고정 뒤에도 고칠 수 있다
+FIELD_LABELS = {"principal": "원금", "start_date": "신규일", "maturity_date": "만기일", "termination_date": "해지일", "base_rate": "기본금리"}
 
 
 def load_rows(path=None) -> list[dict]:
@@ -121,6 +124,57 @@ def verify(path=None, manifest=None) -> list[str]:
     return out
 
 
+def _held_out(path=None, ids=None) -> list[dict]:
+    return [r for r in load_rows(path) if r.get("split") == "held_out" and (not ids or r["id"] in ids)]
+
+
+def show(path=None, ids=None) -> str:
+    """검증용 문항과 정답을 읽기 쉽게: 고정하기 전에 정답을 검토할 때 쓴다."""
+    out = []
+    for r in _held_out(path, ids):
+        g = r.get("gold") or {}
+        lines = [f"{r['id']} [{r.get('category')}] {g.get('behavior', '(정답 없음)')} | {r['question']}"]
+        if g:
+            tools = "필수 도구: " + (", ".join(g.get("tools") or []) or "없음")
+            lines.append("   " + tools + (f" / 불러도 되는 도구: {', '.join(g['tools_allowed'])}" if g.get("tools_allowed") else ""))
+            c = g.get("calc")
+            if c:
+                args = ", ".join(f"{FIELD_LABELS.get(k, k)} {v}" for k, v in c["args"].items()) or "(없음)"
+                lines.append(f"   계산 입력: {args} → 상태 {c['status']}" + (f" → 이자 {c['interest_krw']:,}원" if c.get("interest_krw") is not None else ""))
+            if g.get("missing"):
+                lines.append("   되물을 칸: " + ", ".join(g["missing"]))
+            if g.get("unsupported"):
+                lines.append("   날짜가 정확하지 않아 되물어야 하는 칸: " + ", ".join(FIELD_LABELS.get(k, k) for k in g["unsupported"]))
+            if g.get("chunks"):
+                lines.append("   정답 청크(하나라도 근거 카드에 있어야 함): " + ", ".join(g["chunks"]))
+            if g.get("traps"):
+                lines.append("   함정 청크(정답보다 앞서면 안 됨): " + ", ".join(g["traps"]))
+            if g.get("must_say_any"):
+                lines.append("   답변이나 근거 카드에 있어야 할 말(하나): " + " · ".join(g["must_say_any"]))
+            if g.get("must_not"):
+                lines.append("   답변에 있으면 안 되는 말: " + " · ".join(g["must_not"]))
+            if g.get("weak_check"):
+                lines.append("   (느슨한 채점: 계산 · 상담 저장만 금지)")
+        if r.get("note"):
+            lines.append("   해석: " + r["note"])
+        lines.append(f"   작성자: {r.get('writer') or '(없음)'}")
+        out.append("\n".join(lines))
+    return "\n\n".join(out)
+
+
+def set_writer(writer: str, path=None, ids=None) -> int:
+    """검증용 문항의 작성자 칸을 고친다 (고정 지문에 안 들어 있어 고정 뒤에도 된다). 고친 문항 수를 돌려준다."""
+    if not writer.strip():
+        raise RuntimeError("작성자를 비울 수 없습니다.")
+    rows, n = load_rows(path), 0
+    for r in rows:
+        if r.get("split") == "held_out" and (not ids or r["id"] in ids):
+            r["writer"], n = writer.strip(), n + 1
+    if n:
+        save_rows(rows, path)
+    return n
+
+
 def runs(manifest=None) -> list[dict]:
     manifest = Path(manifest or MANIFEST)
     return json.loads(manifest.read_text(encoding="utf-8")).get("runs", []) if manifest.exists() else []
@@ -152,6 +206,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("intake"); p.add_argument("file"); p.add_argument("--writer", required=True, help="누가 썼는지 (예: 친구 A, 시스템을 모름)")
     p = sub.add_parser("freeze"); p.add_argument("--labeler", required=True, help="정답을 쓴 사람")
+    p = sub.add_parser("show"); p.add_argument("--ids", help="쉼표로 구분한 문항 id")
+    p = sub.add_parser("writer"); p.add_argument("name"); p.add_argument("--ids", help="쉼표로 구분한 문항 id (없으면 검증용 전체)")
     sub.add_parser("status")
     sub.add_parser("verify")
     a = ap.parse_args(argv)
@@ -162,6 +218,14 @@ def main(argv: list[str] | None = None) -> int:
         elif a.cmd == "freeze":
             data = freeze(a.labeler)
             print(f"{data['count']}문항을 고정했어요 ({data['frozen_on']}). 이제 문항과 정답을 바꾸지 마세요.")
+        elif a.cmd == "show":
+            text = show(ids=set(a.ids.split(",")) if a.ids else None)
+            print(text or "보여 줄 검증용 문항이 없어요.")
+            return 0 if text else 1
+        elif a.cmd == "writer":
+            n = set_writer(a.name, ids=set(a.ids.split(",")) if a.ids else None)
+            print(f"{n}문항의 작성자를 고쳤어요." if n else "고칠 문항이 없어요.")
+            return 0 if n else 1
         elif a.cmd == "verify":
             bad = verify()
             print("이상 없음" if not bad else "\n".join(bad))

@@ -62,7 +62,9 @@ def test_every_row_has_the_required_shape():
     for r in ROWS:
         assert r["split"] in ("dev", "held_out") and isinstance(r["core"], bool) and r["today"] == "2026-10-28" and r["question"].strip()
         if r["split"] == "held_out":
-            continue                                                     # 검증용은 정답을 쓰기 전에는 비어 있을 수 있다 (heldout_tools가 고정 전에 확인)
+            assert r["source"] == ["outsider"] and r.get("writer") and r["core"] is False, r["id"]      # 검증용은 받은 출처와 작성자를 남긴다
+            if not r.get("gold"):
+                continue                                                 # 정답을 쓰기 전 (heldout_tools가 고정 전에 확인)
         g = r["gold"]
         assert r["category"] in bq.CATEGORIES and g["behavior"] in bq.BEHAVIORS, r["id"]
         assert isinstance(g["tools"], list) and isinstance(g.get("tools_allowed", []), list), r["id"]
@@ -75,8 +77,8 @@ def test_every_row_has_the_required_shape():
 def test_no_two_questions_are_the_same():
     keys = [" ".join(r["question"].split()) for r in ROWS]
     assert len(keys) == len(set(keys))
-    sources = [s for r in ROWS for s in r["source"]]
-    assert len(sources) == len(set(sources))                             # 같은 출처가 두 문항에 들어가지 않는다
+    sources = [s for r in DEV for s in r["source"]]
+    assert len(sources) == len(set(sources))                             # 같은 출처가 두 개발용 문항에 들어가지 않는다 (검증용은 모두 출처가 outsider라 제외)
 
 
 def test_all_existing_sources_are_accounted_for():
@@ -117,7 +119,7 @@ def test_every_category_is_present_and_the_core_set_is_30_to_50_and_covers_every
 
 
 # ---------- 정답 검산 ----------
-@pytest.mark.parametrize("row", [r for r in DEV if r["gold"].get("calc")], ids=lambda r: r["id"])
+@pytest.mark.parametrize("row", [r for r in ROWS if (r.get("gold") or {}).get("calc")], ids=lambda r: r["id"])
 def test_calculation_gold_matches_an_independent_formula(row):
     c, g = row["gold"]["calc"], row["gold"]
     args = c["args"]
@@ -183,3 +185,25 @@ def test_the_tool_check_expectations_survived_the_merge():
             assert r["gold"]["calc"]["args"] == c["expect"]["args"]
         if c["group"] == "부족":
             assert r["gold"]["calc"]["args"] == (c["expect"].get("allowed") or {})
+
+
+def test_every_labeled_held_out_row_passes_the_freeze_check_and_is_not_in_the_core_set():
+    """검증용 줄은 정답이 있으면 고정할 수 있는 상태여야 하고, 대표 문항(core)이나 개발용에 섞이지 않는다."""
+    from eval import heldout_tools as ht
+    held = [r for r in ROWS if r["split"] == "held_out"]
+    labeled = [r for r in held if r.get("gold")]
+    assert ht.problems_labeling(labeled) == []
+    assert not any(r["core"] for r in held)
+    dev_questions = {" ".join(r["question"].split()) for r in DEV}
+    assert not any(" ".join(r["question"].split()) in dev_questions for r in held)       # 개발용에서 이미 본 질문을 검증용으로 받지 않는다
+
+
+def test_the_frozen_held_out_questions_have_not_been_changed():
+    """고정 뒤에는 검증용 문항과 정답을 바꿀 수 없다: 고정 기록(eval/held_out_manifest.json)이 있으면 지문이 그대로여야 한다 (실수로 questions.jsonl을 고치면 여기서 잡힌다)."""
+    from eval import heldout_tools as ht
+    manifest = ROOT / "eval" / "held_out_manifest.json"
+    if not manifest.exists():
+        pytest.skip("아직 고정되지 않았습니다")
+    assert ht.verify() == []
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert data["count"] == len(data["fingerprints"]) == len([r for r in ROWS if r["split"] == "held_out"])
