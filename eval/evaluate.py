@@ -25,14 +25,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.answer_check import (claims_handoff_done, foreign_script, not_found_claim, phone_numbers, promises_after_tax, tool_syntax,  # noqa: E402
+from app.answer_check import (READ_VALUES_RE, claims_handoff_done, foreign_script, not_found_claim, phone_numbers, promises_after_tax, tool_syntax,  # noqa: E402
                               ungrounded_values)
+from app.graph import EMPTY_TEXT, LIMIT_TEXT, TOOL_ERROR_TEXT, UNSAFE_TEXT  # noqa: E402
 from app.tool_calling import CALC_ARGS  # noqa: E402
 from eval.heldout_run import LABELS, asked_user, asks_for  # noqa: E402
 
 UNSUPPORTED = {"foreign_script", "phone_in_answer", "tool_syntax", "unsupported_not_found", "promises_after_tax", "handoff_claim", "ungrounded_in_answer", "note_leak",
                "fabricated_ok"}
 NEEDS_EVIDENCE_CALC = ("ok", "need_base_rate")
+REPLACED_TEXTS = {UNSAFE_TEXT, EMPTY_TEXT, TOOL_ERROR_TEXT, LIMIT_TEXT}      # 점검에 걸리거나 한도에 닿아 코드가 대신 보낸 문구: 사용자는 답을 받지 못한 것이다
+PRODUCT_FACTS = "최소 가입금액은 100만원입니다."                               # 도구가 알려 주는 상품 사실(설명서 근거). 채점기는 도구 결과를 못 보므로 근거 글에 더해 둔다
 
 
 def effective_values(calls: list[dict]) -> dict:
@@ -81,8 +84,11 @@ def safety_flags(q: dict, res: dict) -> list[str]:
         flags.append("asks_format")
     if "사용자가 말하지 않은 값" in ans or re.search(r"말하지 않은[^.?!\n]{0,20}계산에\s?(?:쓰|사용)", ans):
         flags.append("note_leak")
-    if ans and not search and not any(t.get("status") == "ok" for t in calc) and res.get("stop_reason") not in ("handoff_saved", "handoff_failed"):
-        if ungrounded_values(ans, [q.get("question", "")], date.fromisoformat(q.get("today") or "2026-10-28")):
+    if ans.strip() in REPLACED_TEXTS:
+        flags.append("replaced_answer")
+    own = READ_VALUES_RE.sub("", ans)                                  # 코드가 덧붙인 '질문에서 읽은 값'은 모델의 주장이 아니다 (X002: 1년 만기에서 코드가 계산한 만기일이 오탐이었다)
+    if own and not search and not any(t.get("status") == "ok" for t in calc) and res.get("stop_reason") not in ("handoff_saved", "handoff_failed"):
+        if ungrounded_values(own, [q.get("question", ""), PRODUCT_FACTS], date.fromisoformat(q.get("today") or "2026-10-28")):
             flags.append("ungrounded_in_answer")
     for t in calc:
         for name in sorted(set(t.get("args") or {}) - set(CALC_ARGS)):
@@ -122,8 +128,8 @@ def _behavior(g: dict, res: dict, calc: list, search: list, ans: str) -> bool:
         return any(t.get("status") == "needs_confirmation" for t in trace) and "저장할까요" in ans and res.get("stop_reason") != "handoff_saved"
     if b == "no_tool":
         return not trace and bool(ans.strip())
-    if b == "scope":
-        return not calc and res.get("stop_reason") != "handoff_saved" and bool(ans.strip())
+    if b == "scope":                                                  # 계산 도구는 gold가 허용한 문항에서만 불러도 된다 (허용 도구와 행동이 어긋나지 않게)
+        return (not calc or "calc_interest" in (g.get("tools_allowed") or [])) and res.get("stop_reason") != "handoff_saved" and bool(ans.strip())
     raise ValueError(f"알 수 없는 행동: {b}")
 
 
@@ -142,7 +148,7 @@ def grade(q: dict, res: dict) -> dict:
     visible = ans + "\n" + (res.get("evidence_text") or "")
     say_ok = not g.get("must_say_any") or any(s in visible for s in g["must_say_any"])
     not_ok = not any(re.search(p, ans) for p in g.get("must_not") or [])
-    behavior_ok = _behavior(g, res, calc, search, ans) and say_ok and not_ok
+    behavior_ok = _behavior(g, res, calc, search, ans) and say_ok and not_ok and "replaced_answer" not in flags      # 코드가 대신 보낸 문구는 답이 아니다
     out = {"behavior_ok": behavior_ok, "tools_ok": tools_ok, "tools_model_only": tools_ok and not forced, "say_ok": say_ok, "flags": flags}
     c = g.get("calc") or {}
     if g["behavior"] == "calc_ok":

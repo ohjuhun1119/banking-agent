@@ -93,6 +93,9 @@ def promises_after_tax(text) -> bool:
     return any(_AFTER_TAX.search(sent) and not _NEGATION.search(sent) for sent in re.split(r"[.?!\n]", text))
 
 
+# 코드가 질문에서 읽어 채운 값을 되묻는 문장 뒤에 덧붙이는 글: '(질문에서 읽은 값: 해지일 2026-10-28)'. 모델이 쓴 문장이 아니므로 모델의 근거를 따질 때는 뺀다.
+READ_VALUES_RE = re.compile(r"\s*\(질문에서 읽은 값:[^)]*\)")
+
 _AFFIRM = re.compile(r"^\s*(?:네|넵|예|응|어|그래|좋아|맞아|저장|부탁|해\s?줘|해\s?주세요|그렇게|그럼)")
 _NEGATIVE = re.compile(r"아니|아뇨|괜찮|됐|취소|싫|안\s?해|하지\s?마")
 _HANDOFF_DONE = re.compile(r"접수번호|(?:상담|요청|문의)[^.?!\n]{0,12}(?:접수|저장)\s?(?:했|됐|되었|해\s?드렸|완료)|상담원[^.?!\n]{0,14}(?:연결해\s?드(?:리|렸)|연결됩니다|연락\s?드리)|연결해\s?드릴게")

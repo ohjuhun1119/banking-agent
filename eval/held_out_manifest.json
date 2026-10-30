@@ -35,5 +35,18 @@
   "X030": "43d632e15a937889b42d266506083de9901690e45f7087182a4de44a94022cc9",
   "X031": "10292319d33fb94055acd47de277327e4496d4bc39dd8c9aa2a6e5a51e3cbf47"
  },
- "runs": []
+ "runs": [
+  {
+   "date": "2026-10-30",
+   "file": "eval/runs/heldout_1.json",
+   "behavior_ok": {
+    "hit": 28,
+    "n": 31
+   },
+   "clean": {
+    "hit": 23,
+    "n": 31
+   }
+  }
+ ]
 }

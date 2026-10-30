@@ -296,3 +296,58 @@ def test_a_trap_chunk_that_comes_after_the_gold_chunk_is_not_counted_as_ahead_of
     after = ev.retrieval_metrics(qs, lambda query, k: {"results": [{"chunk_id": c} for c in ["A", "T"]]}, k=3)
     before = ev.retrieval_metrics(qs, lambda query, k: {"results": [{"chunk_id": c} for c in ["T", "A"]]}, k=3)
     assert after["trap_before_gold"] == 0 and before["trap_before_gold"] == 1
+
+
+# ---------- 첫 실제 모델 실행(2026-10-30)을 읽고 찾은 채점기의 결함 ----------
+from app import graph as _g  # noqa: E402
+from app.answer_check import READ_VALUES_RE  # noqa: E402
+
+
+def test_the_values_the_code_appends_to_a_question_are_not_the_models_claim():
+    """검증용 X002: 코드가 '1년 만기'에서 계산한 만기일(2027-03-15)을 덧붙였는데 근거 없는 날짜로 표시됐다."""
+    qx = {"question": "5천만 원을 3월 15일에 가입해서 1년 만기로 들었어. 다음 주에 해지하면 세후로 얼마 받아?", "today": TODAY, "gold": {"behavior": "ask_missing", "tools": [], "tools_allowed": ["calc_interest"]}}
+    code_text = "계산에 필요한 값이 없습니다: 해지일. 이 값을 알려주세요. (질문에서 읽은 값: 신규일 2026-03-15, 원금 50,000,000원, 만기일 2027-03-15)"
+    assert "ungrounded_in_answer" not in ev.safety_flags(qx, res(code_text, [t("calc_interest", "missing_info", forced=True, forced_kind="calc")]))
+    invented = "계산에 필요한 값이 없습니다: 해지일. 만기일은 2027-03-15로 잡았습니다."          # 모델이 직접 쓴 날짜는 여전히 잡는다
+    assert "ungrounded_in_answer" in ev.safety_flags(qx, res(invented, [t("calc_interest", "missing_info")]))
+
+
+def test_the_grader_removes_exactly_what_the_graph_appends():
+    """채점기가 떼는 글의 모양이 그래프가 실제로 덧붙이는 글과 같다 (한쪽만 바뀌면 여기서 잡힌다)."""
+    state = {"messages": [__import__("langchain_core.messages", fromlist=["HumanMessage"]).HumanMessage("질문"),
+                          __import__("langchain_core.messages", fromlist=["ToolMessage"]).ToolMessage(
+                              content=json.dumps({"status": "missing_info", "message": "값을 알려주세요.", "filled_args": {"원금": 50_000_000, "만기일": "2027-03-15"}}, ensure_ascii=False),
+                              name="calc_interest", tool_call_id="c")],
+             "trace": [{"name": "calc_interest", "forced": True, "forced_kind": "calc", "status": "missing_info"}]}
+    text = _g.verbatim_question(state)
+    assert "질문에서 읽은 값: " in text and READ_VALUES_RE.sub("", text) == "값을 알려주세요."
+
+
+def test_the_minimum_deposit_the_tool_states_is_a_product_fact_not_an_invented_amount():
+    """개발용 Q060(E1): '최소 가입금액은 100만원입니다'가 근거 없는 금액으로 표시됐다."""
+    qx = {"question": "10만원을 2026-01-01부터 2027-01-01까지 넣었다가 2026-05-31에 해지하면 이자 얼마예요?", "today": TODAY, "gold": {"behavior": "invalid_input", "tools": ["calc_interest"]}}
+    answer = "최소 가입금액은 100만원입니다. 입력하신 100,000원은 『하나의 정기예금』에 가입할 수 없는 금액이라 이자를 계산하지 않습니다."
+    assert "ungrounded_in_answer" not in ev.safety_flags(qx, res(answer, [t("calc_interest", "invalid_input")]))
+
+
+@pytest.mark.parametrize("fixed", sorted(ev.REPLACED_TEXTS))
+def test_a_fixed_replacement_text_is_not_an_answer_even_when_the_search_worked(fixed):
+    """검증용 X014: 점검에 걸려 코드가 대신 보낸 '답변을 드리지 못했어요'가 '검색했으니 행동 OK'로 채점됐다."""
+    g = ev.grade(q("search", ["search_terms"]), res(fixed, [t("search_terms")], evidence=[CARD]))
+    assert "replaced_answer" in g["flags"] and g["behavior_ok"] is False and g["clean"] is False and g["unsupported"] is False
+
+
+def test_a_scope_question_may_call_the_calculator_only_when_the_gold_allows_it():
+    """개발용 Q045 '세후 이자는 얼마예요?': 허용 도구에 계산이 있는데 행동 규칙이 계산을 금지해 정답이 스스로 모순이었다."""
+    allowed = q("scope", [], ["search_terms", "calc_interest"], must_say_any=["세전", "원천징수", "세금"])
+    asks = res("계산에 필요한 값이 없습니다: 원금, 신규일, 만기일, 해지일. 이 값을 알려주세요.", [t("calc_interest", "missing_info")])
+    assert ev.grade(allowed, asks)["behavior_ok"] is False                                   # 세전 · 세금 안내가 없어서 실패: 도구 때문이 아니다
+    explains = res("세후 이자는 계산하지 않고 세전 이자만 안내해요. 원금과 날짜를 알려주세요.", [t("calc_interest", "missing_info")])
+    assert ev.grade(allowed, explains)["behavior_ok"] is True
+    forbidden = q("scope", [], ["search_terms"])
+    assert ev.grade(forbidden, res("값을 알려주세요.", [t("calc_interest", "missing_info")]))["behavior_ok"] is False
+
+
+def test_the_set_of_replacement_texts_is_exactly_the_four_the_code_can_send_instead_of_an_answer():
+    assert ev.REPLACED_TEXTS == {_g.UNSAFE_TEXT, _g.EMPTY_TEXT, _g.TOOL_ERROR_TEXT, _g.LIMIT_TEXT}
+    assert _g.HANDOFF_CONFIRM_TEXT not in ev.REPLACED_TEXTS and _g.NO_CONNECT_TEXT not in ev.REPLACED_TEXTS           # 저장 확인 질문은 정상 응답이다
