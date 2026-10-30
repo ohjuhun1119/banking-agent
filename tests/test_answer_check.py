@@ -215,3 +215,21 @@ def test_claims_that_a_request_was_saved_or_an_agent_will_connect_are_found(text
 ])
 def test_questions_refusals_and_ordinary_answers_are_not_claims(text):
     assert not claims_handoff_done(text)
+
+
+# ---------- 세후 약속의 우회 표현 (검증용 after_day9 H20: '세후'라는 낱말 없이 약속) ----------
+@pytest.mark.parametrize("text", [
+    "이 정보를 제공해 주시면 세금을 뺀 실제 들어오는 금액을 알려드릴 수 있습니다.",                  # 실제 모델 답변 (H20)
+    "원천징수 세액을 뺀 금액도 계산해 드릴 수 있어요.", "세금 떼고 실수령액을 알려드릴게요.", "실수령 금액을 계산해 드리겠습니다", "세금을 제외한 금액을 제공해 드립니다",
+    "세후 이자까지 알려드릴 수 있습니다.",
+])
+def test_after_tax_promises_without_the_word_after_tax_are_found(text):
+    assert promises_after_tax(text)
+
+
+@pytest.mark.parametrize("text", [
+    "세금을 뺀 금액은 계산해 드릴 수 없어요.", "세전 이자만 알려드릴 수 있어요.", "세금을 뺀 금액이 궁금하시면 은행에 문의해 주세요.", "세금 떼고 얼마인지는 알려드리지 못해요.",
+    "세전 이자는 계산해 드릴 수 있어요. 세금은 약관 제9조 ⑤를 확인해 주세요.", "원천징수 후 금액은 약관에 나와 있어요.",
+])
+def test_refusals_and_pre_tax_offers_are_not_after_tax_promises(text):
+    assert not promises_after_tax(text)

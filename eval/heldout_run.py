@@ -122,7 +122,7 @@ def grade(q: dict, res: dict) -> dict:
         flags.append("unsupported_not_found")
     if "YYYY" in ans:
         flags.append("asks_format")
-    if "사용자가 말하지 않은 값" in ans:
+    if "사용자가 말하지 않은 값" in ans or re.search(r"말하지 않은[^.?!\n]{0,20}계산에\s?(?:쓰|사용)", ans):
         flags.append("note_leak")
     return {"behavior_ok": behavior and not res.get("error"), "asked": asked, "flags": flags,
             "dropped_any": any(t.get("dropped") for t in trace)}

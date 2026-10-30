@@ -375,3 +375,17 @@ def test_a_calculation_with_only_the_calc_card_is_flagged_as_missing_its_rule_so
     assert "no_rule_source" in only_calc and "no_evidence" not in only_calc
     both = heldout_run.grade(q("H6"), {**result("세전 이자는 1원이에요.", done), "evidence": [{"kind": "계산"}, {"kind": "약관"}], "today": "2026-10-28"})["flags"]
     assert "no_rule_source" not in both and "no_evidence" not in both
+
+
+def test_note_leak_also_catches_a_sentence_with_the_field_name_instead_of_the_word_value():
+    """after_day9 H8: '사용자가 말하지 않은 해지일은 계산에 사용하지 않았습니다' (내부 메모를 그대로 읽어 줌)."""
+    tr = [trace("calc_interest", "missing_info", args={"base_rate": 2.8, "principal": 30_000_000})]
+    leak = heldout_run.grade(q("H8"), {**result("신규일을 알려주세요. 사용자가 말하지 않은 해지일은 계산에 사용하지 않았습니다.", tr), "today": "2026-10-28"})["flags"]
+    clean = heldout_run.grade(q("H8"), {**result("신규일, 만기일, 해지일을 알려주세요.", tr), "today": "2026-10-28"})["flags"]
+    assert "note_leak" in leak and "note_leak" not in clean
+
+
+def test_the_after_tax_paraphrase_of_the_real_h20_answer_is_flagged_by_the_grader():
+    tr = [trace("calc_interest", "missing_info", forced=True, forced_kind="calc", filled={"termination_date": "2026-10-28"})]
+    ans = "계산에 필요한 값이 더 있습니다: 원금, 신규일, 만기일을 알려주세요. 이 정보를 제공해 주시면 세금을 뺀 실제 들어오는 금액을 알려드릴 수 있습니다."
+    assert "promises_after_tax" in heldout_run.grade(q("H20"), {**result(ans, tr), "today": "2026-10-28"})["flags"]
