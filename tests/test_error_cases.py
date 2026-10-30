@@ -148,7 +148,8 @@ def test_case_10_a_partial_termination_question_is_searched_not_calculated_and_t
 def test_case_11_after_tax_is_never_promised_and_the_prompt_points_to_the_withholding_clause():
     a, m = agent(lambda msgs, n: AIMessage(content="세후 이자도 계산해 드릴게요." if n == 1 else "세전 이자만 계산할 수 있어요. 원금과 날짜를 알려주세요."))
     res = a.ask("세금 떼고 실제로 얼마 받아요?", "s")
-    assert res["answer"] == "세전 이자만 계산할 수 있어요. 원금과 날짜를 알려주세요."
+    assert res["answer"] == "계산에 필요한 값이 없습니다: 원금, 신규일, 만기일, 해지일. 이 값을 알려주세요."          # 코드가 먼저 부른 계산이 되묻는다: 도구의 질문 그대로
+    assert res["model_calls"] == 2                                                         # 첫 답 + 세후 약속을 고치려는 재시도. 되묻는 문장에는 모델이 안 쓰인다
     assert "세후 금액은 약속하지" in m.seen[1][-1].content                                   # 약속은 한 번 다시 시켜서 고쳤다
     assert res["trace"][0]["forced_kind"] == "calc"                                         # 금액을 묻는 질문이라 코드가 계산 도구를 값 없이 불러 값을 되묻게 한다 (7일차 규칙)
     text = g.system_text({"today": TODAY})

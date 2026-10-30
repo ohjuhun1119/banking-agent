@@ -251,6 +251,41 @@ def fallback_text(state: dict, problem: str | None = None) -> str:
     return UNSAFE_TEXT
 
 
+ASK_STATUSES = ("missing_info", "need_base_rate")        # 계산 도구가 사용자에게 값을 되묻는 상태
+
+
+def _filled_text(filled: dict) -> str:
+    """코드가 질문에서 읽어 채운 값을 한 줄로 (칸 이름: 값). 금액 · 금리는 읽기 쉽게."""
+    parts = []
+    for label, v in filled.items():
+        if label == FIELD_LABELS["principal"] and isinstance(v, (int, float)):
+            v = f"{int(v):,}원"
+        elif label == FIELD_LABELS["base_rate"] and isinstance(v, (int, float)):
+            v = f"연 {v}%"
+        parts.append(f"{label} {v}")
+    return ", ".join(parts)
+
+
+def verbatim_question(state: dict) -> str | None:
+    """코드가 먼저 부른 계산이 값을 되묻는 경우에는 모델을 거치지 않고 도구의 질문을 그대로 답한다 (모델 호출 0회).
+    모델이 도구를 고르지 않아 코드가 대신 부른 경로라서 문장도 코드가 맡는다. 모델이 문장을 다시 쓰다 뜻을 뒤집은 적이 있다
+    (검증용 H19: 도구는 '값이 없습니다', 모델은 '값이 있습니다'). 코드가 질문에서 채운 값은 덧붙여 무엇을 가정했는지 보이게 한다.
+    모델이 직접 부른 계산과 ok · not_early_termination · invalid_input 결과는 이전처럼 모델이 답한다."""
+    msgs, trace = state.get("messages") or [], state.get("trace") or []
+    if not msgs or not isinstance(msgs[-1], ToolMessage) or not trace:
+        return None
+    t = trace[-1]
+    if not (t.get("forced") and t.get("forced_kind") == "calc" and t.get("status") in ASK_STATUSES):
+        return None
+    results = _turn_tool_results(state)
+    name, result = results[-1] if results else ("", {})
+    message = result.get("message")
+    if name != "calc_interest" or not isinstance(message, str) or not message.strip():
+        return None
+    filled = result.get("filled_args") or {}
+    return message.strip() + (f" (질문에서 읽은 값: {_filled_text(filled)})" if filled else "")
+
+
 def tool_error_unreported(ai, state: dict) -> bool:
     """도구가 (재시도 뒤에도) 실패했는데 최종 답변이 그 사실을 알리지 않는다: 코드가 실패 안내로 바꾼다 (오류 처리 표: 1회 재시도 후 실패 안내)."""
     if getattr(ai, "tool_calls", None):
@@ -291,6 +326,9 @@ def forced_calc_message(state: dict) -> AIMessage:
 def make_agent_node(get_model):
     def agent(state: dict) -> dict:
         calls = 0
+        asked = verbatim_question(state)
+        if asked is not None:                                 # 코드가 먼저 부른 계산이 값을 되묻는다: 도구의 질문 그대로, 모델 호출 없음
+            return {"messages": [AIMessage(content=asked)], "model_calls": state.get("model_calls", 0)}
         try:
             msgs = prompt_messages(state)
             model = get_model()

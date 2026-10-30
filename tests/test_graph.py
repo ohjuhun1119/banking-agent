@@ -961,7 +961,8 @@ def test_h19_an_amount_question_answered_without_tools_calls_the_calculator_firs
     res = ask_held(a, "H19")
     t = res["trace"][0]
     assert searched == [] and t["name"] == "calc_interest" and t["forced"] is True and t["forced_kind"] == "calc"
-    assert seen_results[0]["status"] == "missing_info" and res["answer"] == "원금과 신규일, 만기일을 알려주세요." and res["tool_calls"] == 1
+    assert seen_results == [] and res["tool_calls"] == 1 and res["model_calls"] == 1                                  # 되묻는 문장은 코드가 맡아 모델을 다시 부르지 않는다 (옵션 B)
+    assert res["answer"] == "계산에 필요한 값이 없습니다: 원금, 신규일, 만기일. 이 값을 알려주세요. (질문에서 읽은 값: 해지일 2026-10-28)"
     assert "0.10%" not in res["answer"] and res["evidence"] == []
 
 
