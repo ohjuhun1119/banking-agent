@@ -243,3 +243,24 @@ def test_dev_runs_are_not_limited_and_never_touch_the_manifest(qfile, tmp_path):
     for _ in range(3):
         assert re_.main(["--core"], agent=FakeAgent()) == 0
     assert ht.runs() == []
+
+
+# ---------- 진행 표시: 멈춘 건지 느린 건지 보이게 ----------
+def test_progress_is_reported_before_each_question_starts_so_a_hang_is_visible():
+    order = []
+
+    class Spy(FakeAgent):
+        def ask(self, question, session_id, today=None):
+            order.append(("ask", session_id))
+            return super().ask(question, session_id, today)
+    re_.run(QUESTIONS[:2], Spy(), log=lambda s: order.append(("log", s[:8])), progress=lambda i, n, q: order.append(("progress", f"{i}/{n} {q['id']}")))
+    assert order[:3] == [("progress", "1/2 Q001"), ("ask", "eval-Q001"), ("log", "[OK] Q00")]            # 질문을 시작하기 전에 먼저 알린다
+    assert order[3] == ("progress", "2/2 Q002")
+
+
+def test_the_default_progress_goes_to_stderr_and_the_result_line_shows_the_seconds(capsys):
+    lines = []
+    re_.run(QUESTIONS[:2], FakeAgent(), log=lines.append)
+    err = capsys.readouterr().err
+    assert "[1/2] Q001 실행 중" in err and "[2/2] Q002 실행 중" in err and capsys.readouterr().out == ""
+    assert lines[0].split("\n")[0].endswith("초)") and "(0초)" in lines[0]

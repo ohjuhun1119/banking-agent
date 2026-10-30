@@ -118,6 +118,7 @@ def test_real_chatollama_request_is_what_we_expect(monkeypatch):
     assert out["tool_calls"] == [{"name": "calc_interest", "args": {"principal": 10000000, "start_date": "2026-01-01"}}]
     assert sent["model"] == tc.TOOL_MODEL
     assert sent["options"]["temperature"] == 0 and sent["options"]["num_ctx"] == tc.NUM_CTX
+    assert sent["options"]["num_predict"] == tc.NUM_PREDICT == 2048                 # 되풀이 생성이 끝나지 않는 일을 막는 출력 상한
     tools = [t if isinstance(t, dict) else t.model_dump(exclude_none=True) for t in sent["tools"]]
     assert [t["function"]["name"] for t in tools] == ["search_terms", "calc_interest"]
     assert tools[1]["function"]["description"] == tc.tool_specs("short")[1]["function"]["description"]
@@ -194,3 +195,24 @@ def test_ask_and_run_executes_each_call():
     out = tc.ask_and_run("q", model=m, search_fn=_fake_search([]))
     assert [r["name"] for r in out["tool_results"]] == ["search_terms", "calc_interest"]
     assert [r["result"]["status"] for r in out["tool_results"]] == ["ok", "missing_info"]
+
+
+def test_the_model_call_has_an_output_cap_and_a_request_timeout_that_reach_the_http_client():
+    """검증용 실행이 한 문항에서 두 번 같은 자리에 멈췄다: 모델 호출에 출력 길이 상한과 대기 시간 상한이 없었다 (temperature 0에서는 같은 입력이 같은 곳에서 되풀이할 수 있다)."""
+    pytest.importorskip("langchain_ollama")
+    llm = tc.get_model().bound
+    assert llm.num_predict == tc.NUM_PREDICT == 2048 and tc.REQUEST_TIMEOUT == 180.0
+    assert llm._client._client.timeout.read == tc.REQUEST_TIMEOUT                    # httpx 클라이언트가 실제로 이 시간 뒤에 포기한다
+    assert tc.get_model(extra_tools=(tc.HANDOFF_SPEC,)).bound.num_predict == tc.NUM_PREDICT        # 에이전트가 쓰는 모델에도 같다
+
+
+def test_the_limits_can_be_changed_with_environment_variables(monkeypatch):
+    import importlib
+    monkeypatch.setenv("CHAT_NUM_PREDICT", "512")
+    monkeypatch.setenv("CHAT_REQUEST_TIMEOUT", "30")
+    reloaded = importlib.reload(tc)
+    try:
+        assert reloaded.NUM_PREDICT == 512 and reloaded.REQUEST_TIMEOUT == 30.0
+    finally:
+        monkeypatch.undo()
+        importlib.reload(tc)

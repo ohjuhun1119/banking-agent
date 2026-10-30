@@ -33,6 +33,10 @@ from app.tools.interest import calc_interest  # noqa: E402
 PRODUCT = "하나의 정기예금"                     # 검색 필터에 쓰는 상품명 (chunks.jsonl의 product 값과 같아야 한다)
 TOOL_MODEL = os.environ.get("TOOL_MODEL", os.environ.get("CHAT_MODEL", "qwen2.5:7b"))
 NUM_CTX = int(os.environ.get("CHAT_NUM_CTX", "8192"))
+# 모델 호출 한 번의 상한. temperature 0에서는 같은 입력이 같은 곳에서 같은 말을 되풀이하며 끝나지 않을 수 있다 (검증용 실행이 한 문항에서 두 번 같은 자리에 멈춘 사건).
+# 정상 답변(약관 설명 포함)은 수백 토큰이라 상한 안에서 끝나므로 평소 결과는 바뀌지 않는다. 상한에 닿으면 글이 잘린 채 돌아오고, 대기 시간이 넘으면 모델 호출 실패로 처리된다.
+NUM_PREDICT = int(os.environ.get("CHAT_NUM_PREDICT", "2048"))
+REQUEST_TIMEOUT = float(os.environ.get("CHAT_REQUEST_TIMEOUT", "180"))     # 초
 VARIANTS = ("short", "detailed", "examples")
 DEFAULT_VARIANT = os.environ.get("TOOL_VARIANT", "detailed")
 CALC_ARGS = ("principal", "start_date", "maturity_date", "termination_date", "base_rate")
@@ -123,7 +127,8 @@ class ToolCallingError(RuntimeError):
 def get_model(variant: str = DEFAULT_VARIANT, extra_tools=()):
     """도구가 연결된 ChatOllama. temperature 0으로 같은 질문에 같은 결과가 나오게 한다 (흔들림은 --repeat로 확인). extra_tools: 에이전트가 더 붙이는 도구 정의."""
     from langchain_ollama import ChatOllama
-    return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX).bind_tools(tool_specs(variant) + list(extra_tools))
+    return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX, num_predict=NUM_PREDICT, client_kwargs={"timeout": REQUEST_TIMEOUT}).bind_tools(
+        tool_specs(variant) + list(extra_tools))
 
 
 def _to_lc(messages: list[dict]):

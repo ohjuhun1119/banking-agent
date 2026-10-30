@@ -60,13 +60,18 @@ def compact(res: dict, full: bool = False) -> dict:
     return out
 
 
-def run(questions: list[dict], agent=None, log=print, full: bool = False) -> list[dict]:
-    """문항마다 새 대화로 에이전트를 실행하고 채점한다. 한 문항이 실패해도 나머지는 계속한다."""
+def run(questions: list[dict], agent=None, log=print, full: bool = False, progress=None) -> list[dict]:
+    """문항마다 새 대화로 에이전트를 실행하고 채점한다. 한 문항이 실패해도 나머지는 계속한다.
+    progress(i, n, 문항)는 각 문항을 **시작하기 전에** 불린다: 한 문항에서 오래 걸릴 때 멈춘 건지 느린 건지 화면에서 알 수 있다 (기본은 stderr에 한 줄)."""
     if agent is None:
         from app.graph import Agent
         agent = Agent()
+    if progress is None:
+        def progress(i, n, q):
+            print(f"  [{i}/{n}] {q['id']} 실행 중 … ({time.strftime('%H:%M:%S')})", file=sys.stderr, flush=True)
     rows = []
-    for q in questions:
+    for i, q in enumerate(questions, 1):
+        progress(i, len(questions), q)
         t0 = time.time()
         try:
             res = agent.ask(q["question"], f"eval-{q['id']}", today=q["today"])
@@ -76,7 +81,7 @@ def run(questions: list[dict], agent=None, log=print, full: bool = False) -> lis
         rows.append({"id": q["id"], "category": q["category"], "core": q.get("core", False), "question": q["question"], "res": compact(res, full), "grade": g})
         tools = " ".join(f"{t['name']}→{t['status']}" + ("*" if t.get("forced") else "") for t in res.get("trace") or []) or "(도구 없음)"
         flags = f"  표시: {', '.join(g['flags'])}" if g["flags"] else ""
-        log(f"[{'OK' if g['clean'] else 'NG'}] {q['id']} {q['category']:<14} {q['gold']['behavior']:<14} {tools}{flags}\n      답: {(res.get('answer') or res.get('error') or '')[:100]}")
+        log(f"[{'OK' if g['clean'] else 'NG'}] {q['id']} {q['category']:<14} {q['gold']['behavior']:<14} {tools}{flags}  ({time.time() - t0:.0f}초)\n      답: {(res.get('answer') or res.get('error') or '')[:100]}")
     return rows
 
 

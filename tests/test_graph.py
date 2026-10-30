@@ -1018,3 +1018,17 @@ def test_evidence_of_an_earlier_turn_never_leaks_into_turns_that_skip_the_eviden
     assert handoff["stop_reason"] == "handoff_saved" and handoff["evidence"] == [] and handoff["evidence_text"] == ""
     limited = a.ask("중도해지하면 이율이 어떻게 돼요?", "s")
     assert limited["stop_reason"] == "tool_limit" and limited["evidence"] == [] and limited["evidence_text"] == ""
+
+
+def test_a_model_call_that_times_out_ends_the_question_as_a_model_error_instead_of_hanging():
+    """대기 시간 상한(httpx ReadTimeout)에 걸린 모델 호출은 그 질문만 실패로 끝나고 다음 질문은 정상이다."""
+    httpx = pytest.importorskip("httpx")
+
+    def fn(msgs, n):
+        if n == 1:
+            raise httpx.ReadTimeout("timed out")
+        return AIMessage(content="안녕하세요!")
+    a, m = agent(fn)
+    bad = a.ask("가입일은 4월 2일이고 만기일은 내년 4월 2일인데 오늘 해지하면?", "s")
+    assert bad["stop_reason"] == "model_error" and bad["answer"] is None and "모델 호출 실패" in bad["error"] and "timed out" in bad["error"]
+    assert a.ask("안녕하세요", "s")["answer"] == "안녕하세요!" and len(a.history("s")) == 2            # 실패한 질문은 대화에 남지 않는다
