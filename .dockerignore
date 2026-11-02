@@ -1,0 +1,23 @@
+# 약관 원문 · 청크 · 색인 · 모델 · 상담 요청 DB는 이미지에 넣지 않는다 (.gitignore와 같은 이유: 약관 본문을 레포 밖으로 내보내지 않는다)
+.git
+.gitignore
+.venv
+.env
+__pycache__
+*.pyc
+.pytest_cache
+rag/raw
+rag/extracted
+rag/chunks
+rag/chroma_db
+rag/models
+rag/manual/hana_deposit_product_sheet.md
+data
+*.sqlite3
+# 이미지에 필요 없는 것
+tests
+scripts
+docs
+eval/runs
+eval/tool_runs
+*.md

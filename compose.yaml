@@ -1,0 +1,78 @@
+# 전부 컨테이너로: API + Ollama (+ 처음 한 번 모델 내려받기). Chroma는 별도 서버가 아니라 API 프로세스 안에서 도는 PersistentClient라 컨테이너를 따로 두지 않는다.
+#
+#   docker compose up --build                  # 처음에는 모델(qwen2.5:7b 약 4.7GB, bge-m3 약 1.2GB)을 내려받느라 오래 걸린다
+#   docker compose --profile build run --rm ingest   # 약관 청크(rag/chunks/chunks.jsonl)를 색인에 넣기 (한 번, 청크를 바꿀 때마다)
+#
+# 주의: 컨테이너의 Ollama는 Apple Silicon의 GPU(Metal)를 쓰지 못해 CPU로 돈다. 맥에서 빠르게 쓰려면 compose.host-ollama.yaml(호스트의 Ollama 사용)을 쓴다.
+# NVIDIA GPU가 있으면 아래 ollama 서비스의 deploy 블록 주석을 푼다 (NVIDIA Container Toolkit 필요).
+# 이 파일은 구문과 경로 일치만 시험으로 확인했고 실제로 띄워 보지는 못했다.
+name: banking-agent
+
+x-app-env: &app-env
+  OLLAMA_HOST: http://ollama:11434
+  TOOL_MODEL: ${TOOL_MODEL:-qwen2.5:7b}
+  EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+
+services:
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  ollama-pull:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "ollama pull ${TOOL_MODEL:-qwen2.5:7b} && ollama pull ${EMBED_MODEL:-bge-m3}"]
+    restart: "no"
+
+  api:
+    build: .
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+    environment: *app-env
+    volumes:
+      - ./rag/chroma_db:/app/rag/chroma_db
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  ingest:
+    profiles: ["build"]
+    build: .
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+    environment: *app-env
+    command: ["python", "rag/ingest.py"]
+    volumes:
+      - ./rag/chunks:/app/rag/chunks:ro
+      - ./rag/chroma_db:/app/rag/chroma_db
+
+volumes:
+  ollama:

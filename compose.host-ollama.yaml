@@ -1,0 +1,45 @@
+# 호스트(내 컴퓨터)에서 돌고 있는 Ollama를 쓴다: API만 컨테이너로 띄운다. 맥(Apple Silicon)에서는 이쪽이 GPU(Metal)를 써서 훨씬 빠르다.
+#
+#   먼저 호스트에서:  ollama pull qwen2.5:7b && ollama pull bge-m3   (Ollama 앱이 켜져 있어야 함)
+#   docker compose -f compose.host-ollama.yaml up --build
+#   docker compose -f compose.host-ollama.yaml --profile build run --rm ingest
+#
+# 맥 · Windows의 Docker Desktop은 host.docker.internal로 호스트에 닿는다. 리눅스는 extra_hosts가 그 이름을 만들어 주지만
+# Ollama가 127.0.0.1에서만 듣고 있으면 닿지 않으므로 OLLAMA_HOST=0.0.0.0 으로 Ollama를 띄운다.
+# 이 파일은 구문과 경로 일치만 시험으로 확인했고 실제로 띄워 보지는 못했다.
+name: banking-agent
+
+x-app-env: &app-env
+  OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+  TOOL_MODEL: ${TOOL_MODEL:-qwen2.5:7b}
+  EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+
+services:
+  api:
+    build: .
+    environment: *app-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./rag/chroma_db:/app/rag/chroma_db
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  ingest:
+    profiles: ["build"]
+    build: .
+    environment: *app-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["python", "rag/ingest.py"]
+    volumes:
+      - ./rag/chunks:/app/rag/chunks:ro
+      - ./rag/chroma_db:/app/rag/chroma_db
