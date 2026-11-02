@@ -182,7 +182,7 @@ def test_main_measures_retrieval_separately_without_the_model(qfile, capsys):
     ranked = {"Q001 질문": ["A", "x"]}                                                     # Q001만 정답 청크(A)가 있다
     assert re_.main(["--retrieval", "--k", "2"], search_fn=lambda query, k: {"status": "ok", "results": [{"chunk_id": c} for c in ranked.get(query, [])][:k]}) == 0
     out = capsys.readouterr().out
-    assert "정답 청크가 있는 1문항, 상위 2개" in out and "Recall@2: 1.000" in out and "MRR: 1.000" in out and "못 찾은 문항: 없음" in out
+    assert "상위 2개" in out and "전체: 1문항  Recall@2: 1.000  Recall@1: 1.000  MRR: 1.000" in out and "3일차 검색 문항 (기준선과 비교): 해당 문항 없음" in out and "못 찾은 문항: 없음" in out
 
 
 # ---------- 검증용 규칙 ----------
@@ -272,3 +272,55 @@ def test_the_cut_note_count_is_saved_and_shown_in_the_summary():
     rows = re_.run(QUESTIONS[2:3], FakeAgent(cut), log=lambda s: None)
     assert rows[0]["res"]["notes_stripped"] == 1 and "notes_stripped" in re_.RES_KEYS
     assert "코드가 잘라 낸 내부 메모 문장: 1건" in re_.format_summary(re_.summarize(rows))
+
+
+def test_the_summary_table_has_a_facts_column_that_counts_only_questions_with_fact_rules():
+    facts_q = row("Q101", "rule", "search", tools=["search_terms"], chunks=["A"], facts_all=[r"0\.15"])
+    plain_q = row("Q102", "rule", "search", tools=["search_terms"], chunks=["A"])
+
+    class Answers(FakeAgent):
+        def ask(self, question, session_id, today=None):
+            self.calls.append((question, session_id, today))
+            text = "두 달이면 연 0.15%예요." if question.startswith("Q101") else "약관상 가능해요."
+            return {"answer": text, "error": None, "stop_reason": None, "model_calls": 2, "ms": 5, "tool_calls": 1, "trace": [t("search_terms")], "evidence": [{"kind": "약관", "chunk_id": "A"}], "evidence_text": ""}
+    rows = re_.run([facts_q, plain_q], Answers(), log=lambda s: None)
+    text = re_.format_summary(re_.summarize(rows))
+    header = text.splitlines()[0].split()
+    assert "사실" in header and rows[0]["grade"]["facts_ok"] is True and "facts_ok" not in rows[1]["grade"]
+    all_row = next(line for line in text.splitlines() if line.startswith("전체")).split()
+    assert all_row[header.index("사실")] == "1/1"                                      # 기준이 있는 문항 1개 중 1개
+    wrong = re_.run([facts_q], FakeAgent({"Q101": {"answer": "3개월 이상 구간이에요.", "error": None, "stop_reason": None, "model_calls": 2, "ms": 5, "tool_calls": 1,
+                                                    "trace": [t("search_terms")], "evidence": [{"kind": "약관", "chunk_id": "A"}], "evidence_text": ""}}), log=lambda s: None)
+    assert wrong[0]["grade"]["facts_ok"] is False and wrong[0]["grade"]["behavior_ok"] is False
+
+
+def test_rejected_replies_are_saved_trimmed_counted_and_shown_in_the_summary():
+    rejected = [{"problem": "foreign_script", "detail": "", "chars": 5000, "text": "가" * 1500}]
+    out = {"Q003": {"answer": "신규일을 알려주세요.", "error": None, "stop_reason": None, "model_calls": 3, "ms": 5, "tool_calls": 1, "rejected_replies": rejected,
+                    "trace": [t("calc_interest", "missing_info", args={"principal": 10_000_000})], "evidence": [], "evidence_text": ""}}
+    rows = re_.run(QUESTIONS[2:3], FakeAgent(out), log=lambda s: None)
+    kept = rows[0]["res"]["rejected_replies"][0]
+    assert "rejected_replies" in re_.RES_KEYS and len(kept["text"]) == 800 and kept["chars"] == 5000 and kept["problem"] == "foreign_script"      # 저장은 800자, 실제 길이는 그대로
+    assert rows[0]["grade"]["rejected"] == 1 and re_.summarize(rows)["overall"]["rejected"] == 1
+    assert "점검에 걸려 버려진 답: 1건" in re_.format_summary(re_.summarize(rows))
+    none = re_.run(QUESTIONS[3:4], FakeAgent(), log=lambda s: None)
+    assert none[0]["grade"]["rejected"] == 0 and "점검에 걸려 버려진 답: 0건" in re_.format_summary(re_.summarize(none))
+
+
+def test_retrieval_is_reported_per_group_so_the_day_3_baseline_is_compared_with_the_same_questions(tmp_path, monkeypatch, capsys):
+    def q(i, source, tags, chunk):
+        r = row(i, "rule", "search", tools=["search_terms"], chunks=[chunk])
+        r["source"], r["tags"] = source, tags
+        return r
+    qs = [q("Q001", ["retrieval:1"], ["tuned"], "A"), q("Q002", ["retrieval:2"], ["tuned"], "B"), q("Q003", ["retrieval:23"], ["validation_retrieval"], "C"),
+          q("Q004", ["tool_check:T2"], [], "D"), q("Q005", ["new_dev:tax_rule"], [], "E"), row("Q006", "scope", "no_tool")]
+    path = tmp_path / "q.jsonl"
+    path.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in qs), encoding="utf-8")
+    monkeypatch.setattr(re_, "QUESTIONS", path)
+    results = {"Q001 질문": ["A"], "Q002 질문": ["x", "B"], "Q003 질문": ["x", "y"], "Q004 질문": ["D"], "Q005 질문": ["x", "y"]}         # 정답 순위: 1, 2, 없음, 1, 없음
+    assert re_.main(["--retrieval", "--k", "2"], search_fn=lambda query, k: {"results": [{"chunk_id": c} for c in results[query]][:k]}) == 0
+    out = capsys.readouterr().out
+    assert "전체: 5문항  Recall@2: 0.600  Recall@1: 0.400" in out                                          # 정답 청크가 없는 Q006은 세지 않는다
+    assert "3일차 검색 문항 (기준선과 비교): 3문항  Recall@2: 0.667  Recall@1: 0.333" in out
+    assert "그중 튜닝에 쓴 문항: 2문항  Recall@2: 1.000  Recall@1: 0.500" in out and "그중 검증 문항: 1문항  Recall@2: 0.000" in out
+    assert "그 밖 (정답 청크를 추정한 문항 포함): 2문항  Recall@2: 0.500  Recall@1: 0.500" in out and "못 찾은 문항: Q003, Q005" in out

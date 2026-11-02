@@ -28,8 +28,8 @@ from eval.evaluate import grade, retrieval_metrics, summarize  # noqa: E402
 
 QUESTIONS = ROOT / "eval" / "questions.jsonl"
 ANSWER_CHARS = 300
-RES_KEYS = ("answer", "error", "stop_reason", "tool_calls", "model_calls", "ms", "trace", "evidence", "evidence_text")
-HEADERS = ("n", "행동", "clean", "도구", "도구(모델만)", "계산값", "인자", "근거", "정답청크", "근거없음", "강제", "p50ms", "p90ms", "모델호출")
+RES_KEYS = ("answer", "error", "stop_reason", "tool_calls", "model_calls", "notes_stripped", "rejected_replies", "ms", "trace", "evidence", "evidence_text")
+HEADERS = ("n", "행동", "clean", "도구", "도구(모델만)", "계산값", "인자", "근거", "정답청크", "사실", "근거없음", "강제", "p50ms", "p90ms", "모델호출")
 
 
 def load(path=None) -> list[dict]:
@@ -57,6 +57,8 @@ def compact(res: dict, full: bool = False) -> dict:
     out = {k: res.get(k) for k in RES_KEYS}
     if not full and isinstance(out["answer"], str):
         out["answer"] = out["answer"][:ANSWER_CHARS]
+    if out.get("rejected_replies"):                                    # 버려진 답은 진단용이라 더 길게(800자) 남긴다
+        out["rejected_replies"] = [{**r, "text": (r.get("text") or "")[:800]} for r in out["rejected_replies"]]
     return out
 
 
@@ -94,7 +96,7 @@ def table_rows(summary: dict) -> list[list[str]]:
     rows = []
     for name, b in [("전체", summary["overall"])] + sorted(summary["by_category"].items()):
         rows.append([name, str(b["n"]), fmt_ratio(b, "behavior_ok"), fmt_ratio(b, "clean"), fmt_ratio(b, "tools_ok"), fmt_ratio(b, "tools_model_only"), fmt_ratio(b, "calc_value_ok"),
-                     fmt_ratio(b, "args_ok"), fmt_ratio(b, "evidence_ok"), fmt_ratio(b, "gold_chunk_in_evidence"), fmt_ratio(b, "unsupported"), fmt_ratio(b, "forced"),
+                     fmt_ratio(b, "args_ok"), fmt_ratio(b, "evidence_ok"), fmt_ratio(b, "gold_chunk_in_evidence"), fmt_ratio(b, "facts_ok"), fmt_ratio(b, "unsupported"), fmt_ratio(b, "forced"),
                      "-" if b["ms_p50"] is None else str(round(b["ms_p50"])), "-" if b["ms_p90"] is None else str(round(b["ms_p90"])),
                      "-" if b["model_calls_avg"] is None else str(b["model_calls_avg"])])
     return rows
@@ -110,8 +112,34 @@ def format_summary(summary: dict, markdown: bool = False) -> str:
         lines = ["  ".join(h.ljust(w[i]) for i, h in enumerate(head))] + ["  ".join(c.ljust(w[i]) for i, c in enumerate(r)) for r in rows]
     flags = summary["overall"]["flags"]
     lines.append("")
-    lines.append("표시(flags): " + (", ".join(f"{k} {v}" for k, v in flags.items()) if flags else "없음"))
-    lines.append("용어: 행동=기대한 행동, clean=행동이 맞고 표시(flags)가 하나도 없음, 도구(모델만)=코드의 강제 호출 없이 모델이 스스로 고름, 강제=코드가 대신 부른 문항, 근거없음=근거 없는 답변 표시가 있는 문항")
+    lines.append("표시(flags): " + (", ".join(f"{k} {v}" for k, v in flags.items()) if flags else "없음") + f"   |   코드가 잘라 낸 내부 메모 문장: {summary['overall'].get('notes_stripped', 0)}건   |   점검에 걸려 버려진 답: {summary['overall'].get('rejected', 0)}건")
+    lines.append("용어: 사실=답변의 핵심 사실(금리표 수치 등)이 맞음(기준이 있는 문항만), 행동=기대한 행동, clean=행동이 맞고 표시(flags)가 하나도 없음, 도구(모델만)=코드의 강제 호출 없이 모델이 스스로 고름, 강제=코드가 대신 부른 문항, 근거없음=근거 없는 답변 표시가 있는 문항")
+    return "\n".join(lines)
+
+
+def retrieval_groups(questions: list[dict]) -> list[tuple[str, list[dict]]]:
+    """검색 품질을 어떤 문항 묶음으로 따로 볼지. 3일차 검색 문항(정답 청크가 실제 검색 기록으로 확인된 것)만 3일차 기준선과 비교할 수 있다:
+    튜닝에 쓴 문항(검색용 설명을 쓰는 데 참고)과 검증 문항을 가르고, 정답 청크를 제가 추정한 문항(5일차 확인용 · 새 문항)은 따로 둔다."""
+    day3 = [q for q in questions if any(s.startswith("retrieval:") for s in q.get("source", []))]
+    ids = {q["id"] for q in day3}
+    return [("전체", questions), ("3일차 검색 문항 (기준선과 비교)", day3),
+            ("  그중 튜닝에 쓴 문항", [q for q in day3 if "tuned" in q.get("tags", [])]),
+            ("  그중 검증 문항", [q for q in day3 if "validation_retrieval" in q.get("tags", [])]),
+            ("그 밖 (정답 청크를 추정한 문항 포함)", [q for q in questions if q["id"] not in ids])]
+
+
+def format_retrieval(chosen: list[dict], search_fn, k: int) -> str:
+    lines = [f"검색 품질 (질문 그대로 검색, 상위 {k}개, 정답 청크가 있는 문항만)"]
+    missed: list[str] = []
+    for label, group in retrieval_groups(chosen):
+        m = retrieval_metrics(group, search_fn, k)
+        if not m["n"]:
+            lines.append(f"  {label}: 해당 문항 없음")
+            continue
+        lines.append(f"  {label}: {m['n']}문항  Recall@{k}: {m['recall_at_k']:.3f}  Recall@1: {m['recall_at_1']:.3f}  MRR: {m['mrr']:.3f}  정답보다 앞선 함정 청크가 있는 문항: {m['trap_before_gold']}")
+        if label == "전체":
+            missed = m["missed"]
+    lines.append("  못 찾은 문항: " + (", ".join(missed) or "없음"))
     return "\n".join(lines)
 
 
@@ -161,10 +189,7 @@ def main(argv: list[str] | None = None, agent=None, search_fn=None) -> int:
         if search_fn is None:
             sys.path.insert(0, str(ROOT / "rag"))
             from search import search_terms as search_fn
-        m = retrieval_metrics(chosen, search_fn, a.k)
-        print(f"검색 품질 (질문 그대로 검색, 정답 청크가 있는 {m['n']}문항, 상위 {m['k']}개)")
-        print(f"  Recall@{m['k']}: {m['recall_at_k']:.3f}   Recall@1: {m['recall_at_1']:.3f}   MRR: {m['mrr']:.3f}   정답보다 앞선 함정 청크가 있는 문항: {m['trap_before_gold']}")
-        print("  못 찾은 문항:", ", ".join(m["missed"]) or "없음")
+        print(format_retrieval(chosen, search_fn, a.k))
         return 0
     if a.rescore:
         rows, info = rescore(a.rescore, questions)
