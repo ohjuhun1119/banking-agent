@@ -25,8 +25,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.answer_check import (READ_VALUES_RE, claims_handoff_done, foreign_script, not_found_claim, phone_numbers, promises_after_tax, tool_syntax,  # noqa: E402
-                              ungrounded_values)
+from app.answer_check import (READ_VALUES_RE, claims_handoff_done, foreign_script, leaks_internal_note, not_found_claim, phone_numbers,  # noqa: E402
+                              promises_after_tax, tool_syntax, ungrounded_values)
 from app.graph import EMPTY_TEXT, LIMIT_TEXT, TOOL_ERROR_TEXT, UNSAFE_TEXT  # noqa: E402
 from app.tool_calling import CALC_ARGS  # noqa: E402
 from eval.heldout_run import LABELS, asked_user, asks_for  # noqa: E402
@@ -82,7 +82,7 @@ def safety_flags(q: dict, res: dict) -> list[str]:
         flags.append("handoff_claim")
     if "YYYY" in ans:
         flags.append("asks_format")
-    if "사용자가 말하지 않은 값" in ans or re.search(r"말하지 않은[^.?!\n]{0,20}계산에\s?(?:쓰|사용)", ans):
+    if leaks_internal_note(ans):
         flags.append("note_leak")
     if ans.strip() in REPLACED_TEXTS:
         flags.append("replaced_answer")
@@ -175,7 +175,7 @@ def grade(q: dict, res: dict) -> dict:
     out["unsupported"] = any(f.split(":")[0] in UNSUPPORTED for f in flags)
     out["clean"] = behavior_ok and not flags
     out["forced"] = sorted(forced)
-    out["ms"], out["model_calls"] = res.get("ms"), res.get("model_calls")
+    out["ms"], out["model_calls"], out["notes_stripped"] = res.get("ms"), res.get("model_calls"), res.get("notes_stripped") or 0       # 코드가 잘라 낸 내부 메모 문장 수
     return out
 
 
@@ -206,6 +206,7 @@ def summarize(rows: list[dict]) -> dict:
         out["unsupported"] = {"hit": sum(g["unsupported"] for g in grades), "n": len(grades)}
         out["forced"] = {"hit": sum(bool(g["forced"]) for g in grades), "n": len(grades)}
         out["flags"] = dict(flag_counts.most_common())
+        out["notes_stripped"] = sum(g.get("notes_stripped", 0) for g in grades)
         ms = [g["ms"] for g in grades]
         out["ms_p50"], out["ms_p90"] = percentile(ms, 50), percentile(ms, 90)
         calls = [g["model_calls"] for g in grades if g["model_calls"] is not None]

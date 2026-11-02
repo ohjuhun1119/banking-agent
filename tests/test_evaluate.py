@@ -351,3 +351,13 @@ def test_a_scope_question_may_call_the_calculator_only_when_the_gold_allows_it()
 def test_the_set_of_replacement_texts_is_exactly_the_four_the_code_can_send_instead_of_an_answer():
     assert ev.REPLACED_TEXTS == {_g.UNSAFE_TEXT, _g.EMPTY_TEXT, _g.TOOL_ERROR_TEXT, _g.LIMIT_TEXT}
     assert _g.HANDOFF_CONFIRM_TEXT not in ev.REPLACED_TEXTS and _g.NO_CONNECT_TEXT not in ev.REPLACED_TEXTS           # 저장 확인 질문은 정상 응답이다
+
+
+def test_the_grader_still_flags_a_raw_leak_in_an_old_recording_and_counts_what_the_code_cut():
+    """코드가 잘라 내기 전의 기록(--rescore)에서는 note_leak이 그대로 잡히고, 잘라 낸 문장 수는 결과에 따로 남는다."""
+    raw = ev.grade(q("ask_missing", [], ["calc_interest"], missing=["신규일"]), res("신규일을 알려주세요. 사용자가 말하지 않은 해지일은 계산에 사용하지 않았습니다.", [t("calc_interest", "missing_info")]))
+    assert "note_leak" in raw["flags"] and raw["notes_stripped"] == 0
+    cut = ev.grade(q("ask_missing", [], ["calc_interest"], missing=["신규일"]), res("신규일을 알려주세요.", [t("calc_interest", "missing_info")], notes_stripped=2))
+    assert "note_leak" not in cut["flags"] and cut["notes_stripped"] == 2
+    s = ev.summarize([{"id": "Q1", "category": "missing", "question": "q", "grade": raw}, {"id": "Q2", "category": "missing", "question": "q", "grade": cut}])
+    assert s["overall"]["notes_stripped"] == 2 and s["by_category"]["missing"]["flags"] == {"note_leak": 1}

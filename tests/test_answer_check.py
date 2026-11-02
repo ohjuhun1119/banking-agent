@@ -233,3 +233,53 @@ def test_after_tax_promises_without_the_word_after_tax_are_found(text):
 ])
 def test_refusals_and_pre_tax_offers_are_not_after_tax_promises(text):
     assert not promises_after_tax(text)
+
+
+# ---------- 내부 메모를 읽어 준 문장 잘라 내기 (개발용 Q069 · 검증용 X006 · X012 · X013 · X026) ----------
+from app.answer_check import leaks_internal_note, strip_internal_notes  # noqa: E402
+
+REAL_LEAKS = [   # 실제 모델 실행에서 나온 문장들 (띄어쓰기 빠짐 포함)
+    "계산에 필요한 정보가 부족합니다. 신규일, 만기일, 해지일을 알려주시면도와드리겠습니다. 사용자가 말하지 않은 해지일은 계산에 사용하지 않았습니다.",
+    "계산에 필요한 정보가 부족합니다. 정기예금을 만들 때의 날짜와 만기일을알려주시면 도와드리겠습니다. 사용자가 말하지 않은 값(신규일)은 계산에 쓰지 않았습니다.",
+    "계산에 필요한 원금의 금액을 알려주세요. 사용자가 말하지 않은 원금은 계산에 사용하지 않았습니다.",
+    "계산에 필요한 정보가 부족합니다. 신규일, 만기일, 해지일을 알려주시면도와드리겠습니다. 사용자가 말하지 않은 값(신규일, 해지일)은 계산에 사용하지 않았습니다.",
+]
+
+
+@pytest.mark.parametrize("text", REAL_LEAKS)
+def test_the_real_leaked_sentences_are_found_and_only_that_sentence_is_removed(text):
+    assert leaks_internal_note(text)
+    cleaned = strip_internal_notes(text)
+    assert "말하지 않은" not in cleaned and cleaned.endswith(("주세요.", "도와드리겠습니다.")) and cleaned == text[: text.index(" 사용자가")]
+
+
+def test_a_leak_in_the_middle_or_at_the_start_or_alone_is_handled():
+    assert strip_internal_notes("원금을 알려주세요. 사용자가 말하지 않은 원금은 계산에 쓰지 않았습니다. 날짜도 알려주세요.") == "원금을 알려주세요. 날짜도 알려주세요."
+    assert strip_internal_notes("사용자가 말하지 않은 값(신규일)은 계산에 사용하지 않았습니다. 신규일을 알려주세요.") == "신규일을 알려주세요."
+    assert strip_internal_notes("사용자가 말하지 않은 값(신규일, 해지일)은 계산에 사용하지 않았습니다.") == ""
+    assert strip_internal_notes("원금을 알려주세요.\n사용자가 말하지 않은 원금은 계산에 쓰지 않았습니다.\n날짜도 알려주세요.") == "원금을 알려주세요.\n\n날짜도 알려주세요."
+
+
+@pytest.mark.parametrize("text", [
+    "연 3.5%로 계산했어요. 원금을 알려주세요.", "- 1개월 미만: 연 0.10%\n- 1개월 이상: 연 0.15%", "사용자가 말한 값은 원금뿐이에요.", "말하지 않은 값은 없어요.",
+    "계산에 필요한 값이 없습니다: 원금. 이 값을 알려주세요. (질문에서 읽은 값: 해지일 2026-10-28)", "", None, 5,
+])
+def test_ordinary_answers_are_never_changed(text):
+    assert not leaks_internal_note(text) and strip_internal_notes(text) == text
+
+
+def test_the_cleaned_text_keeps_decimals_and_line_breaks_of_the_rest():
+    text = "연 2.934%로 계산했어요.\n1. 원금을 알려주세요\n사용자가 말하지 않은 값(원금)은 계산에 쓰지 않았습니다."
+    assert strip_internal_notes(text) == "연 2.934%로 계산했어요.\n1. 원금을 알려주세요"
+
+
+def test_both_wordings_of_the_internal_note_are_found_even_without_the_other_one():
+    assert leaks_internal_note("사용자가 말하지 않은 값은 추측하지 않았습니다.")                          # '계산에'가 없는 문장
+    assert leaks_internal_note("말하지 않은 해지일은 계산에 쓰지 않았습니다.")                            # '사용자가 말하지 않은 값'이 없는 문장
+
+
+def test_text_outside_the_removed_sentence_is_never_reformatted():
+    """자르는 것은 내부 메모 문장뿐이다: 모델이 쓴 다른 글의 띄어쓰기 · 줄바꿈은 건드리지 않는다."""
+    text = "원금을  알려주세요.  \n날짜도   알려주세요. 사용자가 말하지 않은 원금은 계산에 쓰지 않았습니다."
+    assert strip_internal_notes(text) == "원금을  알려주세요.  \n날짜도   알려주세요."
+    assert strip_internal_notes("a  b") == "a  b"

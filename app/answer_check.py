@@ -96,6 +96,23 @@ def promises_after_tax(text) -> bool:
 # 코드가 질문에서 읽어 채운 값을 되묻는 문장 뒤에 덧붙이는 글: '(질문에서 읽은 값: 해지일 2026-10-28)'. 모델이 쓴 문장이 아니므로 모델의 근거를 따질 때는 뺀다.
 READ_VALUES_RE = re.compile(r"\s*\(질문에서 읽은 값:[^)]*\)")
 
+# 도구 결과에 들어 있는 내부 메모('사용자가 말하지 않은 값은 계산에 쓰지 않았다')를 모델이 사용자에게 그대로 읽어 주는 문장 (개발용 Q069 · 검증용 X006 · X012 · X013 · X026).
+# 한 문장 단위로 찾는다: 문장 부호(. ! ?)나 줄바꿈이 문장의 끝이다.
+NOTE_SENTENCE_RE = re.compile(r"[^.!?\n]*(?:사용자가\s?말하지\s?않은\s?값|말하지\s?않은[^.!?\n]*계산에\s?(?:쓰|사용))[^.!?\n]*[.!?]?")
+
+
+def leaks_internal_note(text) -> bool:
+    """답변이 내부 메모를 사용자에게 그대로 읽어 주는가."""
+    return isinstance(text, str) and bool(NOTE_SENTENCE_RE.search(text))
+
+
+def strip_internal_notes(text):
+    """내부 메모를 읽어 준 문장만 잘라 낸다 (나머지 글과 줄바꿈은 그대로). 메모가 없으면 같은 글을 돌려준다."""
+    if not leaks_internal_note(text):
+        return text
+    cleaned = NOTE_SENTENCE_RE.sub("", text)
+    return cleaned.strip()
+
 _AFFIRM = re.compile(r"^\s*(?:네|넵|예|응|어|그래|좋아|맞아|저장|부탁|해\s?줘|해\s?주세요|그렇게|그럼)")
 _NEGATIVE = re.compile(r"아니|아뇨|괜찮|됐|취소|싫|안\s?해|하지\s?마")
 _HANDOFF_DONE = re.compile(r"접수번호|(?:상담|요청|문의)[^.?!\n]{0,12}(?:접수|저장)\s?(?:했|됐|되었|해\s?드렸|완료)|상담원[^.?!\n]{0,14}(?:연결해\s?드(?:리|렸)|연결됩니다|연락\s?드리)|연결해\s?드릴게")

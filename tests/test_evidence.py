@@ -157,3 +157,38 @@ def test_the_same_chunk_found_by_two_searches_is_shown_once():
     r1 = search_ok(hit(1, "c1", "약관_조"), hit(2, "c2", "약관_조"))
     r2 = search_ok(hit(1, "c1", "약관_조"), hit(2, "c3", "일부해지"))
     assert [c["chunk_id"] for c in build_evidence([("search_terms", r1), ("search_terms", r2)])] == ["c1", "c2", "c3"]
+
+
+# ---------- 계산형 판별 보정 (개발용 Q023 · Q047 · Q080: 규칙 질문을 금액 질문으로 오분류) ----------
+@pytest.mark.parametrize("question", [
+    "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?", "대출 금리는 얼마예요?",                        # 개발용에서 오분류된 세 문항
+    "중도해지 이율이 얼마예요?", "이자율은 얼마나 돼요?", "이자율이 얼마죠?", "중도해지 금리가 얼마인가요", "이자가 붙나요?", "이자에 세금이 붙어요?", "금리가 얼마예요? 어디서 확인해요?",
+])
+def test_questions_about_the_rate_or_a_yes_no_about_interest_are_rule_questions_not_amount_questions(question):
+    assert not calc_intent(question)
+
+
+@pytest.mark.parametrize("question", [
+    "이자 얼마 받아요?", "이자는 얼마나 나올까요", "해지하면 이자가 얼마예요?", "이자 얼마 붙어요?", "이자 차이가 많이 나나요?", "이자 얼마나 손해야?", "이자가 얼마 나와?",
+    "세후 이자는 얼마예요?", "이율 차이가 많이 나나요?", "금리 손해가 얼마나 돼요", "얼마 받아요?", "얼마나 받을 수 있어요?", "지금 깨면 이자 얼마나 손해야?",
+])
+def test_questions_that_ask_for_the_amount_of_interest_stay_amount_questions(question):
+    assert calc_intent(question)
+
+
+def test_the_decision_for_every_question_of_the_evaluation_set_matches_its_category():
+    """규칙 · 상담원 · 범위 밖 질문은 모두 계산형이 아니다. 계산형인 규칙 외 질문은 금액을 묻는 문항뿐이다 (세후 이자 금액 Q045 포함)."""
+    import json
+    from pathlib import Path
+    rows = [json.loads(line) for line in (Path(__file__).resolve().parents[1] / "eval" / "questions.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    wrong = [r["id"] for r in rows if r["category"] in ("rule", "handoff", "scope") and "ambiguous_amount" not in r["tags"] and calc_intent(r["question"])]
+    assert wrong == [], wrong
+    # 규칙으로 분류됐지만 이자 금액을 묻는 3문항(3일차 검색 평가의 정답 청크 때문에 규칙)은 정답이 모호하다고 표시되어 있다
+    ambiguous = [r["id"] for r in rows if r["category"] == "rule" and calc_intent(r["question"])]
+    assert ambiguous == ["Q002", "Q012", "Q020"] and all("ambiguous_amount" in r["tags"] for r in rows if r["id"] in ambiguous)
+    assert {"Q045", "Q046"} <= {r["id"] for r in rows if r["category"] == "aftertax" and calc_intent(r["question"])}                   # 세후 금액 질문은 계산형이다
+
+
+@pytest.mark.parametrize("question", ["해지하면 얼마나 손해 보나요?", "깨면 얼마나 이득이에요?", "얼마나 받을 수 있어요?", "그 돈을 얼마나 받나요", "얼마 나와요?"])
+def test_amount_questions_without_the_word_interest_are_still_amount_questions(question):
+    assert calc_intent(question)

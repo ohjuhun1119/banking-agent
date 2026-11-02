@@ -264,3 +264,11 @@ def test_the_default_progress_goes_to_stderr_and_the_result_line_shows_the_secon
     err = capsys.readouterr().err
     assert "[1/2] Q001 실행 중" in err and "[2/2] Q002 실행 중" in err and capsys.readouterr().out == ""
     assert lines[0].split("\n")[0].endswith("초)") and "(0초)" in lines[0]
+
+
+def test_the_cut_note_count_is_saved_and_shown_in_the_summary():
+    cut = {"Q003": {"answer": "신규일을 알려주세요.", "error": None, "stop_reason": None, "model_calls": 2, "ms": 5, "tool_calls": 1, "notes_stripped": 1,
+                    "trace": [t("calc_interest", "missing_info", args={"principal": 10_000_000})], "evidence": [], "evidence_text": ""}}
+    rows = re_.run(QUESTIONS[2:3], FakeAgent(cut), log=lambda s: None)
+    assert rows[0]["res"]["notes_stripped"] == 1 and "notes_stripped" in re_.RES_KEYS
+    assert "코드가 잘라 낸 내부 메모 문장: 1건" in re_.format_summary(re_.summarize(rows))

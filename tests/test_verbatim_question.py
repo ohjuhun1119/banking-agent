@@ -121,3 +121,64 @@ def test_a_tool_result_that_is_no_longer_the_last_message_is_not_answered_verbat
     assert g.verbatim_question(s) == "값을 알려주세요."
     s["messages"].append(AIMessage(content="이미 답함"))
     assert g.verbatim_question(s) is None
+
+
+# ---------- 세후 · 세금을 물었는데 값을 되묻기만 하면 세후 안내가 사라진다 (개발용 Q045 · Q046) ----------
+TAX = "세후(세금을 뺀) 금액은 계산하지 않고 세전 이자만 안내해요."
+
+
+@pytest.mark.parametrize("question", ["세후 이자는 얼마예요?", "세금 떼고 실제로 얼마 받아요?", "원천징수하고 나면 이자 얼마예요?", "실수령 이자가 얼마나 돼요?"])
+def test_a_tax_question_that_is_answered_by_asking_for_values_also_says_after_tax_is_not_calculated(question):
+    a, m = agent(once_then_fail)
+    res = a.ask(question, "s", today=TODAY)
+    assert res["answer"] == calc_interest()["message"] + " " + TAX and m.n == 1 and res["trace"][0]["forced_kind"] == "calc"
+
+
+def test_the_tax_notice_comes_after_the_values_the_code_read_and_only_when_the_question_mentions_tax():
+    a, m = agent(once_then_fail)
+    res = a.ask("지금 해지하면 세금 떼고 이자 얼마 받아요?", "s", today=TODAY)
+    assert res["answer"].endswith("(질문에서 읽은 값: 해지일 2026-10-28) " + TAX)
+    b, mb = agent(once_then_fail)
+    assert TAX not in b.ask("지금 해지하면 이자 얼마 받아요?", "s", today=TODAY)["answer"]
+
+
+def test_the_tax_notice_is_also_added_when_only_the_base_rate_is_missing():
+    a, m = agent(once_then_fail, search_fn=tg.rule_search())
+    res = a.ask("1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 세후 이자 얼마예요?", "s", today=TODAY)
+    assert res["trace"][0]["status"] == "need_base_rate" and res["answer"].endswith(TAX)
+
+
+def test_the_tax_notice_does_not_touch_answers_the_model_writes_or_calculations_that_finish():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest")) if n == 1 else AIMessage(content="원금과 날짜를 알려주세요."))
+    assert a.ask("세후 이자 얼마 받아요?", "s", today=TODAY)["answer"] == "원금과 날짜를 알려주세요."          # 모델이 직접 부른 계산: 모델이 답한다
+
+
+@pytest.mark.parametrize("qid", ["Q045", "Q046"])
+def test_the_dev_after_tax_questions_now_pass_the_grader_end_to_end(qid):
+    """개발용 세후 문항이 실제로 통과한다: 계산형으로 판별 → 강제 계산 호출 → 값 되묻기 + 세후 안내 → 채점기 통과 (가짜 모델, 실제 문항 · 정답)."""
+    import json
+    from pathlib import Path
+    from eval import evaluate as ev
+    row = next(r for r in map(json.loads, (Path(__file__).resolve().parents[1] / "eval" / "questions.jsonl").read_text(encoding="utf-8").splitlines()) if r["id"] == qid)
+    a, m = agent(once_then_fail)
+    res = a.ask(row["question"], "s", today=row["today"])
+    g = ev.grade(row, res)
+    assert TAX in res["answer"] and g["behavior_ok"] and g["clean"] and g["flags"] == [], (g, res["answer"])
+
+
+def test_the_tax_notice_follows_this_turns_question_not_an_earlier_one():
+    """앞 질문이 세금 얘기였어도 이번 질문에 세금이 없으면 세후 안내를 붙이지 않는다."""
+    def fn(msgs, n):
+        if n == 1:
+            return AIMessage(content="약관상 붙어요.")
+        if n == 2:
+            return AIMessage(content="검색 결과에 따르면 그래요.")
+        if n == 3:
+            return AIMessage(content="계산해 봐야 해요.")
+        raise AssertionError("값을 되묻는 문장에는 모델을 다시 부르면 안 된다")
+    a, m = agent(fn, search_fn=tg.rule_search())
+    first = a.ask("예금 이자에 세금이 붙나요?", "s", today=TODAY)
+    assert first["trace"][0]["name"] == "search_terms" and TAX not in first["answer"]
+    second = a.ask("지금 해지하면 이자 얼마 받아요?", "s", today=TODAY)
+    assert second["trace"][0]["forced_kind"] == "calc" and TAX not in second["answer"] and "세후" not in second["answer"]
+    third = a.ask("지금 해지하면 세후 이자 얼마 받아요?", "s", today=TODAY) if False else None

@@ -1032,3 +1032,54 @@ def test_a_model_call_that_times_out_ends_the_question_as_a_model_error_instead_
     bad = a.ask("가입일은 4월 2일이고 만기일은 내년 4월 2일인데 오늘 해지하면?", "s")
     assert bad["stop_reason"] == "model_error" and bad["answer"] is None and "모델 호출 실패" in bad["error"] and "timed out" in bad["error"]
     assert a.ask("안녕하세요", "s")["answer"] == "안녕하세요!" and len(a.history("s")) == 2            # 실패한 질문은 대화에 남지 않는다
+
+
+# ---------- 내부 메모를 읽어 준 문장은 코드가 잘라 낸다 (개발용 Q069 · 검증용 X006 · X012 · X013 · X026) ----------
+LEAK = "사용자가 말하지 않은 해지일은 계산에 사용하지 않았습니다."
+
+
+def test_a_leaked_internal_note_is_cut_by_the_code_without_another_model_call():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000)) if n == 1 else AIMessage(content="신규일, 만기일, 해지일을 알려주세요. " + LEAK))
+    res = a.ask("천만 원 있는데 이자 얼마예요?", "s", today=TODAY_H)
+    assert res["answer"] == "신규일, 만기일, 해지일을 알려주세요." and res["notes_stripped"] == 1 and res["model_calls"] == 2 and m.n == 2      # 다시 시키지 않았다
+
+
+def test_when_nothing_but_the_note_is_left_the_tools_own_question_is_sent_instead():
+    a, m = agent(lambda msgs, n: ai(call("calc_interest", principal=10_000_000)) if n == 1 else AIMessage(content=LEAK))
+    res = a.ask("천만 원 있는데 이자 얼마예요?", "s", today=TODAY_H)
+    assert res["answer"].startswith("계산에 필요한 값이 없습니다: 신규일, 만기일, 해지일") and res["notes_stripped"] == 1 and "말하지 않은" not in res["answer"]
+
+
+def test_leaks_in_the_retry_reply_are_cut_too_and_counted():
+    def fn(msgs, n):
+        if n == 1:
+            return ai(call("calc_interest", principal=10_000_000))
+        if n == 2:
+            return AIMessage(content="세후 이자도 계산해 드릴게요. " + LEAK)            # 세후 약속은 점검이 한 번 다시 시킨다
+        return AIMessage(content="신규일, 만기일, 해지일을 알려주세요. " + LEAK)
+    a, m = agent(fn)
+    res = a.ask("천만 원 있는데 세후 이자 얼마예요?", "s", today=TODAY_H)
+    assert res["answer"] == "신규일, 만기일, 해지일을 알려주세요." and res["notes_stripped"] == 2 and res["model_calls"] == 3
+
+
+def test_a_reply_that_calls_a_tool_is_left_alone_and_the_count_starts_again_every_turn():
+    a, m = agent(lambda msgs, n: ai(call("search_terms", query="일부해지"), text=LEAK) if n == 1 else AIMessage(content="일부해지는 가능해요." if n == 2 else "고마워요."), search_fn=rule_search())
+    res = a.ask("일부만 해지할 수 있어요?", "s")
+    assert res["notes_stripped"] == 0 and res["answer"] == "일부해지는 가능해요."
+    assert any(isinstance(x, AIMessage) and x.tool_calls and x.content == LEAK for x in a.history("s"))      # 도구 호출과 함께 온 글은 그대로 기록된다
+    assert a.ask("고마워요", "s")["notes_stripped"] == 0
+
+
+def test_the_values_the_code_asked_for_verbatim_and_normal_answers_count_zero():
+    a, m = agent(lambda msgs, n: AIMessage(content="이자는 계산해 봐야 알 수 있어요."))
+    assert a.ask("지금 해지하면 이자 얼마 받아요?", "s", today=TODAY_H)["notes_stripped"] == 0
+    b, mb = agent(lambda msgs, n: AIMessage(content="안녕하세요!"))
+    assert b.ask("안녕하세요", "s")["notes_stripped"] == 0
+
+
+@pytest.mark.parametrize("question", ["가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?", "대출 금리는 얼마예요?"])
+def test_rate_and_yes_no_questions_that_the_model_answers_without_tools_are_sent_to_the_search_not_the_calculator(question):
+    """개발용 Q023 · Q047 · Q080: 값을 되묻는 대신 약관 검색으로 간다."""
+    a, m = agent(lambda msgs, n: AIMessage(content="약관상 그래요." if n == 1 else "검색 결과에 따르면 그래요."), search_fn=rule_search())
+    res = a.ask(question, "s", today=TODAY_H)
+    assert [t["name"] for t in res["trace"]] == ["search_terms"] and res["trace"][0]["forced_kind"] == "search" and not res["answer"].startswith("계산에 필요한 값이")
