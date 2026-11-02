@@ -1,0 +1,156 @@
+{
+ "meta": {
+  "split": "dev",
+  "n": 2,
+  "core": false,
+  "date": "2026-11-02"
+ },
+ "summary": {
+  "overall": {
+   "n": 2,
+   "behavior_ok": {
+    "hit": 2,
+    "n": 2
+   },
+   "clean": {
+    "hit": 2,
+    "n": 2
+   },
+   "tools_ok": {
+    "hit": 2,
+    "n": 2
+   },
+   "tools_model_only": {
+    "hit": 2,
+    "n": 2
+   },
+   "facts_ok": {
+    "hit": 2,
+    "n": 2
+   },
+   "unsupported": {
+    "hit": 0,
+    "n": 2
+   },
+   "forced": {
+    "hit": 0,
+    "n": 2
+   },
+   "flags": {},
+   "notes_stripped": 0,
+   "rejected": 0,
+   "ms_p50": 5,
+   "ms_p90": 7519,
+   "model_calls_avg": 0.5
+  },
+  "by_category": {
+   "scope": {
+    "n": 2,
+    "behavior_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "clean": {
+     "hit": 2,
+     "n": 2
+    },
+    "tools_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "tools_model_only": {
+     "hit": 2,
+     "n": 2
+    },
+    "facts_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 2
+    },
+    "forced": {
+     "hit": 0,
+     "n": 2
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "ms_p50": 5,
+    "ms_p90": 7519,
+    "model_calls_avg": 0.5
+   }
+  }
+ },
+ "rows": [
+  {
+   "id": "Q080",
+   "category": "scope",
+   "core": true,
+   "question": "대출 금리는 얼마예요?",
+   "res": {
+    "answer": "죄송해요, 대출 · 카드 · 보험 같은 다른 상품은 여기서 안내해 드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. 다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.",
+    "error": null,
+    "stop_reason": "out_of_scope",
+    "tool_calls": 0,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  },
+  {
+   "id": "Q081",
+   "category": "scope",
+   "core": true,
+   "question": "오늘 서울 날씨 어때요?",
+   "res": {
+    "answer": "죄송합니다, 날씨 정보는 제가 제공할 수 없습니다. 하나은행 『하나의 정기예금』 상담 도우미로서 이자 계산이나 약관 안내만 도와드릴 수 있습니다. 다른 질문이 있으시다면 알려주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 0,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 7519,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 7519,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  }
+ ]
+}
