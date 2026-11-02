@@ -1,5 +1,5 @@
 """Docker 설정 시험 (12일차). Docker는 실행하지 않는다: 구문 · 경로가 코드의 실제 경로와 맞는지 · 약관 본문이 이미지에 안 들어가는지 ·
-이미지에 복사되는 파일만으로 서버가 뜨는지를 확인한다. 실제 `docker compose up`은 이 레포에서 해 보지 못했다 (README '검증 상태')."""
+이미지에 복사되는 파일만으로 서버가 뜨는지를 확인한다. `compose.host-ollama.yaml`은 macOS에서 실제로 띄워 확인했고(2026-11-02), `compose.yaml`(컨테이너 안의 Ollama)은 확인하지 못했다 (README '검증 상태')."""
 import fnmatch
 import json
 import os

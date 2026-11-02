@@ -6,7 +6,7 @@
 #
 # 맥 · Windows의 Docker Desktop은 host.docker.internal로 호스트에 닿는다. 리눅스는 extra_hosts가 그 이름을 만들어 주지만
 # Ollama가 127.0.0.1에서만 듣고 있으면 닿지 않으므로 OLLAMA_HOST=0.0.0.0 으로 Ollama를 띄운다.
-# 이 파일은 구문과 경로 일치만 시험으로 확인했고 실제로 띄워 보지는 못했다.
+# macOS(Apple Silicon)에서 빌드 · 기동 · /chat(호스트 Ollama와 색인 볼륨)까지 실제로 확인했다 (2026-11-02). 리눅스 · Windows는 확인하지 못했다.
 name: banking-agent
 
 x-app-env: &app-env

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # 금융 상담 Agent API 이미지. 약관 원문 · 청크 · Chroma 색인 · 상담 요청 DB는 이미지에 넣지 않는다 (.dockerignore, 볼륨으로 연결).
-# Docker 빌드는 이 레포에서 직접 실행해 보지 못했다 (README '검증 상태' 참고). 설치 파일이 없는 패키지가 있으면 PYTHON_VERSION을 바꿔 본다.
+# macOS(Apple Silicon, arm64)에서 빌드 성공을 확인했다 (2026-11-02, README '검증 상태' 참고). amd64는 확인하지 못했다. 설치 파일이 없는 패키지가 있으면 PYTHON_VERSION을 바꿔 본다.
 ARG PYTHON_VERSION=3.14
 
 # ---- 1단계: 의존성 설치 (미리 빌드된 설치 파일이 없는 패키지를 대비해 빌드 도구를 여기에만 둔다)
