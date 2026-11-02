@@ -47,6 +47,18 @@
     "hit": 23,
     "n": 31
    }
+  },
+  {
+   "date": "2026-11-02",
+   "file": "eval/runs/heldout_2.json",
+   "behavior_ok": {
+    "hit": 28,
+    "n": 31
+   },
+   "clean": {
+    "hit": 28,
+    "n": 31
+   }
   }
  ]
 }

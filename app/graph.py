@@ -44,7 +44,7 @@ from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
 from app.answer_check import (claims_handoff_done, foreign_script, handoff_request, is_affirmative, not_found_claim,  # noqa: E402
-                              promises_after_tax, tool_syntax, unsupported_phone_numbers, ungrounded_values)
+                              promises_after_tax, strip_internal_notes, tool_syntax, unsupported_phone_numbers, ungrounded_values)
 from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evidence  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
@@ -84,6 +84,24 @@ RETRY_NOTES = {
 }
 # 약관 · 이자 질문(예금 관련 낱말이 있는 질문)에 모델이 도구를 하나도 안 부르고 답하려 하면, 코드가 먼저 약관 검색을 실행해 근거로 준다
 DOMAIN_WORDS = re.compile(r"해지|해약|중도|만기|이자|이율|금리|약관|원금|예금|예치|가입|보호|과세|세금|재예치|인출|일부")
+# 이 상품이 아닌 것을 묻는 말: 범위 밖 낱말이 있고 예금 고유 낱말이 없으면 강제 검색을 하지 않는다 (개발용 Q080: '대출 금리는 얼마예요?'는 '금리' 때문에 검색이 걸려
+# 맞지 않는 예금 약관을 받은 모델이 '대출 금리는 중도해지 시에 적용되는 금리입니다'라고 엉뚱하게 답했다). 이자 · 금리 같은 일반 낱말은 예금 고유 낱말로 치지 않는다.
+OUT_OF_SCOPE_WORDS = re.compile(r"대출|카드|주식|펀드|보험|환전|외환|적금|연금|청약|코인|비트코인|주택")
+DEPOSIT_WORDS = re.compile(r"예금|해지|해약|중도|만기|약관|재예치|예치|예금자|일부해지|인출")
+
+
+OUT_OF_SCOPE_TEXT = ("죄송해요, 대출 · 카드 · 보험 같은 다른 상품은 여기서 안내해 드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. "
+                     "다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.")
+
+
+def decline_node(state: dict) -> dict:
+    """범위 밖 질문(대출 · 카드 등): 모델을 거치지 않고 코드가 정해진 문구로 거절한다 (모델 호출 0회). 모델에게 맡겼더니 질문을 오해하거나(Q080: 대출 금리를 정기예금 금리로 읽음)
+    맞지 않는 약관을 이어 붙여 엉뚱한 말을 했다."""
+    return {"messages": [AIMessage(content=OUT_OF_SCOPE_TEXT)], "stop_reason": "out_of_scope"}
+
+
+def out_of_scope(question) -> bool:
+    return isinstance(question, str) and bool(OUT_OF_SCOPE_WORDS.search(question)) and not DEPOSIT_WORDS.search(question)
 
 # 도구 결과를 받은 뒤의 행동 규칙. 7일차에 근거 표시와 검색 -> 계산 연결을 다듬으면서 고친다.
 GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 고른다.
@@ -252,6 +270,8 @@ def fallback_text(state: dict, problem: str | None = None) -> str:
 
 
 ASK_STATUSES = ("missing_info", "need_base_rate")        # 계산 도구가 사용자에게 값을 되묻는 상태
+TAX_WORDS = re.compile(r"세후|세금|원천징수|실수령")
+TAX_NOTE = "세후(세금을 뺀) 금액은 계산하지 않고 세전 이자만 안내해요."      # 세후 · 세금을 물은 질문에 값을 되묻기만 하면 이 안내가 사라진다 (개발용 Q045 · 검증용 X002)
 
 
 def _filled_text(filled: dict) -> str:
@@ -283,7 +303,27 @@ def verbatim_question(state: dict) -> str | None:
     if name != "calc_interest" or not isinstance(message, str) or not message.strip():
         return None
     filled = result.get("filled_args") or {}
-    return message.strip() + (f" (질문에서 읽은 값: {_filled_text(filled)})" if filled else "")
+    question = next((str(m.content) for m in reversed(msgs) if isinstance(m, HumanMessage)), "")
+    return message.strip() + (f" (질문에서 읽은 값: {_filled_text(filled)})" if filled else "") + (" " + TAX_NOTE if TAX_WORDS.search(question) else "")
+
+
+REJECTED_CHARS = 1500      # 버려진 답을 남길 때 자르는 길이
+
+
+def _rejected_record(problem: str, detail, ai) -> dict:
+    text = str(ai.content)
+    return {"problem": problem, "detail": str(detail)[:200], "chars": len(text), "text": text[:REJECTED_CHARS]}
+
+
+def sanitize_reply(ai, state: dict) -> tuple:
+    """최종 답변에서 내부 메모를 읽어 준 문장을 잘라 낸다 (추가 모델 호출 없이). 잘라 내고 남은 글이 없으면 도구의 질문이나 고정 문구로 바꾼다. (답변, 잘라 낸 문장 수)."""
+    if getattr(ai, "tool_calls", None):
+        return ai, 0
+    text = str(ai.content)
+    cleaned = strip_internal_notes(text)
+    if cleaned == text:
+        return ai, 0
+    return (AIMessage(content=cleaned) if cleaned.strip() else AIMessage(content=fallback_text(state))), 1
 
 
 def tool_error_unreported(ai, state: dict) -> bool:
@@ -325,7 +365,7 @@ def forced_calc_message(state: dict) -> AIMessage:
 
 def make_agent_node(get_model):
     def agent(state: dict) -> dict:
-        calls = 0
+        calls, stripped, rejected = 0, 0, []
         asked = verbatim_question(state)
         if asked is not None:                                 # 코드가 먼저 부른 계산이 값을 되묻는다: 도구의 질문 그대로, 모델 호출 없음
             return {"messages": [AIMessage(content=asked)], "model_calls": state.get("model_calls", 0)}
@@ -333,12 +373,17 @@ def make_agent_node(get_model):
             msgs = prompt_messages(state)
             model = get_model()
             ai, calls = model.invoke(msgs), 1
+            ai, stripped = sanitize_reply(ai, state)          # 내부 메모를 읽어 준 문장은 먼저 잘라 낸다 (점검 · 재시도 전에)
             problem, detail = check_reply(ai, state)
             if problem:                                       # 한 번만 다시 시키고, 그래도 문제면 고정 문구로 바꾼다
+                rejected.append(_rejected_record(problem, detail, ai))      # 버려질 답의 원래 글을 남긴다 (진단용: X014가 왜 점검에 걸렸는지 알 수 없었다)
                 note = RETRY_NOTES[problem].format(values=detail)
                 ai, calls = model.invoke(msgs + [SystemMessage(content=note)]), 2
-                second = check_reply(ai, state)[0]
+                ai, again = sanitize_reply(ai, state)
+                stripped += again
+                second, second_detail = check_reply(ai, state)
                 if second:
+                    rejected.append(_rejected_record(second, second_detail, ai))
                     ai = AIMessage(content=fallback_text(state, second))
             if tool_error_unreported(ai, state):
                 ai = AIMessage(content=TOOL_ERROR_TEXT)
@@ -351,7 +396,8 @@ def make_agent_node(get_model):
             return _rollback(state, f"모델 호출 실패 ({tc.TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {tc.TOOL_MODEL}'를 확인하세요.")
         if not getattr(ai, "tool_calls", None) and not str(ai.content).strip():
             ai = AIMessage(content=EMPTY_TEXT)                # 도구도 답도 없는 빈 응답
-        return {"messages": [ai], "model_calls": state.get("model_calls", 0) + calls}
+        return {"messages": [ai], "model_calls": state.get("model_calls", 0) + calls, "notes_stripped": state.get("notes_stripped", 0) + stripped,
+                "rejected_replies": list(state.get("rejected_replies") or []) + rejected}      # 한 질문 안에서 노드가 여러 번 실행돼도 앞의 기록을 잃지 않는다
     return agent
 
 
@@ -486,12 +532,17 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
     builder.add_node("tools", make_tools_node(search_fn, tool_timeout))
     builder.add_node("limit", limit_node)
     builder.add_node("evidence", make_evidence_node(search_fn, tool_timeout))
-    def entry(state: dict) -> str:                            # 이번 질문이 상담원 연결 요청이면 모델을 거치지 않는다
-        return "handoff" if handoff_intent(state["messages"]) else "agent"
+    def entry(state: dict) -> str:                            # 상담원 연결 요청과 범위 밖 질문은 모델을 거치지 않는다 (상담 요청이 먼저)
+        if handoff_intent(state["messages"]):
+            return "handoff"
+        last = state["messages"][-1] if state["messages"] else None
+        return "decline" if isinstance(last, HumanMessage) and out_of_scope(str(last.content)) else "agent"
 
     builder.add_node("handoff", handoff_node)
-    builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff"})
+    builder.add_node("decline", decline_node)
+    builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff", "decline": "decline"})
     builder.add_edge("handoff", END)
+    builder.add_edge("decline", END)
     builder.add_conditional_edges("agent", route, {"tools": "tools", "limit": "limit", "evidence": "evidence", END: END})
     builder.add_edge("evidence", END)
     builder.add_edge("tools", "agent")                        # 결과를 모델에 다시 전달
@@ -514,12 +565,12 @@ class Agent:
         t0 = time.perf_counter()
         # confirmed와 messages는 일부러 넣지 않는다: 체크포인터에 저장된 세션 값이 이어진다
         final = self.graph.invoke({"messages": [HumanMessage(question)], "today": today, "tool_calls": 0, "model_calls": 0,
-                                   "trace": [], "stop_reason": None, "error": None, "evidence": [], "session_id": session_id}, cfg)
+                                   "trace": [], "stop_reason": None, "error": None, "evidence": [], "session_id": session_id, "notes_stripped": 0, "rejected_replies": []}, cfg)
         last = final["messages"][-1] if final.get("messages") else None
         answer = None if final.get("error") else (last.content if isinstance(last, AIMessage) and not last.tool_calls else None)
         confirmed = final.get("confirmed") or {}
         return {"answer": answer, "error": final.get("error"), "stop_reason": final.get("stop_reason"),
-                "tool_calls": final.get("tool_calls", 0), "model_calls": final.get("model_calls", 0), "trace": final.get("trace", []),
+                "tool_calls": final.get("tool_calls", 0), "model_calls": final.get("model_calls", 0), "notes_stripped": final.get("notes_stripped", 0), "rejected_replies": final.get("rejected_replies") or [], "trace": final.get("trace", []),
                 "confirmed": confirmed, "confirmed_text": describe_confirmed(confirmed), "session_id": session_id,
                 "evidence": [] if final.get("error") else final.get("evidence") or [],
                 "evidence_text": "" if final.get("error") else format_evidence(final.get("evidence") or []),
@@ -535,6 +586,8 @@ class Agent:
 
 # ---------- 명령줄 ----------
 def _print_result(res: dict) -> None:
+    for r in res.get("rejected_replies") or []:                          # 점검에 걸려 버려진 모델의 원래 답 (진단용)
+        print(f"  점검에 걸려 버려진 답 ({r['problem']}, {r['chars']}자): {r['text'][:300]!r}")
     for t in res["trace"]:
         flags = ((" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
                  + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else "")

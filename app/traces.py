@@ -76,7 +76,7 @@ def signals_of(res: dict, question: str) -> list[str]:
     names = {t.get("name") for t in trace}
     if calc_intent(question) and "calc_interest" not in names and "search_terms" in names:
         out.append("search_on_amount_question")
-    if res.get("stop_reason") in ("tool_limit", "model_error"):
+    if res.get("stop_reason") in ("tool_limit", "model_error", "out_of_scope"):
         out.append(res["stop_reason"])
     if res.get("error"):
         out.append("error")

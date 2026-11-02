@@ -361,3 +361,79 @@ def test_the_grader_still_flags_a_raw_leak_in_an_old_recording_and_counts_what_t
     assert "note_leak" not in cut["flags"] and cut["notes_stripped"] == 2
     s = ev.summarize([{"id": "Q1", "category": "missing", "question": "q", "grade": raw}, {"id": "Q2", "category": "missing", "question": "q", "grade": cut}])
     assert s["overall"]["notes_stripped"] == 2 and s["by_category"]["missing"]["flags"] == {"note_leak": 1}
+
+
+# ---------- 답변 속 핵심 사실 (첫 실제 모델 실행: Q023은 점수가 통과인데 답이 틀렸고, Q080은 엉뚱한 말이었다) ----------
+def row_of(qid):
+    return next(r for r in map(json.loads, (ROOT / "eval" / "questions.jsonl").read_text(encoding="utf-8").splitlines()) if r["id"] == qid)
+
+
+def rule_res(answer, evidence=(CARD,)):
+    return res(answer, [t("search_terms")], evidence=list(evidence))
+
+
+# 실제 모델이 낸 답변 (eval_core_2.json 실행 화면 그대로)
+REAL_Q023 = "중도해지금리는 가입금액에 대해 신규일부터 중도해지일 전일까지 기간에 따라 다르게 적용됩니다. 가입한 지 두 달이므로 3개월 이상 ~ 6개월 미만 구간의 중도해지금리를 적용합니다."
+REAL_Q080 = "대출 금리는 중도해지 시에 적용되는 금리입니다. 중도해지 금리는 가입일부터 중도해지일 전일까지 기간에 따라 예치기간별로 달라집니다. 6개월 미만의 기간은 기본금리의 60% ~ 90"
+REAL_Q081 = "죄송합니다, 날씨 정보는 제가 제공할 수 없습니다. 하나은행 『하나의 정기예금』 상담 도우미로서 이자 계산이나 약관 안내만 도와드릴 수 있습니다. 다른 질문이 있으시다면 알려주세요"
+REAL_Q001 = "정기예금 중도해지 시 이율은 다음과 같습니다:\n\n- 1개월 미만: 연 0.10%\n- 1개월 이상 ~ 3개월 미만: 연 0.15%\n- 3개월 이상 ~ 6개월 미만: 연 0.20%\n-"
+
+
+def test_a_wrong_interval_is_a_failure_even_though_the_search_worked():
+    """Q023: 두 달인데 '3개월 이상 ~ 6개월 미만 구간'이라고 한 실제 오답. 행동(검색) · 근거 카드는 맞지만 사실이 틀렸다."""
+    row = row_of("Q023")
+    wrong = ev.grade(row, rule_res(REAL_Q023))
+    assert wrong["behavior_ok"] is False and wrong["facts_ok"] is False and wrong["clean"] is False and wrong["tools_ok"] and wrong["evidence_ok"]
+    right = ev.grade(row, rule_res("가입한 지 두 달이므로 1개월 이상 ~ 3개월 미만 구간이라 연 0.15%의 중도해지금리를 적용합니다."))
+    assert right["facts_ok"] is True and right["behavior_ok"] is True and right["clean"] is True
+
+
+def test_a_table_dump_that_contains_the_right_number_but_makes_the_wrong_claim_still_fails():
+    """숫자만 있으면 통과시키면 구간표 전체를 늘어놓은 오답이 통과한다: 틀린 주장은 must_not이 막는다."""
+    dump = "두 달이므로 3개월 이상 ~ 6개월 미만 구간입니다. 참고: 1개월 미만 연 0.10%, 1개월 이상 ~ 3개월 미만 연 0.15%, 3개월 이상 ~ 6개월 미만 연 0.20%."
+    g = ev.grade(row_of("Q023"), rule_res(dump))
+    assert g["facts_ok"] is True and g["behavior_ok"] is False                           # 숫자는 있지만 틀린 주장이 있어 행동 실패
+
+
+def test_an_out_of_scope_question_must_be_declined_not_answered_with_unrelated_text():
+    """Q080: 대출 금리를 물었는데 예금 중도해지 얘기를 대출 얘기로 이어 붙인 실제 엉뚱한 답."""
+    row = row_of("Q080")
+    bad = ev.grade(row, rule_res(REAL_Q080))
+    assert bad["behavior_ok"] is False and bad["facts_ok"] is False
+    declined = ev.grade(row, res("대출 금리는 이 서비스에서 안내해 드릴 수 없어요. 정기예금 약관과 중도해지 이자 계산만 도와드려요.", [t("search_terms", "not_found")]))
+    assert declined["behavior_ok"] is True and declined["facts_ok"] is True
+    weather = ev.grade(row_of("Q081"), res(REAL_Q081))
+    assert weather["behavior_ok"] is True and weather["facts_ok"] is True               # 실제로 잘 거절한 날씨 질문은 그대로 통과
+
+
+def test_the_real_table_answer_passes_and_a_missing_band_fails():
+    row = row_of("Q001")
+    assert ev.grade(row, rule_res(REAL_Q001))["facts_ok"] is True
+    assert ev.grade(row, rule_res("중도해지 이율은 1개월 미만 연 0.10%, 1개월 이상 ~ 3개월 미만 연 0.15%입니다."))["facts_ok"] is False         # 3~6개월 구간이 빠짐
+
+
+def test_facts_all_needs_every_pattern_and_facts_any_needs_one_and_only_the_answer_text_counts():
+    gq = q("search", ["search_terms"], facts_all=[r"2회", r"잔액"], facts_any=[r"최저", r"최소"])
+    ok = res("일부해지는 2회까지 가능하고 잔액이 최저 가입금액 이상이어야 해요.", [t("search_terms")], [CARD])
+    assert ev.grade(gq, ok)["facts_ok"] is True
+    assert ev.grade(gq, res("일부해지는 2회까지 가능해요.", [t("search_terms")], [CARD]))["facts_ok"] is False               # 모두 있어야 한다
+    assert ev.grade(gq, res("일부해지는 2회, 잔액 조건이 있어요.", [t("search_terms")], [CARD]))["facts_ok"] is False         # 하나는 있어야 한다
+    in_card_only = res("가능해요.", [t("search_terms")], [CARD], evidence_text="일부해지 2회 잔액 최저")
+    assert ev.grade(gq, in_card_only)["facts_ok"] is False                                                        # 근거 카드의 글은 답변이 아니다
+    assert "facts_ok" not in ev.grade(q("search", ["search_terms"]), ok)                                          # 기준이 없는 문항에는 이 점수가 없다
+
+
+def test_facts_appear_in_the_summary_only_for_questions_that_have_them():
+    rows = [{"id": "Q1", "category": "rule", "question": "q", "grade": {"behavior_ok": False, "tools_ok": True, "tools_model_only": True, "flags": [], "unsupported": False, "clean": False, "forced": [],
+                                                                       "ms": 1, "model_calls": 1, "facts_ok": False}},
+            {"id": "Q2", "category": "rule", "question": "q", "grade": {"behavior_ok": True, "tools_ok": True, "tools_model_only": True, "flags": [], "unsupported": False, "clean": True, "forced": [],
+                                                                       "ms": 1, "model_calls": 1}}]
+    assert ev.summarize(rows)["overall"]["facts_ok"] == {"hit": 0, "n": 1}
+
+
+def test_a_number_that_only_appears_in_the_evidence_card_does_not_satisfy_facts_all():
+    """근거 카드 글에 숫자가 있어도 답변에 없으면 사실이 빠진 것이다 (facts_all만 있는 문항)."""
+    gq = q("search", ["search_terms"], facts_all=[r"0\.15"])
+    answer_misses = res("구간에 따라 달라요.", [t("search_terms")], [CARD], evidence_text="1개월 이상 ~ 3개월 미만 연 0.15%")
+    assert ev.grade(gq, answer_misses)["facts_ok"] is False
+    assert ev.grade(gq, res("연 0.15%예요.", [t("search_terms")], [CARD]))["facts_ok"] is True

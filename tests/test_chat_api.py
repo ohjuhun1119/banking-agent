@@ -180,3 +180,13 @@ def test_the_langsmith_tags_and_metadata_are_passed_to_the_graph(fresh, monkeypa
     monkeypatch.setattr(type(graph), "invoke", lambda self, inp, cfg=None, **kw: spy(inp, cfg, **kw), raising=False)
     chat(question="질문", session_id="meta")
     assert seen["tags"] == ["banking-agent"] and seen["metadata"] == {"session_id": "meta"} and seen["run_name"] == "banking-agent-turn"
+
+
+def test_an_out_of_scope_chat_is_declined_without_the_model_and_traced(fresh):
+    def never(m, n):
+        raise AssertionError("범위 밖 질문에는 모델을 부르면 안 된다")
+    fresh(never)
+    body = chat(question="대출 금리는 얼마예요?", session_id="o1", today="2026-10-28").json()
+    assert body["stop_reason"] == "out_of_scope" and body["answer"] == g.OUT_OF_SCOPE_TEXT and body["tools"] == [] and body["evidence"] == [] and body["model_calls"] == 0
+    (row,) = traces.list_traces()
+    assert row["stop_reason"] == "out_of_scope" and "out_of_scope" in row["signals"] and row["answer"] == g.OUT_OF_SCOPE_TEXT

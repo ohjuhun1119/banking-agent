@@ -1077,9 +1077,86 @@ def test_the_values_the_code_asked_for_verbatim_and_normal_answers_count_zero():
     assert b.ask("안녕하세요", "s")["notes_stripped"] == 0
 
 
-@pytest.mark.parametrize("question", ["가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?", "대출 금리는 얼마예요?"])
+@pytest.mark.parametrize("question", ["가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?"])
 def test_rate_and_yes_no_questions_that_the_model_answers_without_tools_are_sent_to_the_search_not_the_calculator(question):
     """개발용 Q023 · Q047 · Q080: 값을 되묻는 대신 약관 검색으로 간다."""
     a, m = agent(lambda msgs, n: AIMessage(content="약관상 그래요." if n == 1 else "검색 결과에 따르면 그래요."), search_fn=rule_search())
     res = a.ask(question, "s", today=TODAY_H)
     assert [t["name"] for t in res["trace"]] == ["search_terms"] and res["trace"][0]["forced_kind"] == "search" and not res["answer"].startswith("계산에 필요한 값이")
+
+
+# ---------- 범위 밖 질문은 강제 검색을 하지 않는다 (개발용 Q080: '대출 금리는 얼마예요?'가 '금리' 때문에 맞지 않는 예금 약관을 받았다) ----------
+@pytest.mark.parametrize("question", ["대출 금리는 얼마예요?", "카드 발급은 어떻게 해요?", "적금 이자는 얼마예요?", "주식 투자 추천해줘", "보험 가입하고 싶어요", "대출 이자 계산해 줘", "환전 수수료가 얼마예요?"])
+def test_questions_about_other_products_are_out_of_scope(question):
+    assert g.out_of_scope(question)
+
+
+@pytest.mark.parametrize("question", [
+    "예금 담보로 대출 받을 수 있어요?", "대출 상환하려고 예금 해지하면 이자 얼마예요?", "적금과 정기예금 차이가 뭐예요?", "해지하면 카드 포인트는 어떻게 돼요?",
+    "중도해지하면 이자는?", "금리가 얼마예요?", "이자 얼마 받아요?", "만기가 되면 대출이 가능한가요?", "안녕하세요", None,
+])
+def test_questions_with_a_deposit_word_or_only_generic_words_are_not_out_of_scope(question):
+    assert not g.out_of_scope(question)
+
+
+
+
+def test_only_the_loan_rate_question_of_the_evaluation_set_is_out_of_scope():
+    """데이터셋 115문항 중 범위 밖으로 판정되는 문항은 개발용 Q080뿐이다 (검증용에는 없다): 다른 문항의 검색 판정이 바뀌지 않았다."""
+    import json
+    from pathlib import Path
+    rows = [json.loads(line) for line in (Path(__file__).resolve().parents[1] / "eval" / "questions.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert [(r["id"], r["split"]) for r in rows if g.out_of_scope(r["question"])] == [("Q080", "dev")]
+
+
+# ---------- 점검에 걸려 버려진 모델의 원래 출력을 남긴다 (진단용: 검증용 X014가 119초 걸리고 대체 문구로 끝났지만 왜인지 알 수 없었다) ----------
+BAD = "이자는 解释 가능합니다. " + "같은 말을 되풀이합니다. " * 3
+NO_DOMAIN = "안녕하세요 궁금한 게 있어요"                # 예금 낱말이 없어 강제 검색이 끼어들지 않는다 (흐름을 한 번의 노드 실행으로 고정)
+
+
+def test_a_reply_that_fails_the_checks_and_is_retried_leaves_its_original_text_in_the_result():
+    a, m = agent(lambda msgs, n: AIMessage(content=BAD) if n == 1 else AIMessage(content="무엇이 궁금하세요?"))
+    res = a.ask(NO_DOMAIN, "s", today=TODAY_H)
+    rej = res["rejected_replies"]
+    assert len(rej) == 1 and rej[0]["problem"] in g.RETRY_NOTES and rej[0]["text"] == BAD and rej[0]["chars"] == len(BAD) and res["model_calls"] == 2
+    assert res["answer"] == "무엇이 궁금하세요?"
+
+
+def test_when_both_replies_fail_both_original_texts_are_kept_and_the_fixed_text_is_sent():
+    a, m = agent(lambda msgs, n: AIMessage(content=BAD if n == 1 else BAD + "또 한 번."))
+    res = a.ask(NO_DOMAIN, "s", today=TODAY_H)
+    assert [r["text"] for r in res["rejected_replies"]] == [BAD, BAD + "또 한 번."] and res["answer"] == g.UNSAFE_TEXT
+
+
+def test_a_very_long_rejected_reply_is_cut_but_its_real_length_is_recorded():
+    long = "解释 " + "되풀이 " * 2000
+    a, m = agent(lambda msgs, n: AIMessage(content=long) if n == 1 else AIMessage(content="무엇이 궁금하세요?"))
+    rej = a.ask(NO_DOMAIN, "s", today=TODAY_H)["rejected_replies"][0]
+    assert len(rej["text"]) == g.REJECTED_CHARS == 1500 and rej["chars"] == len(long) > 1500
+
+
+def test_normal_turns_leave_no_rejected_replies_and_the_list_starts_empty_every_turn():
+    a, m = agent(lambda msgs, n: AIMessage(content=BAD) if n == 1 else AIMessage(content="무엇이 궁금하세요?" if n == 2 else "안녕하세요!"))
+    assert len(a.ask(NO_DOMAIN, "s", today=TODAY_H)["rejected_replies"]) == 1
+    assert a.ask("안녕하세요", "s")["rejected_replies"] == []
+
+
+def test_a_rejected_reply_is_not_lost_when_the_agent_node_runs_again_after_a_tool_call():
+    """한 질문 안에서 노드가 여러 번 실행된다(도구를 부르고 돌아오면 다시): 앞 실행에서 버려진 답을 뒤 실행이 덮어쓰면 안 된다. (처음 구현의 버그)"""
+    def fn(msgs, n):
+        if n == 1:
+            return AIMessage(content=BAD)                                   # 첫 실행: 점검에 걸림
+        if n == 2:
+            return AIMessage(content="이자는 계산해 봐야 알 수 있어요.")      # 다시 시킨 답은 통과하지만 도구 없이 답했으므로 코드가 먼저 검색을 부른다
+        return AIMessage(content="검색 결과에 따르면 그래요.")                # 둘째 실행: 정상
+    a, m = agent(fn, search_fn=rule_search())
+    res = a.ask("안녕하세요 이자가 궁금해요", "s", today=TODAY_H)
+    assert [t["name"] for t in res["trace"]] == ["search_terms"] and res["answer"] == "검색 결과에 따르면 그래요."
+    assert [r["text"] for r in res["rejected_replies"]] == [BAD]            # 앞 실행의 기록이 남아 있다
+
+
+def test_the_command_line_prints_the_rejected_replies_so_one_question_can_be_diagnosed_without_a_full_run(capsys):
+    g._print_result({"trace": [], "rejected_replies": [{"problem": "foreign_script", "detail": "", "chars": 5000, "text": "解释 " + "되풀이 " * 400}], "answer": "고정 문구", "error": None,
+                     "stop_reason": None, "tool_calls": 0, "model_calls": 2, "confirmed": {}, "confirmed_text": "", "evidence_text": "", "ms": 1})
+    out = capsys.readouterr().out
+    assert "점검에 걸려 버려진 답 (foreign_script, 5000자)" in out and "解释" in out and "되풀이" in out and len(out.splitlines()[0]) < 400           # 앞부분만 보여 준다

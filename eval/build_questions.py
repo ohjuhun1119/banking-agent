@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "rag"))
 
+from app.tools import interest as _interest  # noqa: E402
 from app.tools.interest import calc_interest  # noqa: E402
 
 OUT = ROOT / "eval" / "questions.jsonl"
@@ -45,6 +47,29 @@ CORE_SOURCES = {
     "tool_check:N1", "tool_check:N3", "retrieval:32", "retrieval:31",
     "new_dev:coupon1", "new_dev:reissue_calc", "new_dev:reissue_rule", "new_dev:handoff_keyword1", "new_dev:handoff_keyword2", "new_dev:handoff_confirm",
     "new_dev:handoff_fee", "new_dev:tax_rule", "new_dev:after_maturity_rate", "new_dev:weekend",
+}
+
+
+def _rate_fact(months: int) -> str:
+    """경과 개월 수에 해당하는 중도해지금리(%) 정규식: 계산 도구의 구간표 상수에서 가져온다 (노션 케이스 A~G로 검산된 값)."""
+    rate = next(r for limit, _, r in _interest.FIXED_TIERS if months < limit)
+    return re.escape(f"{rate:.2f}")
+
+
+DECLINE = [r"확인되지", r"제공할 수 없", r"도와드릴 수 없", r"안내해 드릴 수 없", r"알 수 없", r"약관에(?:는)? (?:없|나와 있지)"]     # 범위 밖 질문을 정중히 거절하는 말
+# 답변 속 핵심 사실 기준 (질문 글 → gold에 합칠 칸). 규칙 질문 답변이 약관과 맞는지 일부 문항에서 직접 확인한다.
+# 출처는 구간표 상수(FIXED_TIERS · 노션 케이스 A~G로 검산) 또는 서로 다른 실행 · 질문에서 같은 청크 문구가 반복된 것(일부해지 2회, 예금자보호 1억원).
+# 확신이 없는 사실(만기 후 이율의 기준 시점, 공휴일 처리 등)은 정답으로 쓰지 않는다: 규칙 core 14문항 중 일부만 이 기준이 있다.
+FACT_RULES = {
+    "정기예금 중도해지하면 이율이 어떻게 돼요?": {"facts_all": [_rate_fact(0), _rate_fact(2), _rate_fact(4)], "facts_source": "구간표 상수 FIXED_TIERS: 1개월 미만 · 1~3개월 · 3~6개월의 연 이율"},
+    "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?": {"facts_all": [_rate_fact(2)], "must_not": [r"(?:두 달|2개월)[^.!?]{0,20}3개월 이상", r"(?:두 달|2개월)[^.!?]{0,20}6개월 이상"],
+                                              "facts_source": "구간표 상수: 두 달(1개월 이상 ~ 3개월 미만)은 연 0.15%. 3~6개월 구간이라고 한 오답을 must_not으로 막는다 (첫 실제 모델 실행의 Q023)"},
+    "예금 일부만 먼저 해지할 수 있나요?": {"facts_all": [r"2회"], "facts_source": "약관 제9조: 만기일 이전 2회까지 (여러 질문 · 실행에서 같은 문구가 인용됨)"},
+    "이 예금은 예금자보호가 되나요?": {"facts_all": [r"1억"], "facts_source": "예금자보호 청크: 1인당 1억원 (인용 문구, 실행마다 같음)"},
+    "일찍 해약하면 약정금리 그대로 받나요?": {"facts_any": [r"중도해지\s?금리"], "facts_source": "중도해지하면 약정금리가 아니라 중도해지금리를 적용"},
+    "중도해지하면 처음 약정한 금리는 아예 못 받는 건가요?": {"facts_any": [r"중도해지\s?금리"], "facts_source": "같은 규칙"},
+    "대출 금리는 얼마예요?": {"facts_any": DECLINE, "facts_source": "범위 밖 질문은 거절해야 한다 (첫 실제 모델 실행에서 '대출 금리는 중도해지 시에 적용되는 금리입니다'라고 엉뚱한 답을 했다)"},
+    "오늘 서울 날씨 어때요?": {"facts_any": DECLINE, "facts_source": "범위 밖 질문은 거절해야 한다"},
 }
 
 
@@ -207,6 +232,22 @@ def build() -> list[dict]:
                     m["gold"][k] = e["gold"][k]
             continue
         merged[key] = e
+    unused = set(FACT_RULES) - {" ".join(e["question"].split()) for e in merged.values()}
+    if unused:                                                         # 문항 글이 바뀌어 사실 기준이 조용히 사라지는 것을 막는다
+        raise RuntimeError(f"사실 기준을 붙일 문항이 없습니다: {sorted(unused)}")
+    for e in merged.values():
+        extra = FACT_RULES.get(" ".join(e["question"].split()))
+        if extra:
+            for k, v in extra.items():
+                if k == "must_not":
+                    e["gold"]["must_not"] = list(e["gold"].get("must_not") or []) + v
+                else:
+                    e["gold"][k] = v
+    from app.evidence import calc_intent
+    for e in merged.values():                                          # 규칙으로 분류했지만 이자 '금액'을 묻는 말: 설계상 값을 되묻는 것이 맞아 정답이 모호하다 (3일차 검색 평가의 정답 청크 때문에 규칙으로 분류됨)
+        if e["category"] == "rule" and calc_intent(e["question"]):
+            e["tags"] = sorted(set(e["tags"]) | {"ambiguous_amount"})
+            e["note"] = (e["note"] + " " if e["note"] else "") + "이자 금액을 묻는 말이라 값을 되묻는 것도 맞다(분류 모호)."
     order = {c: i for i, c in enumerate(CATEGORIES)}
     rows = sorted(merged.values(), key=lambda e: (order[e["category"]], e["source"][0].split(":")[0] != "retrieval", _source_order(e["source"][0])))
     out = []

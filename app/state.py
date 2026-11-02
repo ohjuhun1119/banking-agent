@@ -37,6 +37,8 @@ class AgentState(TypedDict, total=False):
     confirmed: dict
     evidence: list[dict]
     session_id: str
+    notes_stripped: int
+    rejected_replies: list[dict]
 
 
 _PARSERS = {"principal": parse_principal, "start_date": parse_date, "maturity_date": parse_date,

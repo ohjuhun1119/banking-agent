@@ -9,6 +9,8 @@
   args_ok        계산 도구가 실제로 쓴 값(모델이 넘긴 값에서 코드가 뺀 것을 빼고 채운 것을 더함)이 gold.calc.args와 같다 (gold.unsupported 칸은 제외).
   evidence_ok    근거가 있어야 할 답변(검색 결과 ok · 계산이 ok 또는 need_base_rate)에 근거 카드가 있다.
   gold_chunk_in_evidence  gold.chunks가 있는 규칙 질문에서 근거 카드에 정답 청크가 하나라도 있다.
+  facts_ok       gold.facts_all(정규식, 모두)과 gold.facts_any(정규식, 하나라도)가 **답변 글**에 있다 (근거 카드는 제외). 답변이 약관과 맞는지를 일부 문항에서 직접 확인한다.
+                 행동이 맞아도 핵심 사실이 틀리면 실패다. 정답 사실은 구간표 상수나 반복해서 확인된 약관 문구에서 가져온다 (eval/build_questions.py의 FACT_RULES). 사실 기준이 없는 문항은 이 점수가 없다.
   flags          표시. 근거 없는 답변(UNSUPPORTED에 든 것)과 품질 문제(말한 값 누락 · 같은 값 또 묻기 · 근거 카드 없음 · 도구에 없는 인자 · 형식 요구)를 모두 적는다.
   unsupported    UNSUPPORTED에 든 표시가 하나라도 있다 = 근거 없는 답변이다.
   clean          behavior_ok이고 표시가 하나도 없다 (heldout_run의 '깨끗한 것'과 같은 기준이라 이전 기준선 15/20과 비교할 수 있다).
@@ -148,7 +150,9 @@ def grade(q: dict, res: dict) -> dict:
     visible = ans + "\n" + (res.get("evidence_text") or "")
     say_ok = not g.get("must_say_any") or any(s in visible for s in g["must_say_any"])
     not_ok = not any(re.search(p, ans) for p in g.get("must_not") or [])
-    behavior_ok = _behavior(g, res, calc, search, ans) and say_ok and not_ok and "replaced_answer" not in flags      # 코드가 대신 보낸 문구는 답이 아니다
+    facts_all, facts_any = g.get("facts_all") or [], g.get("facts_any") or []
+    facts_ok = None if not (facts_all or facts_any) else (all(re.search(p, ans) for p in facts_all) and (not facts_any or any(re.search(p, ans) for p in facts_any)))
+    behavior_ok = _behavior(g, res, calc, search, ans) and say_ok and not_ok and facts_ok is not False and "replaced_answer" not in flags      # 코드가 대신 보낸 문구는 답이 아니다
     out = {"behavior_ok": behavior_ok, "tools_ok": tools_ok, "tools_model_only": tools_ok and not forced, "say_ok": say_ok, "flags": flags}
     c = g.get("calc") or {}
     if g["behavior"] == "calc_ok":
@@ -172,10 +176,13 @@ def grade(q: dict, res: dict) -> dict:
             flags.append("no_evidence")
     if g.get("chunks"):
         out["gold_chunk_in_evidence"] = any(c_.get("chunk_id") in set(g["chunks"]) for c_ in evidence)
+    if facts_ok is not None:
+        out["facts_ok"] = facts_ok
     out["unsupported"] = any(f.split(":")[0] in UNSUPPORTED for f in flags)
     out["clean"] = behavior_ok and not flags
     out["forced"] = sorted(forced)
     out["ms"], out["model_calls"], out["notes_stripped"] = res.get("ms"), res.get("model_calls"), res.get("notes_stripped") or 0       # 코드가 잘라 낸 내부 메모 문장 수
+    out["rejected"] = len(res.get("rejected_replies") or [])                                           # 점검에 걸려 버려진 모델 답 수
     return out
 
 
@@ -199,7 +206,7 @@ def summarize(rows: list[dict]) -> dict:
         grades = [r["grade"] for r in sub]
         flag_counts = Counter(f.split(":")[0] for g in grades for f in g["flags"])
         out = {"n": len(sub)}
-        for key in ("behavior_ok", "clean", "tools_ok", "tools_model_only", "calc_value_ok", "args_ok", "evidence_ok", "gold_chunk_in_evidence"):
+        for key in ("behavior_ok", "clean", "tools_ok", "tools_model_only", "calc_value_ok", "args_ok", "evidence_ok", "gold_chunk_in_evidence", "facts_ok"):
             hit, n = _rate(sub, key)
             if n:
                 out[key] = {"hit": hit, "n": n}
@@ -207,6 +214,7 @@ def summarize(rows: list[dict]) -> dict:
         out["forced"] = {"hit": sum(bool(g["forced"]) for g in grades), "n": len(grades)}
         out["flags"] = dict(flag_counts.most_common())
         out["notes_stripped"] = sum(g.get("notes_stripped", 0) for g in grades)
+        out["rejected"] = sum(g.get("rejected", 0) for g in grades)
         ms = [g["ms"] for g in grades]
         out["ms_p50"], out["ms_p90"] = percentile(ms, 50), percentile(ms, 90)
         calls = [g["model_calls"] for g in grades if g["model_calls"] is not None]

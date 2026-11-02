@@ -207,3 +207,42 @@ def test_the_frozen_held_out_questions_have_not_been_changed():
     assert ht.verify() == []
     data = json.loads(manifest.read_text(encoding="utf-8"))
     assert data["count"] == len(data["fingerprints"]) == len([r for r in ROWS if r["split"] == "held_out"])
+
+
+# ---------- 답변 속 핵심 사실 기준 (eval/build_questions.py의 FACT_RULES) ----------
+def test_the_fact_rules_come_from_the_rate_table_constants_not_from_memory():
+    from app.tools import interest as it
+    rows = {r["id"]: r for r in ROWS}
+    q001 = next(r for r in DEV if r["question"] == "정기예금 중도해지하면 이율이 어떻게 돼요?")["gold"]
+    first_three = [f"{rate:.2f}" for limit, _, rate in it.FIXED_TIERS]
+    assert [re.sub(r"\\", "", p) for p in q001["facts_all"]] == first_three == ["0.10", "0.15", "0.20"]
+    q023 = next(r for r in DEV if r["question"].startswith("가입한 지 두 달"))["gold"]
+    two_months = next(rate for limit, _, rate in it.FIXED_TIERS if 2 < limit)
+    assert [re.sub(r"\\", "", p) for p in q023["facts_all"]] == [f"{two_months:.2f}"] == ["0.15"]
+    assert all(r["gold"].get("facts_source") for r in DEV if r["gold"].get("facts_all") or r["gold"].get("facts_any"))      # 정답 사실의 출처를 적어 둔다
+
+
+def test_every_fact_rule_found_its_question_and_the_patterns_are_valid_regexes():
+    for r in ROWS:
+        g = r.get("gold") or {}
+        for p in (g.get("facts_all") or []) + (g.get("facts_any") or []) + (g.get("must_not") or []):
+            re.compile(p)
+    assert bq.FACT_RULES and {" ".join(r["question"].split()) for r in DEV} >= set(bq.FACT_RULES)           # 문항 글이 바뀌어 기준이 사라지면 빌더가 실패한다
+
+
+def test_the_fact_rules_never_touch_the_frozen_held_out_questions():
+    assert not any((r.get("gold") or {}).get("facts_all") or (r.get("gold") or {}).get("facts_any") for r in ROWS if r["split"] == "held_out")
+
+
+def test_the_fact_check_covers_a_known_part_of_the_core_rule_answers_and_the_rest_is_stated():
+    core_rule = [r for r in DEV if r["core"] and r["category"] == "rule"]
+    checked = [r for r in core_rule if r["gold"].get("facts_all") or r["gold"].get("facts_any")]
+    assert len(core_rule) == 14 and len(checked) == 6                                                             # 규칙 core 14문항 중 6문항: 나머지는 확신이 없는 사실이라 기준을 쓰지 않았다
+    declined = [r["id"] for r in DEV if r["category"] == "scope" and r["core"] and r["gold"].get("facts_any")]
+    assert declined == ["Q080", "Q081"]
+
+
+def test_a_fact_rule_whose_question_no_longer_exists_makes_the_builder_fail_instead_of_silently_dropping_the_check(monkeypatch):
+    monkeypatch.setattr(bq, "FACT_RULES", {**bq.FACT_RULES, "이 문항은 없습니다": {"facts_all": ["x"]}})
+    with pytest.raises(RuntimeError, match="이 문항은 없습니다"):
+        bq.build()
