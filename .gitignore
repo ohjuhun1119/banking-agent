@@ -16,3 +16,7 @@ rag/chunks/
 rag/manual/hana_deposit_product_sheet.md
 rag/models/
 rag/models/rag/manual/hana_deposit_product_sheet.md
+eval/runs/after_B.json
+eval/runs/after_day9.json
+eval/runs/after_evidence.json
+eval/runs/after_fix.json
