@@ -1,0 +1,255 @@
+{
+ "today": "2026-10-28",
+ "note": "튜터 피드백 2번: 대화 중 원금이나 날짜를 바꾸는 사례. expect의 금액은 독립 기준 공식과 계산 도구가 모두 낸 값이고(tests/test_compare_chatbots.py가 매번 다시 검산한다), calc는 그 정답을 만든 입력이다. asks는 값이 부족해서 되물어야 하는 턴이다. 기존 챗봇은 질문 1개에 응답 1개라 턴을 이어 받지 못하므로 각 턴을 따로 보낸다.",
+ "scenarios": [
+  {
+   "id": "S1",
+   "title": "원금을 바꿔 다시 묻기 (경과 6개월 미만)",
+   "turns": [
+    {
+     "question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-05-31에 해지하면 이자 얼마예요?",
+     "expect": {
+      "interest_krw": 8219
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-05-31"
+     }
+    },
+    {
+     "question": "원금이 2000만원이었다면 이자는 얼마예요?",
+     "expect": {
+      "interest_krw": 16438
+     },
+     "calc": {
+      "principal": 20000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-05-31"
+     }
+    },
+    {
+     "question": "아니에요, 500만원으로 다시 계산해 주세요.",
+     "expect": {
+      "interest_krw": 4109
+     },
+     "calc": {
+      "principal": 5000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-05-31"
+     }
+    }
+   ]
+  },
+  {
+   "id": "S2",
+   "title": "해지일을 바꿔 다시 묻기 (구간이 바뀜)",
+   "turns": [
+    {
+     "question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-05-31에 해지하면 이자 얼마예요?",
+     "expect": {
+      "interest_krw": 8219
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-05-31"
+     }
+    },
+    {
+     "question": "해지일을 2026-04-30으로 바꾸면 이자는요?",
+     "expect": {
+      "interest_krw": 6520
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-04-30"
+     }
+    },
+    {
+     "question": "그러면 2026-02-15에 해지하면요?",
+     "expect": {
+      "interest_krw": 1849
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-02-15"
+     }
+    }
+   ]
+  },
+  {
+   "id": "S3",
+   "title": "만기일과 신규일을 바꿔 다시 묻기 (6개월 미만은 계약기간과 무관, 6개월 이상은 기본금리 필요)",
+   "turns": [
+    {
+     "question": "500만원을 2026-03-01에 넣었고 만기는 2027-03-01이에요. 2026-08-15에 해지하면 이자 얼마예요?",
+     "expect": {
+      "interest_krw": 4575
+     },
+     "calc": {
+      "principal": 5000000,
+      "start_date": "2026-03-01",
+      "maturity_date": "2027-03-01",
+      "termination_date": "2026-08-15"
+     }
+    },
+    {
+     "question": "만기가 2028-03-01(2년)이었다면요?",
+     "expect": {
+      "interest_krw": 4575
+     },
+     "calc": {
+      "principal": 5000000,
+      "start_date": "2026-03-01",
+      "maturity_date": "2028-03-01",
+      "termination_date": "2026-08-15"
+     }
+    },
+    {
+     "question": "신규일이 2026-01-15였다면요? 만기는 2027-01-15예요.",
+     "expect": {
+      "asks": [
+       "기본금리"
+      ]
+     },
+     "calc": {
+      "principal": 5000000,
+      "start_date": "2026-01-15",
+      "maturity_date": "2027-01-15",
+      "termination_date": "2026-08-15"
+     }
+    }
+   ]
+  },
+  {
+   "id": "S4",
+   "title": "기본금리를 되묻고, 받은 뒤 기본금리를 바꿔 다시 묻기",
+   "turns": [
+    {
+     "question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요?",
+     "expect": {
+      "asks": [
+       "기본금리"
+      ]
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-12-07"
+     }
+    },
+    {
+     "question": "기본금리는 3.5%예요.",
+     "expect": {
+      "interest_krw": 273304
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-12-07",
+      "base_rate": 3.5
+     }
+    },
+    {
+     "question": "기본금리가 3.0%였다면요?",
+     "expect": {
+      "interest_krw": 234273
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2027-01-01",
+      "termination_date": "2026-12-07",
+      "base_rate": 3.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "S5",
+   "title": "사용자가 해지일을 정정하기",
+   "turns": [
+    {
+     "question": "800만원을 2026-02-01에 넣었고 만기는 2027-02-01이에요. 2026-04-10에 해지하면 이자 얼마예요?",
+     "expect": {
+      "interest_krw": 2235
+     },
+     "calc": {
+      "principal": 8000000,
+      "start_date": "2026-02-01",
+      "maturity_date": "2027-02-01",
+      "termination_date": "2026-04-10"
+     }
+    },
+    {
+     "question": "죄송해요, 해지일은 2026-05-10이에요.",
+     "expect": {
+      "interest_krw": 4295
+     },
+     "calc": {
+      "principal": 8000000,
+      "start_date": "2026-02-01",
+      "maturity_date": "2027-02-01",
+      "termination_date": "2026-05-10"
+     }
+    }
+   ]
+  },
+  {
+   "id": "S6",
+   "title": "기본금리가 필요한 구간에서 원금과 해지일을 차례로 바꾸기",
+   "turns": [
+    {
+     "question": "2000만원을 2026-01-01에 넣었고 만기는 2028-01-01(2년)이에요. 2026-09-01에 해지하면 이자 얼마예요? 기본금리는 3.0%예요.",
+     "expect": {
+      "interest_krw": 79757
+     },
+     "calc": {
+      "principal": 20000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2028-01-01",
+      "termination_date": "2026-09-01",
+      "base_rate": 3.0
+     }
+    },
+    {
+     "question": "원금을 1000만원으로 바꾸면요?",
+     "expect": {
+      "interest_krw": 39878
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2028-01-01",
+      "termination_date": "2026-09-01",
+      "base_rate": 3.0
+     }
+    },
+    {
+     "question": "해지일을 2026-12-01로 바꾸면요?",
+     "expect": {
+      "interest_krw": 113010
+     },
+     "calc": {
+      "principal": 10000000,
+      "start_date": "2026-01-01",
+      "maturity_date": "2028-01-01",
+      "termination_date": "2026-12-01",
+      "base_rate": 3.0
+     }
+    }
+   ]
+  }
+ ]
+}
