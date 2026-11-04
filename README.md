@@ -38,6 +38,12 @@
 ## 처리 흐름
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff'
+  }
+}}%%
 flowchart TD
     Q["사용자 질문"] --> E{"입구 판별 (코드)"}
     E -->|"상담원 연결 요청"| H["handoff: 코드가 저장하고 접수번호 문장을 만듦"]
