@@ -1,0 +1,426 @@
+{
+ "meta": {
+  "split": "dev",
+  "n": 4,
+  "core": false,
+  "date": "2026-11-04"
+ },
+ "summary": {
+  "overall": {
+   "n": 4,
+   "behavior_ok": {
+    "hit": 4,
+    "n": 4
+   },
+   "clean": {
+    "hit": 4,
+    "n": 4
+   },
+   "tools_ok": {
+    "hit": 4,
+    "n": 4
+   },
+   "tools_model_only": {
+    "hit": 2,
+    "n": 4
+   },
+   "evidence_ok": {
+    "hit": 2,
+    "n": 2
+   },
+   "gold_chunk_in_evidence": {
+    "hit": 2,
+    "n": 2
+   },
+   "facts_ok": {
+    "hit": 3,
+    "n": 3
+   },
+   "unsupported": {
+    "hit": 0,
+    "n": 4
+   },
+   "forced": {
+    "hit": 2,
+    "n": 4
+   },
+   "flags": {},
+   "notes_stripped": 0,
+   "rejected": 0,
+   "ms_p50": 465,
+   "ms_p90": 26079,
+   "model_calls_avg": 0.75
+  },
+  "by_category": {
+   "rule": {
+    "n": 1,
+    "behavior_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "clean": {
+     "hit": 1,
+     "n": 1
+    },
+    "tools_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "tools_model_only": {
+     "hit": 0,
+     "n": 1
+    },
+    "evidence_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "gold_chunk_in_evidence": {
+     "hit": 1,
+     "n": 1
+    },
+    "facts_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 1
+    },
+    "forced": {
+     "hit": 1,
+     "n": 1
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "ms_p50": 465,
+    "ms_p90": 465,
+    "model_calls_avg": 0.0
+   },
+   "aftertax": {
+    "n": 1,
+    "behavior_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "clean": {
+     "hit": 1,
+     "n": 1
+    },
+    "tools_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "tools_model_only": {
+     "hit": 0,
+     "n": 1
+    },
+    "evidence_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "gold_chunk_in_evidence": {
+     "hit": 1,
+     "n": 1
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 1
+    },
+    "forced": {
+     "hit": 1,
+     "n": 1
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "ms_p50": 26079,
+    "ms_p90": 26079,
+    "model_calls_avg": 2.0
+   },
+   "scope": {
+    "n": 2,
+    "behavior_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "clean": {
+     "hit": 2,
+     "n": 2
+    },
+    "tools_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "tools_model_only": {
+     "hit": 2,
+     "n": 2
+    },
+    "facts_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 2
+    },
+    "forced": {
+     "hit": 0,
+     "n": 2
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "ms_p50": 1,
+    "ms_p90": 2563,
+    "model_calls_avg": 0.5
+   }
+  }
+ },
+ "rows": [
+  {
+   "id": "Q023",
+   "category": "rule",
+   "core": true,
+   "question": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?",
+   "res": {
+    "answer": "가입한 지 2개월이면 '1개월 이상 ~ 3개월 미만' 구간이라 중도해지금리는 연 0.15%(고정)예요. 이자 금액이 궁금하면 원금과 신규일 · 만기일 · 해지일을 알려 주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 2,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 465,
+    "trace": [
+     {
+      "name": "lookup_termination_rate",
+      "args": {
+       "elapsed_months": 2
+      },
+      "status": "ok",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "lookup"
+     },
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?"
+      },
+      "status": "ok",
+      "ms": 459,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "lookup"
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "가입 후 2개월: 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.15%(고정)",
+      "formula": [
+       "1개월 이상 ~ 3개월 미만: 연 0.150% (고정)"
+      ],
+      "assumptions": [
+       "사용자가 말한 기간을 '완전히 지난 개월 수'로 해석했습니다 (은행 확인 전)"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(구간 조회에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 가입 후 2개월: 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.15%(고정)\n  · 1개월 이상 ~ 3개월 미만: 연 0.150% (고정)\n  · 가정: 사용자가 말한 기간을 '완전히 지난 개월 수'로 해석했습니다 (은행 확인 전)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(구간 조회에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": false,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [
+     "lookup_termination_rate",
+     "search_terms"
+    ],
+    "ms": 465,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  },
+  {
+   "id": "Q047",
+   "category": "aftertax",
+   "core": true,
+   "question": "예금 이자에 세금이 붙나요?",
+   "res": {
+    "answer": "약관에서 확인된 정보에 따르면, 예금 이자는 원금과 함께 만기일 이후에 지급되며, 만기일 전에 지급을 청구할 경우는 예금일부터 지급일 전날까지의 기간에 대해 중도해지 이율로 계산하여 지급됩니다. 만기일 이후 지급청구 시에는 만기일부터 지급일 전일까지의 기간에 대해 만기 후 이율로 계산하여 지급됩니다.\n\n만기일 전에 지급을 청구할 때는 예금일 당시 영업점에 게시된 중도해지 이율을 적용하고, 만기일 이후 지급청구 시에는 만기일 당시 영업점에 게시된 만기 후 이율을 적용합니다.\n\n이자에 대한 세금은 원천징수 후 금액으로 지급되며, 세금은",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 26079,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "예금 이자에 세금이 붙나요?"
+      },
+      "status": "ok",
+      "ms": 1085,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "search"
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제9조(이 자)",
+      "page": 2,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art6",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제6조(이자지급)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 예금거래 기본약관 · 제9조(이 자) · 쪽 2 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제6조(이자지급) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": false,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [
+     "search_terms"
+    ],
+    "ms": 26079,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  },
+  {
+   "id": "Q080",
+   "category": "scope",
+   "core": true,
+   "question": "대출 금리는 얼마예요?",
+   "res": {
+    "answer": "죄송해요, 대출 · 카드 · 보험 같은 다른 상품은 여기서 안내해 드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. 다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.",
+    "error": null,
+    "stop_reason": "out_of_scope",
+    "tool_calls": 0,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 1,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  },
+  {
+   "id": "Q081",
+   "category": "scope",
+   "core": true,
+   "question": "오늘 서울 날씨 어때요?",
+   "res": {
+    "answer": "죄송합니다, 날씨 정보는 제가 제공할 수 없습니다. 하나은행 『하나의 정기예금』 상담 도우미로서 이자 계산이나 약관 안내만 도와드릴 수 있습니다. 다른 질문이 있으시다면 알려주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 0,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 2563,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 2563,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected": 0
+   }
+  }
+ ]
+}

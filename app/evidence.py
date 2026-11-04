@@ -70,11 +70,14 @@ def build_evidence(tool_results: list, rule_lookup=None) -> list[dict]:
     cards: list[dict] = []
     calc = [res for name, res in tool_results if name == "calc_interest" and isinstance(res, dict)]
     ok_calc = next((c for c in calc if c.get("status") == "ok"), None)
+    lookup = next((res for name, res in tool_results if name == "lookup_termination_rate" and isinstance(res, dict) and res.get("status") == "ok"), None)
     need_rate = any(c.get("status") == "need_base_rate" for c in calc)
     found = _ok_results(tool_results)
     if ok_calc:
         cards.append(calc_card(ok_calc))
-    if ok_calc or need_rate:                                              # 계산 답변: 중도해지 구간표의 출처
+    elif lookup:                                                          # 구간 조회: 어느 구간인지 찾은 과정
+        cards.append(calc_card(lookup))
+    if ok_calc or need_rate or lookup:                                              # 계산 답변: 중도해지 구간표의 출처
         rule = next((r for r in found if r.get("chunk_type") == RULE_CHUNK_TYPE), None)
         if rule is None and rule_lookup is not None:
             try:
@@ -83,10 +86,10 @@ def build_evidence(tool_results: list, rule_lookup=None) -> list[dict]:
                 looked = {}
             rule = next((r for r in (looked or {}).get("results") or [] if r.get("chunk_type") == RULE_CHUNK_TYPE), None) if (looked or {}).get("status") == "ok" else None
         if rule is not None:
-            cards.append(source_card(rule, "중도해지금리 규칙(계산에 쓴 구간표)" if ok_calc else "기본금리가 필요한 구간(경과 6개월 이상)"))
-    if found and not (ok_calc or need_rate):                              # 약관 질문: 검색된 결과 위쪽
+            cards.append(source_card(rule, "중도해지금리 규칙(계산에 쓴 구간표)" if ok_calc else "중도해지금리 규칙(구간 조회에 쓴 구간표)" if lookup else "기본금리가 필요한 구간(경과 6개월 이상)"))
+    if found and not (ok_calc or need_rate or lookup):                              # 약관 질문: 검색된 결과 위쪽
         cards += [source_card(r, "검색된 약관") for r in found[:MAX_TERMS_CARDS]]
-    elif not found and not (ok_calc or need_rate) and any(n == "search_terms" and isinstance(r, dict) and r.get("status") == "not_found" for n, r in tool_results):
+    elif not found and not (ok_calc or need_rate or lookup) and any(n == "search_terms" and isinstance(r, dict) and r.get("status") == "not_found" for n, r in tool_results):
         cards.append({"kind": "약관", "found": False, "role": "관련 약관을 찾지 못했습니다"})      # 검색이 not_found일 때만 (읽을 수 없는 결과로는 단정하지 않는다)
     return cards
 

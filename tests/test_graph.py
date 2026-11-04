@@ -1077,9 +1077,9 @@ def test_the_values_the_code_asked_for_verbatim_and_normal_answers_count_zero():
     assert b.ask("안녕하세요", "s")["notes_stripped"] == 0
 
 
-@pytest.mark.parametrize("question", ["가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?"])
+@pytest.mark.parametrize("question", ["중도해지하면 금리가 얼마예요?", "예금 이자에 세금이 붙나요?"])
 def test_rate_and_yes_no_questions_that_the_model_answers_without_tools_are_sent_to_the_search_not_the_calculator(question):
-    """개발용 Q023 · Q047 · Q080: 값을 되묻는 대신 약관 검색으로 간다."""
+    """개발용 Q023 · Q047 · Q080: 값을 되묻는 대신 약관 검색으로 간다. (경과 기간을 말한 Q023 `가입한 지 두 달 됐는데…`는 이제 구간 조회를 먼저 거친다: tests/test_rate_lookup.py)"""
     a, m = agent(lambda msgs, n: AIMessage(content="약관상 그래요." if n == 1 else "검색 결과에 따르면 그래요."), search_fn=rule_search())
     res = a.ask(question, "s", today=TODAY_H)
     assert [t["name"] for t in res["trace"]] == ["search_terms"] and res["trace"][0]["forced_kind"] == "search" and not res["answer"].startswith("계산에 필요한 값이")

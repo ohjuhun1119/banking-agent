@@ -46,6 +46,7 @@ from app import tool_calling as tc  # noqa: E402
 from app.answer_check import (claims_handoff_done, foreign_script, handoff_request, is_affirmative, not_found_claim,  # noqa: E402
                               promises_after_tax, strip_internal_notes, tool_syntax, unsupported_phone_numbers, ungrounded_values)
 from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evidence  # noqa: E402
+from app.elapsed_period import lookup_args  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
 from app.tools import handoff as hf  # noqa: E402
@@ -307,6 +308,19 @@ def verbatim_question(state: dict) -> str | None:
     return message.strip() + (f" (질문에서 읽은 값: {_filled_text(filled)})" if filled else "") + (" " + TAX_NOTE if TAX_WORDS.search(question) else "")
 
 
+def verbatim_lookup(state: dict) -> str | None:
+    """코드가 먼저 부른 구간 조회가 구간을 찾았으면 모델을 거치지 않고 도구의 문장을 그대로 답한다 (모델 호출 0회).
+    7B 모델이 구간표를 잘못 읽은 적이 있어서(개발용 Q023) 구간을 말하는 문장도 코드가 맡는다. 조회가 실패하면 None이라 이전처럼 모델이 답한다."""
+    msgs, trace = state.get("messages") or [], state.get("trace") or []
+    if not msgs or not isinstance(msgs[-1], ToolMessage) or not trace:
+        return None
+    if not (trace[-1].get("forced") and trace[-1].get("forced_kind") == "lookup"):
+        return None
+    result = next((r for n, r in _turn_tool_results(state) if n == tc.LOOKUP_NAME), {})
+    message = result.get("message")
+    return message.strip() if result.get("status") == "ok" and isinstance(message, str) and message.strip() else None
+
+
 REJECTED_CHARS = 1500      # 버려진 답을 남길 때 자르는 길이
 
 
@@ -363,12 +377,30 @@ def forced_calc_message(state: dict) -> AIMessage:
                      additional_kwargs={"forced_calc": True})
 
 
+def forced_lookup_message(state: dict) -> AIMessage | None:
+    """경과 기간을 말하고 중도해지 금리를 묻는 질문이면, 모델에게 묻기 전에 코드가 구간 조회와 약관 검색(근거 카드용)을 함께 부른다."""
+    msgs = state["messages"]
+    start = _turn_start(msgs)
+    if not msgs or any(isinstance(m, ToolMessage) for m in msgs[start:]):
+        return None
+    question = str(msgs[start].content).strip()
+    args = lookup_args(question)
+    if args is None:
+        return None
+    calls = [{"name": tc.LOOKUP_NAME, "args": args, "id": f"forced-{uuid.uuid4().hex[:12]}", "type": "tool_call"},
+             {"name": "search_terms", "args": {"query": question}, "id": f"forced-{uuid.uuid4().hex[:12]}", "type": "tool_call"}]
+    return AIMessage(content="", tool_calls=calls, additional_kwargs={"forced_lookup": True})
+
+
 def make_agent_node(get_model):
     def agent(state: dict) -> dict:
         calls, stripped, rejected = 0, 0, []
-        asked = verbatim_question(state)
-        if asked is not None:                                 # 코드가 먼저 부른 계산이 값을 되묻는다: 도구의 질문 그대로, 모델 호출 없음
+        asked = verbatim_question(state) or verbatim_lookup(state)
+        if asked is not None:                                 # 코드가 먼저 부른 계산이 값을 되묻거나 구간 조회가 구간을 찾았다: 도구의 문장 그대로, 모델 호출 없음
             return {"messages": [AIMessage(content=asked)], "model_calls": state.get("model_calls", 0)}
+        first = forced_lookup_message(state)
+        if first is not None:                                 # 가입한 지 N개월이라고 말하고 금리를 묻는 질문: 구간은 코드가 찾는다 (모델 호출 없음)
+            return {"messages": [first], "model_calls": state.get("model_calls", 0)}
         try:
             msgs = prompt_messages(state)
             model = get_model()
@@ -441,7 +473,7 @@ def make_tools_node(search_fn, timeout):
         confirmed = dict(state.get("confirmed") or {})
         seen = {_args_key(t["name"], t["args"]) for t in trace}
         kw = getattr(last, "additional_kwargs", None) or {}
-        forced_kind = "search" if kw.get("forced_search") else "calc" if kw.get("forced_calc") else None
+        forced_kind = "search" if kw.get("forced_search") else "calc" if kw.get("forced_calc") else "lookup" if kw.get("forced_lookup") else None
         forced = forced_kind is not None
         out, final_args = [], {}
         for call in last.tool_calls:
@@ -591,7 +623,7 @@ def _print_result(res: dict) -> None:
     for t in res["trace"]:
         flags = ((" (같은 호출 반복, 실행 안 함)" if t["duplicate"] else "") + (" (재시도함)" if t["retried"] else "")
                  + (f" (말하지 않은 값 제외: {describe_dropped(t['dropped'])})" if t.get("dropped") else "")
-                 + (f" (질문에서 채움: {describe_dropped(t['filled'])})" if t.get("filled") else "") + ((" (코드가 먼저 계산 호출)" if t.get("forced_kind") == "calc" else " (코드가 먼저 검색)") if t.get("forced") else ""))
+                 + (f" (질문에서 채움: {describe_dropped(t['filled'])})" if t.get("filled") else "") + ((" (코드가 먼저 계산 호출)" if t.get("forced_kind") == "calc" else " (코드가 먼저 구간 조회)" if t.get("forced_kind") == "lookup" else " (코드가 먼저 검색)") if t.get("forced") else ""))
         print(f"  도구: {t['name']} {json.dumps(t['args'], ensure_ascii=False)} -> {t['status']} ({t['ms']}ms){flags}")
     if res["error"]:
         print(f"[오류] {res['error']}")

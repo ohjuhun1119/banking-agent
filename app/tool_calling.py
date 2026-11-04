@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "rag"))        # rag/ 스크립트가 'from search import ...' 방식이라 경로를 추가한다
 
 from app.tools.interest import calc_interest  # noqa: E402
+from app.tools.rate_lookup import NAME as LOOKUP_NAME, lookup_termination_rate  # noqa: E402
 
 PRODUCT = "하나의 정기예금"                     # 검색 필터에 쓰는 상품명 (chunks.jsonl의 product 값과 같아야 한다)
 TOOL_MODEL = os.environ.get("TOOL_MODEL", os.environ.get("CHAT_MODEL", "qwen2.5:7b"))
@@ -41,6 +42,7 @@ VARIANTS = ("short", "detailed", "examples")
 DEFAULT_VARIANT = os.environ.get("TOOL_VARIANT", "detailed")
 CALC_ARGS = ("principal", "start_date", "maturity_date", "termination_date", "base_rate")
 TOOL_NAMES = ("search_terms", "calc_interest")
+CODE_ONLY_TOOLS = (LOOKUP_NAME,)                  # 모델에게 보이지 않고 코드만 부르는 도구 (경과 기간을 읽을 수 있는 질문의 구간 조회). 도구 선택 점수에서는 뺀다
 HANDOFF_NAME = "request_handoff"                 # 에이전트 그래프에서만 모델에 붙이는 세 번째 도구 (5일차 측정 대상이 아님)
 HANDOFF_SPEC = {"type": "function", "function": {
     "name": HANDOFF_NAME,
@@ -198,6 +200,14 @@ def run_tool(name: str, args: dict | None, search_fn=None, k: int = 5) -> dict:
             return calc_interest(**args)
         except Exception as e:                               # 계산 도구는 예외를 내지 않게 만들었지만, 만약을 대비한다
             return {"status": "error", "message": f"계산 중 오류: {e}"}
+    if name == LOOKUP_NAME:
+        unknown = sorted(set(args) - {"elapsed_months"})
+        if unknown:
+            return {"status": "invalid_input", "message": f"알 수 없는 인자: {', '.join(unknown)}. 사용할 수 있는 인자: elapsed_months"}
+        try:
+            return lookup_termination_rate(**args)
+        except Exception as e:                               # 구간 조회는 예외를 내지 않게 만들었지만, 만약을 대비한다
+            return {"status": "error", "message": f"구간 조회 중 오류: {e}"}
     return {"status": "unknown_tool", "message": f"알 수 없는 도구: {name}. 사용할 수 있는 도구: {', '.join(TOOL_NAMES)}"}
 
 

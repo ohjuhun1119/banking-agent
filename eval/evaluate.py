@@ -30,7 +30,7 @@ sys.path.insert(0, str(ROOT))
 from app.answer_check import (READ_VALUES_RE, claims_handoff_done, foreign_script, leaks_internal_note, not_found_claim, phone_numbers,  # noqa: E402
                               promises_after_tax, tool_syntax, ungrounded_values)
 from app.graph import EMPTY_TEXT, LIMIT_TEXT, TOOL_ERROR_TEXT, UNSAFE_TEXT  # noqa: E402
-from app.tool_calling import CALC_ARGS  # noqa: E402
+from app.tool_calling import CALC_ARGS, CODE_ONLY_TOOLS  # noqa: E402
 from eval.heldout_run import LABELS, asked_user, asks_for  # noqa: E402
 
 UNSUPPORTED = {"foreign_script", "phone_in_answer", "tool_syntax", "unsupported_not_found", "promises_after_tax", "handoff_claim", "ungrounded_in_answer", "note_leak",
@@ -142,9 +142,9 @@ def grade(q: dict, res: dict) -> dict:
     evidence = res.get("evidence") or []
     calc = [t for t in trace if t["name"] == "calc_interest"]
     search = [t for t in trace if t["name"] == "search_terms"]
-    called = {t["name"] for t in trace}
+    called = {t["name"] for t in trace} - set(CODE_ONLY_TOOLS)      # 코드만 부르는 도구(구간 조회)는 도구 선택 점수에서 뺀다
     required, allowed = set(g.get("tools") or []), set(g.get("tools") or []) | set(g.get("tools_allowed") or [])
-    forced = {t["name"] for t in trace if t.get("forced") and t.get("forced_kind") in ("search", "calc")}
+    forced = {t["name"] for t in trace if t.get("forced") and t.get("forced_kind") in ("search", "calc", "lookup")}
     tools_ok = required <= called and called <= allowed
     flags = safety_flags(q, res)
     visible = ans + "\n" + (res.get("evidence_text") or "")
