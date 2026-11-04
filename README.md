@@ -36,6 +36,9 @@
 | 대출 금리는 얼마예요? | 범위 밖이라고 거절한다 (코드가 정해진 문구로) |
 
 ## 처리 흐름
+<table style="background-color: #ffffff !important; color: #000000 !important; width: 100%; border: none;">
+<tr>
+<td style="background-color: #ffffff !important; padding: 20px; border: none;">
 
 ```mermaid
 %%{init: {
