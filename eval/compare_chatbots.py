@@ -40,6 +40,7 @@ SCENARIOS = ROOT / "eval" / "compare_scenarios.json"
 COMPARE_CATEGORIES = ("rule", "aftertax", "calc", "calc_base_rate", "missing")
 SAVED_CHARS = 300                                   # 저장할 답변 길이 (약관 문장을 길게 옮기지 않으려고, run_eval과 같다)
 SYSTEMS = ("old", "new")
+EVIDENCE_BEHAVIORS = ("search", "calc_ok", "ask_base_rate")   # 올바르게 답하면 근거 카드가 붙는 문항. 두 시스템에 똑같이 적용하려고 결과가 아니라 정답 기준(gold)으로 정한다 (되묻기만 하는 문항에는 근거가 필요 없다)
 
 
 # ---------- 문항
@@ -183,7 +184,8 @@ def summarize(result: dict) -> dict:
         for kind in ("calc", "ask", "fact"):
             scored = [r for r in rows if r.get("kind") == kind]
             s[kind] = (sum(1 for r in scored if r["correct"]), len(scored))
-        s["evidence"] = (sum(1 for r in rows if r.get("evidence_shown")), len(rows))
+        needs = [r[name] for r in result["rows"] if name in r and r["behavior"] in EVIDENCE_BEHAVIORS]
+        s["evidence"] = (sum(1 for r in needs if r.get("evidence_shown")), len(needs))
         times = [r["ms"] for r in rows if not r.get("error")]
         s["p50_ms"], s["p90_ms"] = percentile(times, 0.5), percentile(times, 0.9)
         turns = [(t["turn"], t[name]["correct"]) for sc in result["scenarios"] for t in sc["turns"] if name in t]
@@ -213,14 +215,46 @@ def format_table(summary: dict, meta: dict | None = None) -> str:
     lines.append(f"| 계산이 맞는지 (정답 금액이 답에 있는 문항, {(new or old)['calc'][1]}개) | {cell(old, 'calc')} | {cell(new, 'calc')} |")
     lines.append(f"| 정보가 부족하면 되묻는지 ({(new or old)['ask'][1]}개) | {cell(old, 'ask')} | {cell(new, 'ask')} |")
     lines.append(f"| 약관의 핵심 사실이 맞는지 ({(new or old)['fact'][1]}개) | {cell(old, 'fact')} | {cell(new, 'fact')} |")
-    old_ev = "(실행 안 함)" if old is None else f"0/{n_q} (근거 표시 기능 없음)"
-    lines.append(f"| 근거를 보여 주는지 ({n_q}개) | {old_ev} | {cell(new, 'evidence')} |")
+    n_ev = (new or old)["evidence"][1]
+    old_ev = "(실행 안 함)" if old is None else f"0/{n_ev} (근거 표시 기능 없음)"
+    lines.append(f"| 근거를 보여 주는지 (근거가 필요한 {n_ev}개) | {old_ev} | {cell(new, 'evidence')} |")
     lines.append(f"| 응답 시간 중앙값 · p90 ({n_q}개) | " + " | ".join("(실행 안 함)" if s is None else f"{_secs(s['p50_ms'])} · {_secs(s['p90_ms'])}" for s in (old, new)) + " |")
     lines.append(f"| 대화 중 값을 바꾼 사례 (6개 시나리오, 전체 턴) | {cell(old, 'scenario_turns')} | {cell(new, 'scenario_turns')} |")
     lines.append(f"| └ 첫 질문 | {cell(old, 'scenario_first')} | {cell(new, 'scenario_first')} |")
     lines.append(f"| └ 값을 바꾼 뒤 이어진 질문 | {cell(old, 'scenario_later')} | {cell(new, 'scenario_later')} |")
     lines.append(f"| 오류 · 시간 초과 | {cell(old, 'errors', lambda v: str(v))} | {cell(new, 'errors', lambda v: str(v))} |")
     return "\n".join(lines)
+
+
+# ---------- 실패와 답변 보기
+def format_failures(result: dict, system: str = "new") -> str:
+    """글로 채점해서 틀린 항목과 그때의 답(저장된 앞부분)을 모두 보인다."""
+    lines = []
+    for r in result["rows"]:
+        e = r.get(system)
+        if e and e.get("correct") is False:
+            lines.append(f"[{r['id']}] ({r['category']} · {r['behavior']}) {r['question']}\n    답: {e['answer']}")
+    for s in result["scenarios"]:
+        for t in s["turns"]:
+            e = t.get(system)
+            if e and e.get("correct") is False:
+                lines.append(f"[{s['id']} 턴{t['turn']}] {t['question']}\n    기대: {json.dumps(t['expect'], ensure_ascii=False)}\n    답: {e['answer']}")
+    return "\n".join(lines) or "실패한 항목이 없습니다."
+
+
+def format_examples(result: dict, ids: list[str]) -> str:
+    """문항 id(Q023 · S3 등)의 질문과 두 시스템의 답을 나란히 보인다."""
+    out = []
+    for r in result["rows"]:
+        if r["id"] in ids:
+            out.append(f"[{r['id']}] {r['question']}")
+            out += [f"    {name}: {r[name]['answer']}" for name in SYSTEMS if name in r]
+    for s in result["scenarios"]:
+        if s["id"] in ids:
+            for t in s["turns"]:
+                out.append(f"[{s['id']} 턴{t['turn']}] {t['question']}  (기대 {json.dumps(t['expect'], ensure_ascii=False)})")
+                out += [f"    {name} ({'맞음' if t[name]['correct'] else '틀림'}): {t[name]['answer']}" for name in SYSTEMS if name in t]
+    return "\n".join(out) or "해당하는 문항이 없습니다."
 
 
 # ---------- 명령줄
@@ -235,10 +269,18 @@ def main(argv: list[str] | None = None, new_agent=None, old_ask=None) -> int:
     ap.add_argument("--save")
     ap.add_argument("--rescore", help="저장된 결과를 서버 없이 다시 요약")
     ap.add_argument("--md", action="store_true", help="요약을 마크다운 표로만 출력")
+    ap.add_argument("--failures", action="store_true", help="--rescore와 함께: 틀린 항목과 그때의 답을 보인다")
+    ap.add_argument("--system", choices=SYSTEMS, default="new", help="--failures가 볼 시스템")
+    ap.add_argument("--show", help="--rescore와 함께: 쉼표로 구분한 문항 id(예: Q023,S3)의 두 시스템 답을 나란히 보인다")
     a = ap.parse_args(argv)
     if a.rescore:
         result = json.loads(Path(a.rescore).read_text(encoding="utf-8"))
-        print(format_table(summarize(result), result["meta"]))
+        if a.failures:
+            print(format_failures(result, a.system))
+        elif a.show:
+            print(format_examples(result, [x.strip() for x in a.show.split(",") if x.strip()]))
+        else:
+            print(format_table(summarize(result), result["meta"]))
         return 0
     systems: dict = {}
     if not a.skip_old:

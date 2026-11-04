@@ -215,7 +215,7 @@ def test_the_result_keeps_both_answers_with_scores_and_the_summary_counts_them()
     assert first["old"]["answer"] == "상품 조건을 확인해 주세요." and first["new"]["evidence_shown"] is True and "model_calls" in first["new"] and first["new"]["tools"] == ["calc_interest"]
     s = cc.summarize(result)
     assert s["old"]["calc"][1] == s["new"]["calc"][1] == 6 and s["old"]["ask"][1] == 15 and s["old"]["fact"][1] == 6
-    assert s["old"]["evidence"] == (0, 39) and s["new"]["evidence"] == (39, 39)                  # 기존 챗봇은 근거 표시 기능이 없다
+    assert s["old"]["evidence"] == (0, 25) and s["new"]["evidence"] == (25, 25)                  # 근거가 필요한 25문항(약관 15 · 금액 6 · 기본금리 요구 4)만 센다. 기존 챗봇은 근거 표시 기능이 없다
     assert s["old"]["scenario_turns"][1] == 17 and s["old"]["scenario_first"][1] == 6 and s["old"]["scenario_later"][1] == 11
     assert s["old"]["p50_ms"] == 2000 and s["old"]["calc"][0] == 0 and s["old"]["scenario_turns"][0] == 0
 
@@ -239,7 +239,7 @@ def test_the_table_has_every_criterion_the_tutor_asked_for_and_is_honest_about_a
     table = cc.format_table(cc.summarize(result), result["meta"])
     for word in ("계산이 맞는지", "정보가 부족하면 되묻는지", "약관의 핵심 사실", "근거를 보여 주는지", "응답 시간", "값을 바꾼 사례", "첫 질문", "값을 바꾼 뒤", "오류"):
         assert word in table
-    assert "0/39 (근거 표시 기능 없음)" in table and "39/39" in table and "2.0초" in table
+    assert "근거가 필요한 25개" in table and "0/25 (근거 표시 기능 없음)" in table and "25/25" in table and "2.0초" in table
     only_new = cc.run(QUESTIONS[:3], {"today": "2026-10-28", "scenarios": []}, {"new": lambda q, s: cc.ask_new(fake_new([]), q, s, "2026-10-28")}, progress=lambda *a: None)
     assert "(실행 안 함)" in cc.format_table(cc.summarize(only_new), only_new["meta"])
 
@@ -263,3 +263,54 @@ def test_main_stops_with_a_clear_message_when_the_old_server_is_not_running(caps
 
 def test_main_refuses_to_run_with_no_system(capsys):
     assert cc.main(["--skip-old", "--skip-new"]) == 2
+
+
+# ---------- 근거가 필요한 문항은 정답 기준으로 정한다
+def test_evidence_is_expected_only_where_a_correct_answer_would_carry_it_and_the_same_for_both_systems():
+    import collections
+    needs = [q for q in QUESTIONS if q["gold"]["behavior"] in cc.EVIDENCE_BEHAVIORS]
+    assert len(needs) == 25 and dict(collections.Counter(q["gold"]["behavior"] for q in needs)) == {"search": 15, "calc_ok": 6, "ask_base_rate": 4}
+    assert not any(q["gold"]["behavior"] in ("ask_missing", "invalid_input", "not_early") for q in needs)                    # 되묻기만 하는 문항은 근거가 필요 없다
+
+
+def test_a_system_that_shows_evidence_on_a_question_that_does_not_need_it_gets_no_credit_for_it():
+    """이번 에이전트가 비교 실행에서 근거 카드를 22개 보였을 때 분모를 39로 두면 57%처럼 읽혔다: 분모는 근거가 필요한 문항만이다."""
+    rows = [{"id": "Qa", "category": "rule", "behavior": "search", "question": "a", "new": {"kind": None, "correct": None, "evidence_shown": True, "ms": 1}},
+            {"id": "Qb", "category": "missing", "behavior": "ask_missing", "question": "b", "new": {"kind": "ask", "correct": True, "evidence_shown": True, "ms": 1}},
+            {"id": "Qc", "category": "calc", "behavior": "calc_ok", "question": "c", "new": {"kind": "calc", "correct": False, "evidence_shown": False, "ms": 1}}]
+    s = cc.summarize({"meta": {"systems": ["new"]}, "rows": rows, "scenarios": []})
+    assert s["new"]["evidence"] == (1, 2)
+
+
+# ---------- 실패와 답 보기
+def sample_result():
+    rows = [{"id": "Q001", "category": "rule", "behavior": "search", "question": "중도해지 이율?", "old": {"answer": "확인해 주세요.", "correct": False}, "new": {"answer": "연 0.10%…", "correct": True}},
+            {"id": "Q054", "category": "calc", "behavior": "calc_ok", "question": "1년 만기로 넣었는데", "old": {"answer": "조회해 보세요.", "correct": False}, "new": {"answer": "만기일을 알려주세요.", "correct": False}}]
+    scen = [{"id": "S9", "title": "t", "turns": [{"turn": 1, "question": "첫 질문", "expect": {"interest_krw": 1}, "old": {"answer": "x", "correct": False}, "new": {"answer": "1원", "correct": True}},
+                                               {"turn": 2, "question": "바꾼 질문", "expect": {"interest_krw": 2}, "old": {"answer": "y", "correct": False}, "new": {"answer": "1원이에요.", "correct": False}}]}]
+    return {"meta": {"systems": ["old", "new"]}, "rows": rows, "scenarios": scen}
+
+
+def test_failures_list_every_wrong_item_with_the_answer_and_nothing_else():
+    out = cc.format_failures(sample_result(), "new")
+    assert "[Q054] (calc · calc_ok) 1년 만기로 넣었는데" in out and "만기일을 알려주세요." in out
+    assert '[S9 턴2] 바꾼 질문' in out and '기대: {"interest_krw": 2}' in out and "1원이에요." in out
+    assert "Q001" not in out and "턴1" not in out                                                        # 맞은 것은 보이지 않는다
+    assert "Q001" in cc.format_failures(sample_result(), "old") and cc.format_failures({"rows": [], "scenarios": []}) == "실패한 항목이 없습니다."
+
+
+def test_examples_show_both_answers_side_by_side_for_questions_and_scenarios():
+    out = cc.format_examples(sample_result(), ["Q001", "S9"])
+    assert "[Q001] 중도해지 이율?" in out and "old: 확인해 주세요." in out and "new: 연 0.10%…" in out
+    assert "[S9 턴2] 바꾼 질문" in out and "new (틀림): 1원이에요." in out and "new (맞음): 1원" in out and "Q054" not in out
+    assert cc.format_examples(sample_result(), ["없음"]) == "해당하는 문항이 없습니다."
+
+
+def test_rescore_can_print_the_failures_and_the_examples_without_any_server(tmp_path, capsys):
+    path = tmp_path / "r.json"
+    path.write_text(json.dumps(sample_result(), ensure_ascii=False), encoding="utf-8")
+    assert cc.main(["--rescore", str(path), "--failures"]) == 0 and "[Q054]" in capsys.readouterr().out
+    assert cc.main(["--rescore", str(path), "--failures", "--system", "old"]) == 0 and "[Q001]" in capsys.readouterr().out
+    assert cc.main(["--rescore", str(path), "--show", "Q001, S9"]) == 0
+    shown = capsys.readouterr().out
+    assert "[Q001]" in shown and "[S9 턴1]" in shown
