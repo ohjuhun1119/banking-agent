@@ -89,11 +89,13 @@ def ungrounded_values(answer, allowed_texts, today: date | None = None) -> list[
 
 _DATE_LIKE = re.compile(r"\d{4}[-.]\d{1,2}[-.]\d{1,2}|\d{4}년(?:\s?\d{1,2}월(?:\s?\d{1,2}일)?)?|\d{1,2}월\s?\d{1,2}일")   # 날짜 속 숫자는 기간이 아니다
 _TERM = re.compile(r"(\d+(?:\.\d+)?)\s?(%|영업일|개월|일|년|회)")
+_RANGE = re.compile(r"(\d+(?:\.\d+)?)\s?[~∼]\s?(\d+(?:\.\d+)?)\s?(%|영업일|개월|일|년|회)")   # `3~6개월`은 양 끝이 같은 단위다
+_BARE = re.compile(r"(?<![\d.])(\d+)(?![\d.])")
 
 
 def _terms(text: str) -> list[str]:
     """글에 나온 퍼센트 · 기간 · 횟수를 `0.2%`, `3개월`, `2회` 꼴로 (등장 순서, 같은 값은 한 번). 0.20과 0.2는 같은 값이다."""
-    text = _DATE_LIKE.sub(" ", READ_VALUES_RE.sub("", text))
+    text = _RANGE.sub(r"\1\3 \2\3", _DATE_LIKE.sub(" ", READ_VALUES_RE.sub("", text)))
     out: list[str] = []
     for num, unit in _TERM.findall(text):
         term = format(Decimal(num).normalize(), "f") + unit
@@ -106,8 +108,10 @@ def ungrounded_terms(answer, allowed_texts) -> list[str]:
     """답변에 나온 퍼센트 · 기간 · 횟수 중 허용된 글(사용자 말 · 도구 결과의 조항 본문)에 없는 것. 숫자만 보고 문장의 뜻은 보지 않는다."""
     if not isinstance(answer, str):
         return []
-    ok = set(_terms("\n".join(t for t in allowed_texts if isinstance(t, str))))
-    return [t for t in _terms(answer) if t not in ok]
+    allowed = "\n".join(t for t in allowed_texts if isinstance(t, str))
+    ok, bare = set(_terms(allowed)), set(_BARE.findall(allowed))
+    # 일수는 도구 결과에 단위 없이 숫자로만 있을 수 있다(elapsed_days: 279). 다른 단위(%, 개월, 년, 회)는 단위까지 같아야 한다
+    return [t for t in _terms(answer) if t not in ok and not (t.endswith("일") and not t.endswith("영업일") and t[:-1] in bare)]
 
 
 def promises_after_tax(text) -> bool:

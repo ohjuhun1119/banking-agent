@@ -49,3 +49,20 @@ def test_no_allowed_text_means_any_term_is_reported_once():
 def test_non_string_answer_and_non_string_allowed_items_are_ignored():
     assert ungrounded_terms(None, [CLAUSE]) == []
     assert ungrounded_terms("0.20%", [None, CLAUSE]) == []
+
+
+def test_a_number_of_days_the_source_states_without_a_unit_passes():
+    """계산 도구의 기본금리 되묻기 결과는 경과일을 숫자로만 가진다 (리뷰 I1). 일수만 단위 없는 숫자를 허용하고, 다른 단위 · 다른 값은 막는다."""
+    src = ['{"status": "need_base_rate", "elapsed_days": 279, "contract_days": 365}']
+    assert ungrounded_terms("경과 279일이라 기본금리가 필요해요.", src) == []
+    assert ungrounded_terms("경과 280일이에요.", src) == ["280일"]
+    assert ungrounded_terms("279회 했어요.", src) == ["279회"]
+    assert ungrounded_terms("279개월이에요.", src) == ["279개월"]
+
+
+def test_a_range_written_with_one_unit_covers_both_ends():
+    """조항이 `3~6개월`로 쓰면 앞 숫자도 같은 단위다 (리뷰 I3)."""
+    src = ["3~6개월: 연 0.2%"]
+    assert ungrounded_terms("3개월이면 연 0.2%예요.", src) == []
+    assert ungrounded_terms("6개월 미만이에요.", src) == []
+    assert ungrounded_terms("4개월이에요.", src) == ["4개월"]
