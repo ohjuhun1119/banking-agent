@@ -170,6 +170,7 @@ docker compose -f compose.host-ollama.yaml --profile build run --rm ingest
 
 ```bash
 pip install pytest && pytest tests                          # 모델 · 색인 없이 (임베딩은 가짜)
+python eval/ci_gate.py                                      # 모델 없는 평가 게이트 (GitHub Actions가 push · PR마다 pytest와 함께 실행)
 
 python eval/run_eval.py --core --save eval/runs/eval_core_N.json     # 대표 문항 46개 (Ollama 필요, 약 10분)
 python eval/run_eval.py --rescore eval/runs/eval_core_N.json         # 저장된 결과를 모델 없이 다시 채점
