@@ -50,3 +50,10 @@ def test_main_returns_1_on_failure_and_0_on_success(monkeypatch):
     assert ci_gate.main([]) == 0
     monkeypatch.setattr(heldout_tools, "verify", lambda: ["x"])
     assert ci_gate.main([]) == 1
+
+
+def test_an_empty_probe_list_fails_the_gate(monkeypatch):
+    import heldout_guard
+    real = heldout_guard.measure()
+    monkeypatch.setattr(heldout_guard, "measure", lambda: {**real, "probes": [], "probes_not_caught": []})
+    assert any("probes" in line for line in ci_gate.check_all())
