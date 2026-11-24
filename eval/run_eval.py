@@ -112,7 +112,7 @@ def format_summary(summary: dict, markdown: bool = False) -> str:
         lines = ["  ".join(h.ljust(w[i]) for i, h in enumerate(head))] + ["  ".join(c.ljust(w[i]) for i, c in enumerate(r)) for r in rows]
     flags = summary["overall"]["flags"]
     lines.append("")
-    lines.append("표시(flags): " + (", ".join(f"{k} {v}" for k, v in flags.items()) if flags else "없음") + f"   |   코드가 잘라 낸 내부 메모 문장: {summary['overall'].get('notes_stripped', 0)}건   |   점검에 걸려 버려진 답: {summary['overall'].get('rejected', 0)}건")
+    lines.append("표시(flags): " + (", ".join(f"{k} {v}" for k, v in flags.items()) if flags else "없음") + f"   |   코드가 잘라 낸 내부 메모 문장: {summary['overall'].get('notes_stripped', 0)}건   |   점검에 걸려 버려진 답: {summary['overall'].get('rejected', 0)}건 (근거 없는 퍼센트 · 기간 · 횟수 {summary['overall'].get('terms_rejected', 0)}건)")
     lines.append("용어: 사실=답변의 핵심 사실(금리표 수치 등)이 맞음(기준이 있는 문항만), 행동=기대한 행동, clean=행동이 맞고 표시(flags)가 하나도 없음, 도구(모델만)=코드의 강제 호출 없이 모델이 스스로 고름, 강제=코드가 대신 부른 문항, 근거없음=근거 없는 답변 표시가 있는 문항")
     return "\n".join(lines)
 

@@ -437,3 +437,28 @@ def test_a_number_that_only_appears_in_the_evidence_card_does_not_satisfy_facts_
     answer_misses = res("구간에 따라 달라요.", [t("search_terms")], [CARD], evidence_text="1개월 이상 ~ 3개월 미만 연 0.15%")
     assert ev.grade(gq, answer_misses)["facts_ok"] is False
     assert ev.grade(gq, res("연 0.15%예요.", [t("search_terms")], [CARD]))["facts_ok"] is True
+
+
+# ---------- 조항 대조: 가드가 막은 횟수 (최종 답은 이미 고정 문구라 근거 없는 답이 아니다) ----------
+def _rejected(*problems):
+    return [{"problem": p, "detail": "x", "chars": 1, "text": "y"} for p in problems]
+
+
+def test_terms_rejected_counts_only_the_terms_problem():
+    g = ev.grade(q("no_tool"), res(rejected_replies=_rejected("terms", "ungrounded", "terms")))
+    assert g["terms_rejected"] == 2
+
+
+def test_terms_rejected_is_zero_without_rejected_replies():
+    assert ev.grade(q("no_tool"), res())["terms_rejected"] == 0
+
+
+def test_terms_rejected_does_not_make_the_answer_unsupported():
+    g = ev.grade(q("no_tool"), res(answer=ev.UNSAFE_TEXT, rejected_replies=_rejected("terms", "terms")))
+    assert "ungrounded_in_answer" not in g["flags"] and "terms" not in " ".join(g["flags"])
+
+
+def test_summarize_adds_terms_rejected_over_all_rows():
+    rows = [{"category": "rule", "grade": ev.grade(q("no_tool"), res(rejected_replies=_rejected("terms")))},
+            {"category": "rule", "grade": ev.grade(q("no_tool"), res(rejected_replies=_rejected("terms", "terms")))}]
+    assert ev.summarize(rows)["overall"]["terms_rejected"] == 3

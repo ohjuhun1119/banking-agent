@@ -183,6 +183,7 @@ def grade(q: dict, res: dict) -> dict:
     out["forced"] = sorted(forced)
     out["ms"], out["model_calls"], out["notes_stripped"] = res.get("ms"), res.get("model_calls"), res.get("notes_stripped") or 0       # 코드가 잘라 낸 내부 메모 문장 수
     out["rejected"] = len(res.get("rejected_replies") or [])                                           # 점검에 걸려 버려진 모델 답 수
+    out["terms_rejected"] = sum(r.get("problem") == "terms" for r in res.get("rejected_replies") or [])    # 그중 근거 없는 퍼센트 · 기간 · 횟수로 걸린 수 (최종 답은 이미 고정 문구라 UNSUPPORTED가 아니다)
     return out
 
 
@@ -215,6 +216,7 @@ def summarize(rows: list[dict]) -> dict:
         out["flags"] = dict(flag_counts.most_common())
         out["notes_stripped"] = sum(g.get("notes_stripped", 0) for g in grades)
         out["rejected"] = sum(g.get("rejected", 0) for g in grades)
+        out["terms_rejected"] = sum(g.get("terms_rejected", 0) for g in grades)
         ms = [g["ms"] for g in grades]
         out["ms_p50"], out["ms_p90"] = percentile(ms, 50), percentile(ms, 90)
         calls = [g["model_calls"] for g in grades if g["model_calls"] is not None]
