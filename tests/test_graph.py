@@ -1160,3 +1160,35 @@ def test_the_command_line_prints_the_rejected_replies_so_one_question_can_be_dia
                      "stop_reason": None, "tool_calls": 0, "model_calls": 2, "confirmed": {}, "confirmed_text": "", "evidence_text": "", "ms": 1})
     out = capsys.readouterr().out
     assert "점검에 걸려 버려진 답 (foreign_script, 5000자)" in out and "解释" in out and "되풀이" in out and len(out.splitlines()[0]) < 400           # 앞부분만 보여 준다
+
+
+# ---------- 조항 대조: 답변의 퍼센트 · 기간 · 횟수가 근거 글에 없으면 막는다 (가짜 조항) ----------
+FAKE_CLAUSE = "중도해지 이율은 가입 3개월 이상 6개월 미만 연 0.20%입니다. 일부해지는 2회까지 할 수 있습니다."
+FAKE_SEARCH = ("search_terms", {"status": "ok", "results": [{"rank": 1, "chunk_id": "fake", "text": FAKE_CLAUSE}]})
+
+
+def test_check_reply_flags_a_percent_that_the_search_result_does_not_contain():
+    st = _state("중도해지 이율이 뭐예요?", [FAKE_SEARCH])
+    assert g.check_reply(AIMessage(content="연 0.25%예요."), st) == ("terms", "0.25%")
+
+
+def test_check_reply_accepts_a_percent_the_search_result_contains():
+    st = _state("중도해지 이율이 뭐예요?", [FAKE_SEARCH])
+    assert g.check_reply(AIMessage(content="연 0.20%예요."), st) == (None, "")
+
+
+def test_a_value_the_user_said_is_not_rejected_as_a_term():
+    assert g.check_reply(AIMessage(content="3개월이면 구간이 달라요."), _state("가입한 지 3개월 됐어요"))[0] is None
+
+
+def test_the_graph_retries_once_then_sends_the_fixed_text_for_an_unsupported_percent():
+    a, m = agent(lambda msgs, n: AIMessage(content="연 0.25%예요."))
+    res = a.ask("이거 몇 퍼센트예요?", "s")
+    assert res["answer"] == g.UNSAFE_TEXT and res["model_calls"] == 2
+    assert [r["problem"] for r in res["rejected_replies"]] == ["terms", "terms"]
+
+
+def test_the_retry_note_names_the_rejected_values():
+    a, m = agent(lambda msgs, n: AIMessage(content="일부해지는 3회까지 돼요." if n == 1 else "정확한 횟수는 확인이 필요해요."))
+    res = a.ask("이거 몇 번까지예요?", "s")
+    assert res["model_calls"] == 2 and "3회" in m.seen[1][-1].content

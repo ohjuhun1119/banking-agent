@@ -44,7 +44,7 @@ from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from app import tool_calling as tc  # noqa: E402
 from app.answer_check import (claims_handoff_done, foreign_script, handoff_request, is_affirmative, not_found_claim,  # noqa: E402
-                              promises_after_tax, strip_internal_notes, tool_syntax, unsupported_phone_numbers, ungrounded_values)
+                              promises_after_tax, strip_internal_notes, tool_syntax, unsupported_phone_numbers, ungrounded_terms, ungrounded_values)
 from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evidence  # noqa: E402
 from app.elapsed_period import lookup_args  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
@@ -77,6 +77,8 @@ RETRY_NOTES = {
     "syntax": "직전 답변에 도구 호출 문법이 글로 들어 있다. 도구가 필요하면 직접 호출하고, 아니면 한국어 문장으로만 답한다.",
     "ungrounded": ("직전 답변에 사용자가 말하지 않았고 도구 결과에도 없는 날짜 · 금액({values})이 들어 있다. 그 값은 말하지 않는다 (추측 · 가정도 안 된다). "
                    "사용자가 말한 값과 도구 결과의 값만 쓰고, 모르는 값은 질문한다."),
+    "terms": ("직전 답변에 사용자가 말하지 않았고 도구 결과(약관 · 계산 결과)에도 없는 퍼센트 · 기간 · 횟수({values})가 들어 있다. 그 값은 말하지 않는다 (추측 · 일반 상식도 안 된다). "
+              "도구 결과에 있는 값만 쓰고, 없으면 약관에서 확인되지 않는다고 말하거나 질문한다."),
     "handoff_claim": ("직전 답변이 상담 요청을 접수 · 저장했거나 상담원이 연결된다고 말했다. 저장은 사용자가 확인한 뒤에 시스템이 하고 접수번호도 시스템만 만든다. "
                       "그렇게 말하지 말고 사용자에게 이렇게 물어본다: " + HANDOFF_CONFIRM_TEXT),
     "handoff_confirm": "도구가 시킨 대로 사용자에게 상담 요청을 저장할지 물어본다. 이 문장으로 답한다: " + HANDOFF_CONFIRM_TEXT,
@@ -230,7 +232,7 @@ def _allowed_texts(state: dict, whole_conversation: bool) -> list[str]:
 
 def check_reply(ai, state: dict) -> tuple[str | None, str]:
     """모델 응답의 문제를 찾는다. 반환: (문제, 설명). 문제: 'language'(한자 · 가나) / 'syntax'(도구 호출 문법이 글로 나옴) /
-    'phone'(근거 없는 전화번호) / 'aftertax'(세후 이자를 알려 주겠다고 약속) / 'ungrounded'(근거 없는 날짜 · 금액) / 'not_found'(검색 결과가 있는데 '확인되지 않는다'고 함) / None.
+    'phone'(근거 없는 전화번호) / 'aftertax'(세후 이자를 알려 주겠다고 약속) / 'ungrounded'(근거 없는 날짜 · 금액) / 'terms'(근거 없는 퍼센트 · 기간 · 횟수) / 'not_found'(검색 결과가 있는데 '확인되지 않는다'고 함) / None.
     도구 호출이면 검색어만, 최종 답변이면 본문 전체를 본다."""
     calls = getattr(ai, "tool_calls", None) or []
     if calls:
@@ -252,6 +254,9 @@ def check_reply(ai, state: dict) -> tuple[str | None, str]:
     extra = ungrounded_values(text, _allowed_texts(state, whole_conversation=True), _today(state))
     if extra:
         return "ungrounded", ", ".join(extra)
+    terms = [] if forced_tool(ai, state) else ungrounded_terms(text, _allowed_texts(state, whole_conversation=True))     # 코드가 도구를 먼저 불러 버릴 답은 사용자에게 가지 않으므로 보지 않는다 (H19)
+    if terms:                                                 # 약관에 없는 금리 · 기간 · 횟수를 말했다 (검색된 조항을 잘못 요약한 경우 포함)
+        return "terms", ", ".join(terms)
     results = _turn_tool_results(state)
     if not_found_claim(text) and any(n == "search_terms" for n, _ in results) and not any(r.get("status") == "not_found" for n, r in results):
         return "not_found", ""
