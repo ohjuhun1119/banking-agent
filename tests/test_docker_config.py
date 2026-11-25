@@ -88,7 +88,8 @@ def test_the_healthcheck_calls_a_route_that_exists_and_does_not_need_ollama(name
 @pytest.mark.parametrize("name", COMPOSE_FILES)
 def test_the_environment_names_are_the_ones_the_code_reads(name):
     env = load(name)["services"]["api"]["environment"]
-    assert set(env) == {"OLLAMA_HOST", "TOOL_MODEL", "EMBED_MODEL"}
+    assert set(env) == {"OLLAMA_HOST", "TOOL_MODEL", "EMBED_MODEL", "API_KEY"}
+    assert env["API_KEY"].endswith(":-}") and 'os.environ.get("API_KEY")' in (ROOT / "app" / "api.py").read_text(encoding="utf-8")      # 기본은 비어 있어 열려 있고, 코드가 읽는 이름과 같다
     assert 'os.environ.get("TOOL_MODEL"' in (ROOT / "app" / "tool_calling.py").read_text(encoding="utf-8")
     assert 'os.environ.get("EMBED_MODEL"' in (ROOT / "rag" / "vectorstore.py").read_text(encoding="utf-8")
     assert env["TOOL_MODEL"].endswith(":-qwen2.5:7b}") and env["EMBED_MODEL"].endswith(":-bge-m3}")               # 기본값이 코드의 기본 모델과 같다

@@ -5,7 +5,9 @@
 지금은 청크 탐색, 검색 결과 확인, 질문 일괄 확인, 채팅, 이자 계산, 도구 호출(5일차), 에이전트(6일차) 화면을 제공한다.
 6~8일차에 에이전트가 생기면 같은 앱에 /api/chat 을 추가해 채팅 화면으로 확장한다.
 """
+import hmac
 import json
+import os
 import sys
 import threading
 from contextlib import asynccontextmanager
@@ -57,6 +59,16 @@ async def lifespan(_app):
 
 app = FastAPI(title="금융 상담 Agent 확인 화면", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+@app.middleware("http")
+async def require_api_key(request, call_next):
+    """API_KEY 환경변수가 있으면 /health 말고는 X-API-Key 헤더가 같아야 통과한다 (공개 배포용). 없으면 열려 있다 (로컬 개발).
+    shortcut: 키 하나를 모두가 나눠 쓴다. 사용자별 키 · 폐기가 필요하면 그때 바꾼다."""
+    key = os.environ.get("API_KEY")
+    if key and request.url.path != "/health" and not hmac.compare_digest(request.headers.get("x-api-key", "").encode(), key.encode()):
+        return JSONResponse({"detail": "접근 키가 필요합니다"}, status_code=401)
+    return await call_next(request)
 
 
 def load_chunks() -> list[dict]:

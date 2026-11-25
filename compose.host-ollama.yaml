@@ -13,6 +13,7 @@ x-app-env: &app-env
   OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
   TOOL_MODEL: ${TOOL_MODEL:-qwen2.5:7b}
   EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+  API_KEY: ${API_KEY:-}                   # 비우면 열려 있다. 공개 배포에서는 꼭 채운다 (X-API-Key 헤더)
 
 services:
   api:
