@@ -134,6 +134,23 @@ def leaks_internal_note(text) -> bool:
     return isinstance(text, str) and bool(NOTE_SENTENCE_RE.search(text))
 
 
+def leaks_system_prompt(text, prompt_texts, min_chars: int = 40, allowed_texts=()) -> bool:
+    """답변이 시스템 프롬프트의 연속된 min_chars자 이상을 그대로 읽어 주는가 (공백은 접어서 비교).
+    사용자 말이나 도구 결과(allowed_texts)에 같은 구간이 있으면 되풀이일 뿐이라 유출로 보지 않는다."""
+    if not isinstance(text, str):
+        return False
+    fold = lambda t: " ".join(t.split())                                # noqa: E731
+    reply = fold(text)
+    allowed = fold(" ".join(t for t in allowed_texts if isinstance(t, str)))
+    for p in prompt_texts:
+        if not isinstance(p, str):
+            continue
+        p = fold(p)
+        if any(p[i:i + min_chars] in reply and p[i:i + min_chars] not in allowed for i in range(len(p) - min_chars + 1)):
+            return True
+    return False
+
+
 def strip_internal_notes(text):
     """내부 메모를 읽어 준 문장만 잘라 낸다 (나머지 글과 줄바꿈은 그대로). 메모가 없으면 같은 글을 돌려준다."""
     if not leaks_internal_note(text):
