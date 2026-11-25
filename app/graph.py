@@ -104,7 +104,7 @@ def decline_node(state: dict) -> dict:
     return {"messages": [AIMessage(content=OUT_OF_SCOPE_TEXT)], "stop_reason": "out_of_scope"}
 
 
-SWITCH_AWAY = re.compile(r"말고|대신|아니고")          # '정기예금 말고 대출 금리 알려줘': 예금 낱말이 앞에 있어도 뒤가 범위 밖 질문이면 범위 밖이다
+SWITCH_AWAY = re.compile(r"(?<!보통)(?<!입출금)(?<!자유)(?:%s)\s?(?:말고|대신|아니고)" % DEPOSIT_WORDS.pattern)          # '정기예금 말고 대출 금리 알려줘': 예금 낱말 바로 뒤의 '말고'만 상품을 바꾸는 말이다 ('통장 말고 카드로 받을래요'는 받는 방법). 예금 낱말이 앞에 있어도 뒤가 범위 밖 질문이면 범위 밖이다
 
 
 def out_of_scope(question) -> bool:

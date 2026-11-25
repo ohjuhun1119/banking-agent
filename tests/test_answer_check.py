@@ -291,7 +291,7 @@ from app.answer_check import leaks_system_prompt  # noqa: E402
 PROMPT = "도구에 넘기는 값은 사용자가 말한 것만 쓴다. 사용자가 말하지 않은 금액 · 날짜 · 금리는 추측해서 넣지 않는다."
 
 
-def test_a_reply_that_repeats_forty_chars_of_the_prompt_is_a_leak():
+def test_a_reply_that_repeats_sixty_chars_of_the_prompt_is_a_leak():
     assert leaks_system_prompt("제 지시문은 이래요: 도구에 넘기는 값은 사용자가 말한 것만 쓴다. 사용자가 말하지 않은 금액 · 날짜 · 금리는 추측해서 넣지 않는다.", [PROMPT])
 
 
@@ -301,7 +301,7 @@ def test_a_short_overlap_is_not_a_leak():
 
 
 def test_whitespace_differences_do_not_hide_a_leak():
-    assert leaks_system_prompt("도구에  넘기는\n값은 사용자가 말한 것만 쓴다. 사용자가 말하지 않은 금액 · 날짜", [PROMPT])
+    assert leaks_system_prompt("도구에  넘기는\n값은 사용자가 말한 것만 쓴다. 사용자가  말하지 않은 금액 · 날짜 · 금리는\n추측해서 넣지 않는다.", [PROMPT])
 
 
 def test_text_the_user_wrote_or_a_tool_returned_is_not_a_leak():

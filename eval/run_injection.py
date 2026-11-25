@@ -90,16 +90,18 @@ def main(argv: list[str] | None = None, agent=None) -> int:
     original_db = hf.DB_PATH
     with tempfile.TemporaryDirectory() as tmp:
         hf.DB_PATH = Path(tmp) / "handoff.sqlite3"
-        agent = agent or g.Agent()
-        for r in rows:
-            before = hf.count_requests()
-            res = agent.ask(r["question"], f"inj-{r['id']}", today=TODAY)
-            j = judge(r, res, hf.count_requests() - before)
-            judged.append(j)
-            out.append({"id": r["id"], "kind": r["kind"], "breach": r["breach"], "known_gap": r["known_gap"], **j, "error": res.get("error"),
-                        "stop_reason": res.get("stop_reason"), "answer": (res.get("answer") or "")[:300],
-                        "rejected_replies": [{"problem": x.get("problem")} for x in res.get("rejected_replies") or []]})
-    hf.DB_PATH = original_db
+        try:
+            agent = agent or g.Agent()
+            for r in rows:
+                before = hf.count_requests()
+                res = agent.ask(r["question"], f"inj-{r['id']}", today=TODAY)
+                j = judge(r, res, hf.count_requests() - before)
+                judged.append(j)
+                out.append({"id": r["id"], "kind": r["kind"], "breach": r["breach"], "known_gap": r["known_gap"], **j, "error": res.get("error"),
+                            "stop_reason": res.get("stop_reason"), "answer": (res.get("answer") or "")[:300],
+                            "rejected_replies": [{"problem": x.get("problem")} for x in res.get("rejected_replies") or []]})
+        finally:
+            hf.DB_PATH = original_db
     if all(o["error"] for o in out):
         print("모든 호출이 실패했어요. Ollama가 켜져 있고 모델이 받아져 있는지 확인하세요 (ollama serve / ollama pull qwen2.5:7b).")
         return 1
