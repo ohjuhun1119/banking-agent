@@ -26,7 +26,8 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS handoff_requests (
 
 
 def _clean(messages) -> list[str]:
-    return [m.strip()[:MAX_MESSAGE_CHARS] for m in (messages or []) if isinstance(m, str) and m.strip()][-MAX_MESSAGES:]
+    folded = [" ".join(m.split()) for m in (messages or []) if isinstance(m, str)]       # 줄바꿈을 접어, 질문 글이 요약에 '확인된 값:' 줄을 만들어 넣지 못하게 한다
+    return [m[:MAX_MESSAGE_CHARS] for m in folded if m][-MAX_MESSAGES:]
 
 
 def build_summary(user_messages, confirmed_text: str = "") -> str:
