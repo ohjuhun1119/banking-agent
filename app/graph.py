@@ -104,8 +104,16 @@ def decline_node(state: dict) -> dict:
     return {"messages": [AIMessage(content=OUT_OF_SCOPE_TEXT)], "stop_reason": "out_of_scope"}
 
 
+SWITCH_AWAY = re.compile(r"말고|대신|아니고")          # '정기예금 말고 대출 금리 알려줘': 예금 낱말이 앞에 있어도 뒤가 범위 밖 질문이면 범위 밖이다
+
+
 def out_of_scope(question) -> bool:
-    return isinstance(question, str) and bool(OUT_OF_SCOPE_WORDS.search(question)) and not DEPOSIT_WORDS.search(question)
+    if not isinstance(question, str):
+        return False
+    m = SWITCH_AWAY.search(question)
+    if m and OUT_OF_SCOPE_WORDS.search(question[m.end():]) and not DEPOSIT_WORDS.search(question[m.end():]):
+        return True
+    return bool(OUT_OF_SCOPE_WORDS.search(question)) and not DEPOSIT_WORDS.search(question)
 
 # 도구 결과를 받은 뒤의 행동 규칙. 7일차에 근거 표시와 검색 -> 계산 연결을 다듬으면서 고친다.
 GRAPH_RULES = """도구 결과를 받으면 status를 보고 다음 행동을 고른다.

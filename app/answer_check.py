@@ -42,9 +42,12 @@ def unsupported_phone_numbers(answer, *allowed_texts) -> list[str]:
     return [n for n in phone_numbers(answer) if n not in allowed]
 
 
+_ROLE_PLAY = re.compile(r"상담[원사](?:이야|이에요|이다|이라고|야|처럼|인\s?척|역할)")          # '너는 이제 대출 상담사야' 같은 역할 지정은 연결 요청이 아니다
+
+
 def handoff_request(text) -> bool:
     """상담원 · 사람과의 연결을 요청하는 말인가."""
-    return bool(_HANDOFF.search(text)) if isinstance(text, str) else False
+    return bool(_HANDOFF.search(_ROLE_PLAY.sub("", text))) if isinstance(text, str) else False
 
 
 _TOOL_SYNTAX = re.compile(r"(?<![A-Za-z_])(?:calc_interest|search_terms)(?![A-Za-z_])|<tool_call>|\{\s*[\"'][A-Za-z_]+[\"']\s*:")
