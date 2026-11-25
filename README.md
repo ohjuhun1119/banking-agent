@@ -145,6 +145,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/chat -ContentType 'app
 
 ### 2. Docker
 
+**공개 배포에서는 접근 키를 켭니다.** 환경변수 `API_KEY`가 있으면 `/health`를 뺀 모든 경로가 `X-API-Key` 헤더를 요구합니다(없거나 틀리면 401, 주소창 `?api_key=`는 받지 않습니다). 비우면 열려 있습니다(로컬 개발). 키 하나를 모두가 나눠 쓰는 단순한 방식이고, 확인 화면(`/`)도 같은 키로 막힙니다. 요청 속도 제한은 앱이 아니라 앞단 프록시에서 둘 계획입니다.
+
 청크 만들기(`extract_text.py` · `build_chunks.py`)는 컨테이너에서 지원하지 않습니다. **위 1번처럼 로컬에서 `rag/chunks/chunks.jsonl`을 먼저 만들어 두어야** 아래 `ingest`가 동작합니다.
 
 ```bash
@@ -329,6 +331,7 @@ python eval/compare_chatbots.py --rescore eval/runs/compare_cloud_1.json --show 
 | Docker 빌드 · 기동 (`compose.host-ollama.yaml`, macOS Apple Silicon = arm64) | **확인** (2026-11-02): 23단계 빌드 121초, 컨테이너 `healthy`, `/health` 200 |
 | 컨테이너 → 호스트 Ollama · 색인 볼륨 · 데이터 볼륨 | **확인**: `/chat`이 약관 검색(색인 읽기)과 답변 생성(Ollama 2회)을 거쳐 근거 카드와 함께 응답, 대출 질문은 모델 호출 0회로 거절(16ms), 트레이스가 `./data` 볼륨의 DB에 로컬 기록 뒤로 이어서 기록됨 |
 | 응답 시간 (Docker, 호스트 Ollama) | 약관 질문 1건 22.3초(검색 1.4초). **한 건이라 로컬 분포(약관 설명 중앙값 16.7초)와 비교할 수 없습니다** |
+| 접근 키 (`compose.host-ollama.yaml`, 2026-11-25) | **확인**: 컨테이너에서 키 없음 · 틀린 키 401, 맞는 키로 `/chat` 정상 응답(31초), `/health`는 키 없이 200 |
 | **미확인** | `compose.yaml`(컨테이너 안의 Ollama와 모델 내려받기 흐름), 컨테이너에서 `ingest` 실행, amd64 · 리눅스 · Windows |
 
 ## 레포 구조
