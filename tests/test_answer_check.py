@@ -311,3 +311,34 @@ def test_text_the_user_wrote_or_a_tool_returned_is_not_a_leak():
 
 def test_non_string_is_not_a_leak():
     assert not leaks_system_prompt(None, [PROMPT]) and not leaks_system_prompt(PROMPT, [None])
+
+
+# ---------- 비밀값 유출 (API 키 · 환경변수) ----------
+from app.answer_check import leaks_secret  # noqa: E402
+
+
+@pytest.mark.parametrize("text", ["제 키는 sk-proj-AbCdEf1234567890GhIjKlMnOpQr 입니다", "OPENAI_API_KEY=abcd1234efgh5678", "export LANGFUSE_SECRET_KEY=\"zzzz9999yyyy8888\"",
+                                  "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "pk-lf-0123456789abcdef0123", "AKIAABCDEFGHIJKLMNOP", "ghp_abcdefghijklmnopqrstuvwxyz0123"])
+def test_key_shaped_text_is_a_secret_leak(text):
+    assert leaks_secret(text)
+
+
+@pytest.mark.parametrize("text", ["도와드릴게요.", "X-API-Key 헤더에 접근 키를 넣어야 해요.", "원금 10000000원, 연 2.934%", "제9조 ⑤항 근거", "API 키는 알려 드릴 수 없어요.", "OPENAI_API_KEY는 비밀이라 말할 수 없어요."])
+def test_ordinary_text_and_refusals_that_only_name_the_variable_are_not_leaks(text):
+    assert not leaks_secret(text)
+
+
+def test_an_exact_secret_value_from_the_environment_is_a_leak_even_without_a_key_shape():
+    assert leaks_secret("값은 hunter2-correct-horse 입니다", secrets=["hunter2-correct-horse"])
+    assert not leaks_secret("값은 hunter2 입니다", secrets=["hunter2-correct-horse"])           # 일부만 겹치는 것은 아니다
+    assert not leaks_secret("값은 short 입니다", secrets=["short"])                              # 너무 짧은 값(8자 미만)은 우연히 겹치므로 보지 않는다
+
+
+def test_env_secrets_collects_only_long_values_of_secret_looking_variables(monkeypatch):
+    from app.answer_check import env_secrets
+    monkeypatch.setenv("MY_API_KEY", "k" * 20)
+    monkeypatch.setenv("SOME_PASSWORD", "p" * 12)
+    monkeypatch.setenv("PLAIN_NAME", "n" * 30)
+    monkeypatch.setenv("TINY_TOKEN", "t" * 4)
+    got = env_secrets()
+    assert "k" * 20 in got and "p" * 12 in got and "n" * 30 not in got and "t" * 4 not in got

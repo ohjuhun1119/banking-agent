@@ -40,7 +40,7 @@ def search(q, **kw):
 @pytest.fixture
 def fresh(monkeypatch):
     def install(fn):
-        monkeypatch.setattr(api, "_agent", g.Agent(model=Model(fn), search_fn=search))
+        monkeypatch.setattr(api, "_agent", g.Agent(model=Model(fn), search_fn=search, scope_gate=False))
     return install
 
 

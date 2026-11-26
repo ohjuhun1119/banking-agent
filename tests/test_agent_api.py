@@ -32,7 +32,7 @@ class Model:
 @pytest.fixture
 def fresh(monkeypatch):
     def install(fn):
-        monkeypatch.setattr(api, "_agent", g.Agent(model=Model(fn)))
+        monkeypatch.setattr(api, "_agent", g.Agent(model=Model(fn), scope_gate=False))
     return install
 
 
@@ -121,7 +121,7 @@ def test_ask_returns_the_evidence_the_code_attached():
 
     def search(q, **kw):
         return {"status": "ok", "query": q, "results": [{"rank": 1, "chunk_id": "r", "chunk_type": "중도해지", "text": "본문", "source": {"doc_title": "상품설명서", "page": 4}}]}
-    api._agent = g.Agent(model=Fake(), search_fn=search)
+    api._agent = g.Agent(model=Fake(), search_fn=search, scope_gate=False)
     r = client.post("/api/agent/ask", json={"question": "1000만원을 2026-01-01에 넣었고 만기는 2027-01-01이에요. 2026-12-07에 해지하면 이자 얼마예요? 기본금리는 3.5%예요.", "session_id": "ev"})
     assert r.status_code == 200
     d = r.json()

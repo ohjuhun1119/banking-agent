@@ -52,6 +52,7 @@ def search_ok(query, product=None, k=5, **kw):
 
 def agent(fn, **kw):
     kw.setdefault("search_fn", search_ok)
+    kw.setdefault("scope_gate", False)      # 이 시험들은 'q' 같은 자리표시 질문으로 답변 점검 · 재시도 · 도구 같은 아래층을 본다. 관문(app/scope.py)은 tests/test_scope.py가 켜고 본다
     m = Script(fn)
     return g.Agent(model=m, **kw), m
 
@@ -141,7 +142,7 @@ def test_first_turn_has_no_confirmed_block_and_sessions_are_isolated():
     assert "[지금까지 확인된 값]" not in m.seen[0][0].content
     b, m2 = agent(lambda msgs, n: AIMessage(content="끝"))
     b.checkpointer = a.checkpointer                                     # 같은 저장소라도 session_id가 다르면 보이지 않는다
-    b.graph = g.build_graph(model=m2, checkpointer=a.checkpointer)
+    b.graph = g.build_graph(model=m2, checkpointer=a.checkpointer, scope_gate=False)
     b.ask("q2", "B")
     assert "[지금까지 확인된 값]" not in m2.seen[0][0].content and len(b.history("B")) == 2
     b.ask("q3", "A")
