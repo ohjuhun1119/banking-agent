@@ -190,3 +190,29 @@ def test_the_files_the_image_would_contain_are_enough_to_start_the_server_withou
     assert lines.get("DECLINE") == "200 out_of_scope 0"              # 모델도 색인도 없이 코드가 거절한다
     assert lines.get("NOMODEL", "").startswith("503"), lines          # Ollama가 없으면 서버가 죽지 않고 503으로 알린다
     assert (tmp_path / "data").is_dir() and not (tmp_path / "rag" / "chunks").exists()
+
+
+# ---------- 공개 배포용 Caddy 덮개 (compose.prod.yaml) ----------
+def test_the_prod_overlay_adds_caddy_on_80_and_443_and_leaves_the_api_unpublished():
+    prod = load("compose.prod.yaml")
+    assert set(prod["services"]) == {"caddy"}                                       # api 포트는 건드리지 않는다: 기본 구성의 127.0.0.1만 남는다
+    assert sorted(prod["services"]["caddy"]["ports"]) == ["443:443", "80:80"]
+    assert prod["services"]["caddy"]["depends_on"]["api"]["condition"] == "service_healthy"
+
+
+def test_the_caddyfile_proxies_to_the_api_service_and_port_and_limits_the_rate():
+    caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
+    assert "reverse_proxy api:8000" in caddyfile and "EXPOSE 8000" in DOCKERFILE
+    assert "api" in load("compose.yaml")["services"]
+    assert "order rate_limit before basicauth" in caddyfile and re.search(r"events\s+\d+", caddyfile) and "key {remote_host}" in caddyfile
+    assert "request_body" in caddyfile and "max_size" in caddyfile                  # 질문 2000자 제한 밖의 큰 본문을 앞에서 막는다
+
+
+def test_the_site_address_env_name_matches_between_caddyfile_and_overlay():
+    env = load("compose.prod.yaml")["services"]["caddy"]["environment"]
+    assert "{$SITE_ADDRESS:" in (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8") and set(env) == {"SITE_ADDRESS"}
+
+
+def test_the_caddy_image_is_built_with_the_rate_limit_plugin():
+    text = (ROOT / "caddy" / "Dockerfile").read_text(encoding="utf-8")
+    assert "xcaddy build --with github.com/mholt/caddy-ratelimit" in text and "COPY Caddyfile" in text
