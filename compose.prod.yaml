@@ -1,0 +1,26 @@
+# 공개 배포용 덮개: 기본 구성 위에 Caddy(HTTPS · 요청 속도 제한)를 얹는다. API는 여전히 127.0.0.1에서만 열리고 바깥은 Caddy만 받는다.
+#
+#   export API_KEY=<긴 무작위 문자열>  SITE_ADDRESS=<도메인>
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# SITE_ADDRESS를 비우면 :80(HTTP)이라 접근 키가 평문으로 오간다. 공개할 때는 도메인을 쓴다.
+# 이 파일은 구문과 경로 일치를 시험으로, Caddy 이미지 빌드와 429 응답을 로컬에서 확인했다 (README '검증 상태').
+services:
+  caddy:
+    build: ./caddy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

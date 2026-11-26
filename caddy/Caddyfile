@@ -1,0 +1,23 @@
+# SITE_ADDRESS: 도메인(예: mybank.duckdns.org)이면 HTTPS 인증서를 자동으로 받는다. 비우면 :80 (HTTP, 접근 키가 평문으로 오간다: 시험용).
+{
+	order rate_limit before basicauth
+}
+
+{$SITE_ADDRESS::80} {
+	request_body {
+		max_size 64KB
+	}
+	# 한 IP가 1분에 20번까지. /chat 한 번이 CPU에서 수십 초라 이 이상은 서버가 감당하지 못한다.
+	rate_limit {
+		zone per_ip {
+			key {remote_host}
+			events 20
+			window 1m
+		}
+	}
+	reverse_proxy api:8000 {
+		transport http {
+			response_header_timeout 300s
+		}
+	}
+}
