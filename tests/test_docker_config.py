@@ -270,3 +270,16 @@ def test_the_deploy_doc_prepares_the_volume_folders_for_the_container_user_befor
     own = "sudo chown -R 1000:1000 rag/chroma_db data"
     assert prep in doc and own in doc and doc.index(prep) < doc.index(own) < doc.index("up -d --build")
     assert re.search(r"useradd --create-home --uid 1000", DOCKERFILE)                              # 문서의 1000은 이미지의 앱 사용자 uid다
+
+
+# ---------- 서버(CPU)에서 /chat이 끝까지 받아지게: 모델을 계속 올려 두고, 프록시 대기를 넉넉히 ----------
+def test_the_container_ollama_keeps_the_model_loaded_because_a_cold_load_takes_over_a_minute():
+    """서버(CPU)에서 모델을 메모리에 올리는 데 91초가 걸렸고, 기본 5분 뒤에 내려가 오래 쉰 뒤의 첫 질문이 매번 이 시간을 더했다."""
+    env = load("compose.yaml")["services"]["ollama"]["environment"]
+    assert str(env["OLLAMA_KEEP_ALIVE"]) == "-1"
+
+
+def test_the_proxy_waits_longer_than_a_cold_cpu_answer_takes():
+    """서버에서 모델이 올라간 상태의 한 질문이 228초, 모델 로딩 91초를 더하면 300초를 넘겨 Caddy가 끊었다."""
+    caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
+    assert int(re.search(r"response_header_timeout\s+(\d+)s", caddyfile).group(1)) >= 600
