@@ -216,3 +216,48 @@ def test_the_site_address_env_name_matches_between_caddyfile_and_overlay():
 def test_the_caddy_image_is_built_with_the_rate_limit_plugin():
     text = (ROOT / "caddy" / "Dockerfile").read_text(encoding="utf-8")
     assert "xcaddy build --with github.com/mholt/caddy-ratelimit" in text and "COPY Caddyfile" in text
+
+
+# ---------- 배포 준비물: .env.example · 백업 · 서버 설치 스크립트 · 배포 문서 ----------
+def test_env_example_lists_exactly_the_variables_the_prod_compose_reads_and_dotenv_is_git_ignored():
+    names = {ln.split("=")[0] for ln in (ROOT / ".env.example").read_text(encoding="utf-8").splitlines() if re.match(r"^[A-Z_]+=", ln)}
+    assert names == {"API_KEY", "SITE_ADDRESS"}
+    assert "SITE_ADDRESS" in load("compose.prod.yaml")["services"]["caddy"]["environment"] and "API_KEY" in load("compose.yaml")["x-app-env"]
+    assert ".env" in [ln.strip() for ln in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()] and ".env" in DOCKERIGNORE
+    assert "backups/" in (ROOT / ".gitignore").read_text(encoding="utf-8")                      # 백업에는 상담 요청이 들어 있다
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash 없음")
+@pytest.mark.parametrize("name", ["scripts/bootstrap.sh", "scripts/backup_data.sh"])
+def test_the_shell_scripts_parse_and_fail_on_the_first_error(name):
+    text = (ROOT / name).read_text(encoding="utf-8")
+    assert text.startswith("#!/usr/bin/env bash") and "set -euo pipefail" in text
+    assert subprocess.run(["bash", "-n", str(ROOT / name)], capture_output=True).returncode == 0
+
+
+@pytest.mark.skipif(shutil.which("bash") is None or shutil.which("python3") is None, reason="bash · python3 없음")
+def test_the_backup_script_copies_every_sqlite_file_readably_and_keeps_only_the_newest_14(tmp_path):
+    import sqlite3
+    (tmp_path / "scripts").mkdir(); (tmp_path / "data").mkdir()
+    shutil.copy(ROOT / "scripts" / "backup_data.sh", tmp_path / "scripts" / "backup_data.sh")
+    for name in ("handoff.sqlite3", "traces.sqlite3"):
+        con = sqlite3.connect(tmp_path / "data" / name); con.execute("create table t(x)"); con.execute("insert into t values ('행')"); con.commit(); con.close()
+    for i in range(16):                                                                              # 오래된 백업이 이미 16개 쌓여 있다
+        (tmp_path / "backups" / f"2020-01-{i + 1:02d}-0000").mkdir(parents=True)
+    res = subprocess.run(["bash", str(tmp_path / "scripts" / "backup_data.sh")], capture_output=True, text=True, cwd=tmp_path)
+    assert res.returncode == 0, res.stderr
+    dirs = sorted((tmp_path / "backups").iterdir())
+    assert len(dirs) == 14 and not (tmp_path / "backups" / "2020-01-01-0000").exists()
+    newest = dirs[-1]
+    assert sorted(p.name for p in newest.iterdir()) == ["handoff.sqlite3", "traces.sqlite3"]
+    assert sqlite3.connect(newest / "handoff.sqlite3").execute("select x from t").fetchone() == ("행",)
+
+
+def test_the_deploy_doc_names_only_files_and_commands_that_exist():
+    doc = (ROOT / "docs" / "DEPLOY.md").read_text(encoding="utf-8")
+    for path in ("scripts/bootstrap.sh", "scripts/backup_data.sh", ".env.example", "compose.yaml", "compose.prod.yaml", "rag/chunks/chunks.jsonl"):
+        assert path in doc, path
+    for path in ("scripts/bootstrap.sh", "scripts/backup_data.sh", ".env.example", "compose.yaml", "compose.prod.yaml"):
+        assert (ROOT / path).exists(), path
+    assert "-f compose.yaml -f compose.prod.yaml" in doc and "--profile build run --rm ingest" in doc
+    assert "https://github.com/ohjuhun1119/banking-agent.git" in doc
