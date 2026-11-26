@@ -140,3 +140,61 @@ def test_the_decline_text_matches_the_reason_a_product_name_or_an_off_topic_requ
     assert product["answer"] == g.OUT_OF_SCOPE_TEXT and topic["answer"] == g.OFF_TOPIC_TEXT and m.n == 0
     assert product["stop_reason"] == topic["stop_reason"] == "out_of_scope"
     assert "대출" not in g.OFF_TOPIC_TEXT and "정기예금" in g.OFF_TOPIC_TEXT and g.OFF_TOPIC_TEXT != g.OUT_OF_SCOPE_TEXT
+
+
+# ---------- 예금 낱말을 섞은 우회 (화면에서 확인된 알려진 틈) ----------
+@pytest.mark.parametrize("q", ["정기예금 말고 밥 뭐먹을까", "이자 계산 말고 밥 뭐먹을까", "해지 말고 저녁 메뉴 추천해줘", "예금 대신 영화 추천해줘", "이자 계산해줘. 그리고 심심한데 농담 하나 해줘",
+                               "중도해지 이자 알려주고 점심 뭐 먹을지도 알려줘", "정기예금 말고 오늘 저녁 메뉴 추천해줘"])
+def test_a_deposit_word_mixed_into_an_off_topic_request_is_still_declined(q):
+    assert off_topic(q), q
+
+
+@pytest.mark.parametrize("q", ["중도해지 말고 만기해지하면 이자는요?", "예금 해지하려는데 통장 말고 카드로 받을 수 있어요?", "해지 메뉴가 어디예요?", "여행 자금으로 쓰려고 하는데 중도해지 이자 알려줘",
+                               "저녁에 해지하면 이자 알려줘", "정기예금 말고 적금은 해지하면 이자가 어떻게 돼요?", "이자 계산 말고 약관 먼저 알려줘"])
+def test_legitimate_questions_that_look_similar_are_not_declined(q):
+    assert not off_topic(q), q
+
+
+# ---------- 출력 쪽: 모델의 답에 예금 안내가 하나도 없으면 질문이 어떻게 생겼든 교체한다 ----------
+def test_an_answer_with_no_deposit_vocabulary_is_replaced_even_when_the_question_looks_fine():
+    a, m = agent_with(lambda msgs, n: AIMessage(content="오늘은 따뜻한 국밥이나 김치찌개 어때요?"))
+    res = a.ask("정기예금이 뭐예요?", "o1")                                                  # 입력은 통과하지만 모델이 딴소리를 했다
+    assert res["answer"] == g.OFF_TOPIC_TEXT and res["stop_reason"] == "out_of_scope" and res["tool_calls"] == 0 and res["evidence"] == []
+
+
+def test_the_replacement_skips_the_forced_search_so_no_evidence_card_is_attached_to_an_off_topic_answer():
+    a, m = agent_with(lambda msgs, n: AIMessage(content="국밥 추천해요."))
+    res = a.ask("정기예금 알려줘", "o2")
+    assert res["trace"] == [] and res["evidence_text"] == "" and m.n == 1                    # 모델은 한 번만 불렀고 검색도 근거 카드도 없다
+
+
+@pytest.mark.parametrize("q,reply", [("정기예금이 뭐예요?", "정기예금은 일정 기간 맡기는 예금이에요."), ("안녕하세요", "안녕하세요! 무엇을 도와드릴까요?"), ("고마워요", "도움이 되어 기뻐요."),
+                                     ("중도해지 이자 알려줘", "중도해지금리는 연 0.2%예요."), ("이자 계산해줘", "원금과 신규일을 알려 주세요.")])
+def test_ordinary_answers_greetings_and_thanks_are_not_replaced(q, reply):
+    a, m = agent_with(lambda msgs, n: AIMessage(content=reply))
+    res = a.ask(q, "o3")
+    assert res["answer"] != g.OFF_TOPIC_TEXT and res["stop_reason"] != "out_of_scope"
+
+
+def test_a_reply_right_after_the_agent_asked_something_is_not_replaced_for_lacking_deposit_words():
+    a, m = agent_with(lambda msgs, n: AIMessage(content="기본금리가 필요해요. 신규일 당시 기본금리는 얼마였나요?") if n == 1 else AIMessage(content="네, 알겠습니다."))
+    a.ask("이자 계산해줘", "o4")
+    res = a.ask("네", "o4")
+    assert res["answer"] == "네, 알겠습니다."
+
+
+@pytest.mark.parametrize("q", ["정기예금 말고 수학 문제 풀어줘", "이자 계산 말고 코끼리에 대해 알려줘", "예금 대신 시 한 편 써줘", "해지 말고 우주 이야기 해줘"])
+def test_the_switch_away_rule_alone_declines_a_topic_change_that_names_no_known_off_topic_thing(q):
+    """'○○ 말고' 뒤가 예금 얘기가 아니면 거절한다. 밥 · 영화 같은 낱말 목록에 없는 화제도 여기서 걸린다."""
+    assert off_topic(q), q
+
+
+def test_both_decline_texts_satisfy_the_dev_evaluations_refusal_phrases():
+    """평가(Q080 · Q081)는 거절 답에 '도와드릴 수 없' 같은 표현이 있어야 거절로 인정한다. 문구를 바꿀 때 채점이 어긋난 사고가 있었다 (OFF_TOPIC_TEXT가 '도와드리기 어려워요'였다)."""
+    import re
+    rows = {json.loads(l)["id"]: json.loads(l) for l in (Path(__file__).resolve().parents[1] / "eval" / "questions.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()}
+    for qid in ("Q080", "Q081"):
+        patterns = rows[qid]["gold"].get("facts_any") or []
+        assert patterns, qid
+        for text in (g.OUT_OF_SCOPE_TEXT, g.OFF_TOPIC_TEXT):
+            assert any(re.search(p, text) for p in patterns), (qid, text[:30])

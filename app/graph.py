@@ -49,7 +49,7 @@ from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evide
 from app.elapsed_period import lookup_args  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
-from app.scope import awaiting_reply, in_conversation, off_topic  # noqa: E402
+from app.scope import awaiting_reply, in_conversation, off_topic, reply_off_topic  # noqa: E402
 from app.tracing import langfuse_config  # noqa: E402
 from app.tools import handoff as hf  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
@@ -100,7 +100,7 @@ OUT_OF_SCOPE_TEXT = ("죄송해요, 대출 · 카드 · 보험 같은 다른 상
                      "다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.")
 
 
-OFF_TOPIC_TEXT = ("죄송해요, 그 질문은 도와드리기 어려워요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. "
+OFF_TOPIC_TEXT = ("죄송해요, 그 질문은 도와드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. "
                   "예를 들어 \"중도해지하면 이자가 어떻게 돼요?\"처럼 물어봐 주세요.")      # 다른 상품이 아닌 주제(음식 · 번역 · 날씨 ...)와 지시 무시 공격에 나가는 문구
 
 
@@ -247,6 +247,14 @@ def _allowed_texts(state: dict, whole_conversation: bool) -> list[str]:
     texts = [m.content for i, m in enumerate(msgs) if isinstance(m, HumanMessage) or (isinstance(m, ToolMessage) and (whole_conversation or i >= start))]
     texts.append(" ".join(str(v) for v in (state.get("confirmed") or {}).values()))
     return texts
+
+
+def _answer_off_topic(text: str, state: dict) -> bool:
+    msgs = state.get("messages") or []
+    last = next((m for m in reversed(msgs) if isinstance(m, HumanMessage)), None)
+    if last is None or text in (OUT_OF_SCOPE_TEXT, OFF_TOPIC_TEXT):
+        return False
+    return reply_off_topic(str(last.content), text, awaiting_reply(msgs), in_conversation(msgs, (OUT_OF_SCOPE_TEXT, OFF_TOPIC_TEXT)))
 
 
 def check_reply(ai, state: dict) -> tuple[str | None, str]:
@@ -418,7 +426,7 @@ def forced_lookup_message(state: dict) -> AIMessage | None:
     return AIMessage(content="", tool_calls=calls, additional_kwargs={"forced_lookup": True})
 
 
-def make_agent_node(get_model):
+def make_agent_node(get_model, scope_gate: bool = True):
     def agent(state: dict) -> dict:
         calls, stripped, rejected = 0, 0, []
         asked = verbatim_question(state) or verbatim_lookup(state)
@@ -433,6 +441,12 @@ def make_agent_node(get_model):
             ai, calls = model.invoke(msgs), 1
             ai, stripped = sanitize_reply(ai, state)          # 내부 메모를 읽어 준 문장은 먼저 잘라 낸다 (점검 · 재시도 전에)
             problem, detail = check_reply(ai, state)
+            if scope_gate and not getattr(ai, "tool_calls", None) and _answer_off_topic(str(ai.content), state):
+                # 답에 예금 안내 낱말이 하나도 없다: 입력 규칙을 우회한 딴소리는 다시 시키지 않고 바로 고정 문구로 (검색을 강제로 부르지도 않는다: 근거 카드가 붙으면 안 된다)
+                problem = "off_topic"
+                rejected.append(_rejected_record(problem, detail, ai))
+                return {"messages": [AIMessage(content=OFF_TOPIC_TEXT)], "stop_reason": "out_of_scope", "model_calls": state.get("model_calls", 0) + calls,
+                        "rejected_replies": list(state.get("rejected_replies") or []) + rejected}
             if problem:                                       # 한 번만 다시 시키고, 그래도 문제면 고정 문구로 바꾼다
                 rejected.append(_rejected_record(problem, detail, ai))      # 버려질 답의 원래 글을 남긴다 (진단용: X014가 왜 점검에 걸렸는지 알 수 없었다)
                 note = RETRY_NOTES[problem].format(values=detail)
@@ -440,6 +454,12 @@ def make_agent_node(get_model):
                 ai, again = sanitize_reply(ai, state)
                 stripped += again
                 second, second_detail = check_reply(ai, state)
+                if scope_gate and not getattr(ai, "tool_calls", None) and _answer_off_topic(str(ai.content), state):
+                    second = "off_topic"                      # 다시 시킨 답이 딴소리가 됐다
+                if second == "off_topic":
+                    rejected.append(_rejected_record(second, second_detail, ai))
+                    return {"messages": [AIMessage(content=OFF_TOPIC_TEXT)], "stop_reason": "out_of_scope", "model_calls": state.get("model_calls", 0) + calls,
+                            "notes_stripped": state.get("notes_stripped", 0) + stripped, "rejected_replies": list(state.get("rejected_replies") or []) + rejected}
                 if second:
                     rejected.append(_rejected_record(second, second_detail, ai))
                     ai = AIMessage(content=fallback_text(state, second))
@@ -586,7 +606,7 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
         return "limit" if state.get("tool_calls", 0) + len(calls) > limit else "tools"
 
     builder = StateGraph(AgentState)
-    builder.add_node("agent", make_agent_node(get_model))
+    builder.add_node("agent", make_agent_node(get_model, scope_gate))
     builder.add_node("tools", make_tools_node(search_fn, tool_timeout))
     builder.add_node("limit", limit_node)
     builder.add_node("evidence", make_evidence_node(search_fn, tool_timeout))

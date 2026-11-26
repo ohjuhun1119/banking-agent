@@ -1,0 +1,3599 @@
+{
+ "meta": {
+  "split": "dev",
+  "n": 46,
+  "core": true,
+  "date": "2026-11-26"
+ },
+ "summary": {
+  "overall": {
+   "n": 46,
+   "behavior_ok": {
+    "hit": 42,
+    "n": 46
+   },
+   "clean": {
+    "hit": 40,
+    "n": 46
+   },
+   "tools_ok": {
+    "hit": 44,
+    "n": 46
+   },
+   "tools_model_only": {
+    "hit": 43,
+    "n": 46
+   },
+   "calc_value_ok": {
+    "hit": 6,
+    "n": 6
+   },
+   "args_ok": {
+    "hit": 20,
+    "n": 23
+   },
+   "evidence_ok": {
+    "hit": 25,
+    "n": 25
+   },
+   "gold_chunk_in_evidence": {
+    "hit": 14,
+    "n": 14
+   },
+   "facts_ok": {
+    "hit": 8,
+    "n": 8
+   },
+   "unsupported": {
+    "hit": 0,
+    "n": 46
+   },
+   "forced": {
+    "hit": 1,
+    "n": 46
+   },
+   "flags": {
+    "omitted_stated": 3
+   },
+   "notes_stripped": 0,
+   "rejected": 2,
+   "terms_rejected": 1,
+   "ms_p50": 4822,
+   "ms_p90": 7748,
+   "model_calls_avg": 1.78
+  },
+  "by_category": {
+   "rule": {
+    "n": 14,
+    "behavior_ok": {
+     "hit": 13,
+     "n": 14
+    },
+    "clean": {
+     "hit": 13,
+     "n": 14
+    },
+    "tools_ok": {
+     "hit": 14,
+     "n": 14
+    },
+    "tools_model_only": {
+     "hit": 13,
+     "n": 14
+    },
+    "evidence_ok": {
+     "hit": 14,
+     "n": 14
+    },
+    "gold_chunk_in_evidence": {
+     "hit": 13,
+     "n": 13
+    },
+    "facts_ok": {
+     "hit": 6,
+     "n": 6
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 14
+    },
+    "forced": {
+     "hit": 1,
+     "n": 14
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 1,
+    "terms_rejected": 1,
+    "ms_p50": 5123,
+    "ms_p90": 7088,
+    "model_calls_avg": 1.93
+   },
+   "aftertax": {
+    "n": 3,
+    "behavior_ok": {
+     "hit": 3,
+     "n": 3
+    },
+    "clean": {
+     "hit": 3,
+     "n": 3
+    },
+    "tools_ok": {
+     "hit": 2,
+     "n": 3
+    },
+    "tools_model_only": {
+     "hit": 2,
+     "n": 3
+    },
+    "args_ok": {
+     "hit": 1,
+     "n": 1
+    },
+    "evidence_ok": {
+     "hit": 3,
+     "n": 3
+    },
+    "gold_chunk_in_evidence": {
+     "hit": 1,
+     "n": 1
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 3
+    },
+    "forced": {
+     "hit": 0,
+     "n": 3
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0,
+    "ms_p50": 7748,
+    "ms_p90": 9640,
+    "model_calls_avg": 2.33
+   },
+   "calc": {
+    "n": 8,
+    "behavior_ok": {
+     "hit": 8,
+     "n": 8
+    },
+    "clean": {
+     "hit": 8,
+     "n": 8
+    },
+    "tools_ok": {
+     "hit": 8,
+     "n": 8
+    },
+    "tools_model_only": {
+     "hit": 8,
+     "n": 8
+    },
+    "calc_value_ok": {
+     "hit": 6,
+     "n": 6
+    },
+    "args_ok": {
+     "hit": 8,
+     "n": 8
+    },
+    "evidence_ok": {
+     "hit": 6,
+     "n": 6
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 8
+    },
+    "forced": {
+     "hit": 0,
+     "n": 8
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0,
+    "ms_p50": 4538,
+    "ms_p90": 9762,
+    "model_calls_avg": 2.0
+   },
+   "calc_base_rate": {
+    "n": 4,
+    "behavior_ok": {
+     "hit": 2,
+     "n": 4
+    },
+    "clean": {
+     "hit": 2,
+     "n": 4
+    },
+    "tools_ok": {
+     "hit": 4,
+     "n": 4
+    },
+    "tools_model_only": {
+     "hit": 4,
+     "n": 4
+    },
+    "args_ok": {
+     "hit": 3,
+     "n": 4
+    },
+    "evidence_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 4
+    },
+    "forced": {
+     "hit": 0,
+     "n": 4
+    },
+    "flags": {
+     "omitted_stated": 1
+    },
+    "notes_stripped": 0,
+    "rejected": 1,
+    "terms_rejected": 0,
+    "ms_p50": 4822,
+    "ms_p90": 7480,
+    "model_calls_avg": 2.25
+   },
+   "missing": {
+    "n": 10,
+    "behavior_ok": {
+     "hit": 10,
+     "n": 10
+    },
+    "clean": {
+     "hit": 8,
+     "n": 10
+    },
+    "tools_ok": {
+     "hit": 10,
+     "n": 10
+    },
+    "tools_model_only": {
+     "hit": 10,
+     "n": 10
+    },
+    "args_ok": {
+     "hit": 8,
+     "n": 10
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 10
+    },
+    "forced": {
+     "hit": 0,
+     "n": 10
+    },
+    "flags": {
+     "omitted_stated": 2
+    },
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0,
+    "ms_p50": 5116,
+    "ms_p90": 6167,
+    "model_calls_avg": 2.0
+   },
+   "handoff": {
+    "n": 3,
+    "behavior_ok": {
+     "hit": 3,
+     "n": 3
+    },
+    "clean": {
+     "hit": 3,
+     "n": 3
+    },
+    "tools_ok": {
+     "hit": 3,
+     "n": 3
+    },
+    "tools_model_only": {
+     "hit": 3,
+     "n": 3
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 3
+    },
+    "forced": {
+     "hit": 0,
+     "n": 3
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0,
+    "ms_p50": 3,
+    "ms_p90": 3561,
+    "model_calls_avg": 0.67
+   },
+   "scope": {
+    "n": 4,
+    "behavior_ok": {
+     "hit": 3,
+     "n": 4
+    },
+    "clean": {
+     "hit": 3,
+     "n": 4
+    },
+    "tools_ok": {
+     "hit": 3,
+     "n": 4
+    },
+    "tools_model_only": {
+     "hit": 3,
+     "n": 4
+    },
+    "facts_ok": {
+     "hit": 2,
+     "n": 2
+    },
+    "unsupported": {
+     "hit": 0,
+     "n": 4
+    },
+    "forced": {
+     "hit": 0,
+     "n": 4
+    },
+    "flags": {},
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0,
+    "ms_p50": 1,
+    "ms_p90": 2097,
+    "model_calls_avg": 0.25
+   }
+  }
+ },
+ "rows": [
+  {
+   "id": "Q001",
+   "category": "rule",
+   "core": true,
+   "question": "정기예금 중도해지하면 이율이 어떻게 돼요?",
+   "res": {
+    "answer": "중도해지하면 가입일부터 해지일 전일까지의 기간에 대해 **예치기간별 중도해지금리**가 적용됩니다.\n\n- 1개월 미만: 연 0.10%\n- 1개월 이상~3개월 미만: 연 0.15%\n- 3개월 이상~6개월 미만: 연 0.20%\n- 6개월 이상~9개월 미만: 가입 당시 기본금리의 60% × 경과일수 ÷ 계약일수\n- 9개월 이상~11개월 미만: 가입 당시 기본금리의 70% × 경과일수 ÷ 계약일수\n- 11개월 이상: 가입 당시 기본금리의 90% × 경과일수 ÷ 계약일수\n\n6개월 이상 구간은 계산한 금리가 연 0.20% 미만이면 연 0.20%",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5435,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "중도해지 금리"
+      },
+      "status": "ok",
+      "ms": 296,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5435,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q003",
+   "category": "rule",
+   "core": true,
+   "question": "만기가 지난 뒤에 찾으면 이자를 더 주나요?",
+   "res": {
+    "answer": "네. 만기일 이후에 찾으시면 약정이자에 더해 **만기일부터 찾기 전날까지의 만기 후 이자**가 지급됩니다. 만기 후 1개월 이내는 지급 당시 해당 기간별 정기예금 월이자지급식 기본금리의 절반, 1개월을 초과하면 그 기본금리의 4분의 1이 적용됩니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서 ‘만기 후 금리’(2025년 9월 1일 기준), 『하나의 정기예금』 특약 제6조 ④.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5028,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "만기 후 이자율 만기 후 이자 지급"
+      },
+      "status": "ok",
+      "ms": 84,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__after_maturity",
+      "chunk_type": "만기후금리",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 만기 후 금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art6",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제6조(이자지급)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 만기 후 금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제6조(이자지급) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5028,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q004",
+   "category": "rule",
+   "core": true,
+   "question": "예금 일부만 먼저 해지할 수 있나요?",
+   "res": {
+    "answer": "네. 만기일 전까지 2회 이내로 일부해지할 수 있습니다. 다만 일부해지 후 잔액이 최저 가입금액 이상이어야 하고, 해지한 금액에는 중도해지금리가 적용됩니다. 법적 제한이 있는 경우에는 일부해지가 불가합니다.\n\n근거: 『하나의 정기예금』 특약 제9조, 요약 상품설명서(2025년 9월 1일 기준). 실제 해지 처리는 도와드릴 수 없습니다. 상담 요청을 저장할까요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5633,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "일부해지 가능 여부 및 조건"
+      },
+      "status": "ok",
+      "ms": 78,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__illegal_contract",
+      "chunk_type": "위법계약해지권",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 위법계약해지권",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 위법계약해지권 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5633,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q005",
+   "category": "rule",
+   "core": true,
+   "question": "만기 때 자동으로 다시 예치하려면 어떻게 해요?",
+   "res": {
+    "answer": "만기 전일까지 재예치를 신청하시면 됩니다. 재예치 방식은 **원금만** 또는 **세후 원리금 전체** 중에서 선택할 수 있어요. 원금만 재예치하면 세후 이자는 미리 지정한 본인 하나은행 입출금통장으로 입금됩니다.\n\n재예치하면 최초 계약기간 단위로 다시 예치되고, 재예치일의 하나원큐 상품 상세페이지에 안내된 금리가 적용됩니다. 하나원큐에서 신청 방법을 확인해 보세요. 지급 제한 등 일부 사유가 있으면 재예치가 불가능할 수 있습니다.\n\n근거: 『하나의 정기예금』 특약 제10조(재예치), 요약 상품설명서 ‘거래 조건 > 재예치(갱신)’ ",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5123,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "만기 시 자동 재예치 신청 방법 및 재예치 조건"
+      },
+      "status": "ok",
+      "ms": 80,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art10",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제10조(재예치)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__renewal",
+      "chunk_type": "재예치",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 재예치(갱신)",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art10",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제10조(지급ㆍ해지청구)",
+      "page": 3,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 특약 · 제10조(재예치) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 재예치(갱신) · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 예금거래 기본약관 · 제10조(지급ㆍ해지청구) · 쪽 3 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5123,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q006",
+   "category": "rule",
+   "core": true,
+   "question": "만기일이 공휴일이면 해지는 어떻게 되나요?",
+   "res": {
+    "answer": "만기일이 휴일이면 **직전 영업일에 해지할 수 있고, 중도해지가 아닌 만기해지로 적용**됩니다. 이자는 실제 해지일 전일까지 계산해 지급합니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서, 거래 조건 > 계약해지방법(기준일 2025-09-01)",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4071,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "만기일 공휴일 만기 해지 지급일 휴일 만기"
+      },
+      "status": "ok",
+      "ms": 77,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__cancel_method",
+      "chunk_type": "계약해지방법",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 계약해지방법",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art2",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제2조(지급시기)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 계약해지방법 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 거치식예금 약관 · 제2조(지급시기) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4071,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q008",
+   "category": "rule",
+   "core": true,
+   "question": "이 예금은 예금자보호가 되나요?",
+   "res": {
+    "answer": "네. 『하나의 정기예금』은 예금자보호법에 따라 **원금과 소정의 이자를 합해 1인당 1억 원까지** 보호됩니다. 이 한도에는 하나은행의 다른 보호 대상 상품도 합산됩니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서의 예금자보호 안내(기준일 2025년 9월 1일)",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 3885,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "예금자 보호 한도 보호 대상 금융상품"
+      },
+      "status": "ok",
+      "ms": 69,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__deposit_protection",
+      "chunk_type": "예금자보호",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "예금자보호",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art1",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제1조(적용범위)",
+      "page": 1,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__collateral",
+      "chunk_type": "양도담보",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 양도 및 담보제공",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 예금자보호 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 예금거래 기본약관 · 제1조(적용범위) · 쪽 1 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 양도 및 담보제공 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 3885,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q010",
+   "category": "rule",
+   "core": true,
+   "question": "이자는 어떻게 계산해요?",
+   "res": {
+    "answer": "『하나의 정기예금』 이자는 **가입금액에 약정금리를 적용해 가입일부터 해지일 전일까지의 기간을 일 단위로 계산**합니다. 만기 해지 시에는 가입 당시 계약기간별 적용금리로 계산한 이자를 원금과 함께 지급합니다. 만기 전에 해지하면 해당 기간에 중도해지금리가 적용됩니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서 ‘이자계산방법’, 특약 제6조·제7조.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5294,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "이자 계산 방법 만기이자 지급 이율 계산식"
+      },
+      "status": "ok",
+      "ms": 84,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__interest_calc",
+      "chunk_type": "이자계산_일반",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 이자계산방법",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__after_maturity",
+      "chunk_type": "만기후금리",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 만기 후 금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 이자계산방법 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 만기 후 금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5294,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q017",
+   "category": "rule",
+   "core": true,
+   "question": "일찍 해약하면 약정금리 그대로 받나요?",
+   "res": {
+    "answer": "아니요. 만기 전에 해지하면 약정금리가 아니라 예치기간에 따른 **중도해지금리**가 적용됩니다. 2025년 9월 1일 기준으로 6개월 미만은 연 0.10~0.20%이며, 6개월 이상은 가입 당시 기본금리에 경과기간별 차등률과 경과율을 적용합니다. 수치는 세전 기준입니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4218,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "중도해지 이율 약정금리 조기 해지"
+      },
+      "status": "ok",
+      "ms": 84,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4218,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q023",
+   "category": "rule",
+   "core": true,
+   "question": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?",
+   "res": {
+    "answer": "가입한 지 2개월이면 '1개월 이상 ~ 3개월 미만' 구간이라 중도해지금리는 연 0.15%(고정)예요. 이자 금액이 궁금하면 원금과 신규일 · 만기일 · 해지일을 알려 주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 2,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 86,
+    "trace": [
+     {
+      "name": "lookup_termination_rate",
+      "args": {
+       "elapsed_months": 2
+      },
+      "status": "ok",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "lookup"
+     },
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "가입한 지 두 달 됐는데 지금 해지하면 금리가 얼마예요?"
+      },
+      "status": "ok",
+      "ms": 82,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "lookup"
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "가입 후 2개월: 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.15%(고정)",
+      "formula": [
+       "1개월 이상 ~ 3개월 미만: 연 0.150% (고정)"
+      ],
+      "assumptions": [
+       "사용자가 말한 기간을 '완전히 지난 개월 수'로 해석했습니다 (은행 확인 전)"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(구간 조회에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 가입 후 2개월: 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.15%(고정)\n  · 1개월 이상 ~ 3개월 미만: 연 0.150% (고정)\n  · 가정: 사용자가 말한 기간을 '완전히 지난 개월 수'로 해석했습니다 (은행 확인 전)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(구간 조회에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": false,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [
+     "lookup_termination_rate",
+     "search_terms"
+    ],
+    "ms": 86,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q026",
+   "category": "rule",
+   "core": true,
+   "question": "만기 전에 해지하면 손해인가요?",
+   "res": {
+    "answer": "대체로 **만기까지 유지하는 것보다 이자를 적게 받으므로 손해일 수 있습니다.** 다만 약관상 중도해지 시 원금에 중도해지금리를 적용해 이자를 지급하며, 이율은 예치 기간에 따라 달라집니다. 가입 후 6개월 이상이면 가입 당시 기본금리와 경과 기간을 반영해 계산하고, 최저 연 0.20%가 적용됩니다.\n\n정확한 차이는 가입일·만기일·해지일과 가입 당시 금리 등에 따라 달라집니다. 위 금리 기준은 상품설명서의 2025년 9월 1일 기준 내용입니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5312,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "중도해지 이율 및 만기 전 해지 시 이자"
+      },
+      "status": "ok",
+      "ms": 66,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5312,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q037",
+   "category": "rule",
+   "core": true,
+   "question": "중도해지하면 처음 약정한 금리는 아예 못 받는 건가요?",
+   "res": {
+    "answer": "네. 만기 전에 해지하면 처음 약정한 금리가 아니라 **예치기간에 따른 중도해지금리**가 적용됩니다. 6개월 이상 예치한 경우에도 가입 당시 기본금리에 경과 기간별 비율과 경과일수를 반영해 계산하며, 연 0.20%보다 낮으면 연 0.20%를 적용합니다.\n\n근거: 『하나의 정기예금』 특약 제6조 제3항 및 요약 상품설명서의 중도해지금리 안내(2025년 9월 1일 기준).",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4438,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "중도해지 이율 약정금리 적용 여부"
+      },
+      "status": "ok",
+      "ms": 83,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4438,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q040",
+   "category": "rule",
+   "core": true,
+   "question": "만기가 지난 뒤 찾으면 이자율이 정확히 몇 퍼센트인지 숫자로 알려 주세요",
+   "res": {
+    "answer": "만기 후 금리는 하나의 고정된 퍼센트가 아니라, 지급 당시 해당 기간별 정기예금 월이자지급식 기본금리를 기준으로 정해집니다. 만기 후 1개월 이내에는 그 기본금리의 절반, 1개월을 초과하면 4분의 1입니다. 따라서 적용되는 정확한 퍼센트는 지급 당시의 기본금리에 따라 달라집니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서 ‘만기 후 금리’(기준일 2025-09-01).",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected_replies": [
+     {
+      "problem": "terms",
+      "detail": "50%, 25%",
+      "chars": 237,
+      "text": "만기 후 금리는 **고정된 하나의 퍼센트가 아닙니다.** 지급 시점의 해당 기간별 정기예금 월이자지급식 기본금리를 기준으로,\n\n- 만기 후 **1개월 이내**: 그 금리의 **50%**\n- 만기 후 **1개월 초과**: 그 금리의 **25%**\n\n를 적용합니다. 따라서 실제 퍼센트는 지급 시점의 해당 기본금리에 따라 달라집니다.  \n근거: 『하나의 정기예금』 요약 상품설명서 ‘만기 후 금리’(기준일 2025-09-01)."
+     }
+    ],
+    "ms": 9999,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "만기 후 이자율 만기 후 이자 지급 이율"
+      },
+      "status": "ok",
+      "ms": 82,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__after_maturity",
+      "chunk_type": "만기후금리",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 만기 후 금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__interest_calc",
+      "chunk_type": "이자계산_일반",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 이자계산방법",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 만기 후 금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 이자계산방법 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": false,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": false,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 9999,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected": 1,
+    "terms_rejected": 1
+   }
+  },
+  {
+   "id": "Q041",
+   "category": "rule",
+   "core": true,
+   "question": "자동으로 재예치된 예금을 중도해지하면 기간은 언제부터 세나요?",
+   "res": {
+    "answer": "자동 재예치된 예금은 **마지막 재예치일을 기준으로** 중도해지 기간을 셉니다. 즉, 재예치된 계약의 시작일부터 해지일 전일까지의 기간입니다. 중도해지 이율도 재예치 당시의 조건을 기준으로 적용됩니다.\n\n근거: 『하나의 정기예금』 요약 상품설명서(2025.09.01 기준)는 중도해지 이자를 신규일부터 해지일 전일까지 계산하고, 6개월 이상 구간은 가입(재예치) 당시 기본금리를 적용한다고 안내합니다. 『하나의 정기예금』 특약 제10조는 재예치일에 재예치한다고 규정합니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5360,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "자동 재예치 계좌 중도해지 기간 기산일 최종 재예치일"
+      },
+      "status": "ok",
+      "ms": 85,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제9조(일부해지)",
+      "page": 2,
+      "review_no": "제2021-약관-528호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__partial_withdrawal",
+      "chunk_type": "일부해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 일부해지",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 특약 · 제9조(일부해지) · 쪽 2 · 심의 제2021-약관-528호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 일부해지 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5360,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q042",
+   "category": "rule",
+   "core": true,
+   "question": "만기가 지나서 찾으면 이자는 어떻게 줘요?",
+   "res": {
+    "answer": "만기일에 찾지 않고 나중에 찾으시면, 만기일까지의 약정이자에 **만기일 다음 날부터 지급일 전날까지의 만기 후 이자**를 더해 지급합니다.\n\n『하나의 정기예금』 만기 후 금리는 지급 당시 해당 기간의 정기예금 월이자지급식 기본금리를 기준으로 **만기 후 1개월 이내에는 ½, 1개월 초과 기간에는 ¼**을 적용합니다.\n\n근거: 『하나의 정기예금』 특약 제6조, 요약 상품설명서 ‘만기 후 금리’(2025년 9월 1일 기준).",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 7088,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "만기 후 이자 지급 만기일 경과 후 예금 찾을 때 적용 이율"
+      },
+      "status": "ok",
+      "ms": 80,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-sheet__after_maturity",
+      "chunk_type": "만기후금리",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 만기 후 금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art6",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제6조(이자지급)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 만기 후 금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제6조(이자지급) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 7088,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q045",
+   "category": "aftertax",
+   "core": true,
+   "question": "세후 이자는 얼마예요?",
+   "res": {
+    "answer": "세후 이자는 직접 계산해 드릴 수 없지만, 필요한 정보를 주시면 세전 중도해지 이자를 계산해 드릴 수 있습니다. 세전 이자에서 관계 법령에 따라 원천징수한 세액을 뺀 금액이 실제 받는 이자입니다(예금거래 기본약관 제9조 ⑤).\n\n원금, 신규일, 만기일, 해지일을 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 2,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 9640,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 0,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 0,
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     },
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "세금 이자소득 원천징수 예금거래 기본약관 제9조 ⑤ 원천징수 후 금액"
+      },
+      "status": "ok",
+      "ms": 81,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제9조(이 자)",
+      "page": 2,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art7",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제7조(이자계산)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 예금거래 기본약관 · 제9조(이 자) · 쪽 2 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제7조(이자계산) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 9640,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q046",
+   "category": "aftertax",
+   "core": true,
+   "question": "해지 날짜를 오늘로 잡으면 세금 떼고 실제로 얼마 들어오는지 알려줄 수 있어요?",
+   "res": {
+    "answer": "세금까지 뺀 실제 입금액은 계산할 수 없고, 중도해지 **세전 이자**만 계산해 드릴 수 있어요. 약관에는 실제 받는 이자가 계산된 이자에서 관계 법령에 따라 원천징수한 세액을 뺀 금액이라고 되어 있습니다(예금거래 기본약관 제9조 ⑤).\n\n세전 이자를 계산하려면 **예금 원금, 가입일, 만기일**을 알려주세요. 오늘 해지하는 것으로 계산하겠습니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 2,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 7748,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 0,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 0,
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     },
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "이자소득 원천징수 세금 예금거래 기본약관 제9조 ⑤"
+      },
+      "status": "ok",
+      "ms": 77,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제9조(이 자)",
+      "page": 2,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art7",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제7조(이자계산)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 예금거래 기본약관 · 제9조(이 자) · 쪽 2 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제7조(이자계산) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": false,
+    "tools_model_only": false,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 7748,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q047",
+   "category": "aftertax",
+   "core": true,
+   "question": "예금 이자에 세금이 붙나요?",
+   "res": {
+    "answer": "네. 『하나의 정기예금』 이자는 관계 법령에 따라 세금을 원천징수한 뒤 지급됩니다. 약관에는 실제 받는 이자가 계산된 이자에서 원천징수 세액을 뺀 금액이라고 안내되어 있습니다.\n\n근거: 예금거래 기본약관 제9조 ⑤(2025년 2월 26일 시행)",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5510,
+    "trace": [
+     {
+      "name": "search_terms",
+      "args": {
+       "query": "예금 이자 세금 원천징수 기본약관 제9조 ⑤"
+      },
+      "status": "ok",
+      "ms": 76,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-basic-terms__art9",
+      "chunk_type": "약관_조",
+      "doc_title": "예금거래 기본약관",
+      "article": "제9조(이 자)",
+      "page": 2,
+      "review_no": "제2024-약관-153호",
+      "effective_date": "2025-02-26"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-lumpsum-terms__art3",
+      "chunk_type": "약관_조",
+      "doc_title": "거치식예금 약관",
+      "article": "제3조(이자)",
+      "page": 1,
+      "review_no": "2021-약관-122호"
+     },
+     {
+      "kind": "약관",
+      "role": "검색된 약관",
+      "chunk_id": "hana-deposit-terms__art6",
+      "chunk_type": "약관_조",
+      "doc_title": "『하나의 정기예금』 특약",
+      "article": "제6조(이자지급)",
+      "page": 1,
+      "review_no": "제2021-약관-528호"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 예금거래 기본약관 · 제9조(이 자) · 쪽 2 · 심의 제2024-약관-153호 · 적용일 2025-02-26 (검색된 약관)\n- [약관] 거치식예금 약관 · 제3조(이자) · 쪽 1 · 심의 2021-약관-122호 (검색된 약관)\n- [약관] 『하나의 정기예금』 특약 · 제6조(이자지급) · 쪽 1 · 심의 제2021-약관-528호 (검색된 약관)"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "evidence_ok": true,
+    "gold_chunk_in_evidence": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5510,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q048",
+   "category": "calc",
+   "core": true,
+   "question": "정기예금 1,000만 원을 2025년 6월 1일에 들었고 2026년 6월 1일 만기인데, 오늘 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "해지일은 만기일 이후라 중도해지 이자 계산 대상이 아닙니다. 만기 해지나 만기 후 이자는 적용되는 금리 정보가 없어 금액을 확인할 수 없습니다. 약정금리와 만기 후 금리를 알려주시면 확인을 도와드릴게요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4732,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2025-06-01",
+       "maturity_date": "2026-06-01",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "not_early_termination",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4732,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q049",
+   "category": "calc",
+   "core": true,
+   "question": "앱에서 보니까 제 예금 금리가 연 3.5%였어요. 1000만원을 2026-01-01에 넣었고 만기는 2027-01-01인데 2026-12-07에 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "세전 이자는 **273,304원**입니다. 계산에 적용된 중도해지금리는 연 **2.934%**입니다.\n\n계산식: 10,000,000원 × 2.934% × 340일 ÷ 365일 = 273,304원(원 미만 절사)\n\n※ 신규일 당시 고시된 계약기간별 기본금리를 연 3.5%로 보고 계산했습니다. 가입 시 앱에 표시된 적용금리와 다를 수 있으며, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4448,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2027-01-01",
+       "termination_date": "2026-12-07",
+       "base_rate": 3.5
+      },
+      "status": "ok",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2026-01-01 신규, 2026-12-07 해지: 경과 340일(11개월), 11개월 이상, 중도해지금리 연 2.934% → 세전 이자 273,304원",
+      "formula": [
+       "11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(340일/365일) = 2.934247% → 소수점 넷째 자리 절사 2.934%",
+       "이자 = 원금 10,000,000원 × 2.934% × 340일 / 365일 = 273,304원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)",
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2026-01-01 신규, 2026-12-07 해지: 경과 340일(11개월), 11개월 이상, 중도해지금리 연 2.934% → 세전 이자 273,304원\n  · 11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(340일/365일) = 2.934247% → 소수점 넷째 자리 절사 2.934%\n  · 이자 = 원금 10,000,000원 × 2.934% × 340일 / 365일 = 273,304원 (원 미만 절사)\n  · 가정: 입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4448,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q052",
+   "category": "calc",
+   "core": true,
+   "question": "1000만원을 2025-12-05에 가입했고 만기는 2026-12-05예요. 2026-12-04에 해지하면 이자 얼마예요? 기본금리는 3.5%예요.",
+   "res": {
+    "answer": "중도해지로 처리될 경우 세전 이자는 **313,239원**입니다.\n\n계산식: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(364일/365일) = 3.141370% → 소수점 넷째 자리 절사하여 **연 3.141%**  \n이자 = 10,000,000원 × 3.141% × 364일 / 365일 = **313,239원**(원 미만 절사)\n\n다만 만기일이 토요일이고 해지일이 직전 영업일이라, 만기 해지(약정금리)로 처리될 수 있습니다. 그러면 위 금액과 다를 수 있으니 정확한 금액은 은행에 확인해 주세요. 계산은 입력하신",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 9762,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2025-12-05",
+       "maturity_date": "2026-12-05",
+       "termination_date": "2026-12-04",
+       "base_rate": 3.5
+      },
+      "status": "ok",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2025-12-05 신규, 2026-12-04 해지: 경과 364일(11개월), 11개월 이상, 중도해지금리 연 3.141% → 세전 이자 313,239원",
+      "formula": [
+       "11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(364일/365일) = 3.141370% → 소수점 넷째 자리 절사 3.141%",
+       "이자 = 원금 10,000,000원 × 3.141% × 364일 / 365일 = 313,239원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)",
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ],
+      "warnings": [
+       "만기일(2026-12-05)이 휴일(토 · 일)이고 해지일이 직전 영업일입니다. 이 경우 중도해지가 아니라 만기 해지(약정금리)로 처리될 수 있어 이 금액과 다를 수 있습니다. 정확한 금액은 은행에 확인해야 합니다 (공휴일은 이 도구가 알지 못합니다)"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2025-12-05 신규, 2026-12-04 해지: 경과 364일(11개월), 11개월 이상, 중도해지금리 연 3.141% → 세전 이자 313,239원\n  · 11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(364일/365일) = 3.141370% → 소수점 넷째 자리 절사 3.141%\n  · 이자 = 원금 10,000,000원 × 3.141% × 364일 / 365일 = 313,239원 (원 미만 절사)\n  · 가정: 입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n  · 주의: 만기일(2026-12-05)이 휴일(토 · 일)이고 해지일이 직전 영업일입니다. 이 경우 중도해지가 아니라 만기 해지(약정금리)로 처리될 수 있어 이 금액과 다를 수 있습니다. 정확한 금액은 은행에 확인해야 합니다 (공휴일은 이 도구가 알지 못합니다)\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 9762,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q054",
+   "category": "calc",
+   "core": true,
+   "question": "2026년 1월 1일에 천만 원을 1년 만기로 넣었는데 2026년 3월 2일에 해지하면 이자가 얼마죠?",
+   "res": {
+    "answer": "세전 이자는 **2,465원**입니다. 계산은 **1,000만 원 × 연 0.150% × 60일 ÷ 365일**이며, 원 미만은 절사했습니다. 세금 차감 후 금액은 포함하지 않았습니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4168,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2027-01-01",
+       "termination_date": "2026-03-02",
+       "base_rate": 0
+      },
+      "status": "ok",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2026-01-01 신규, 2026-03-02 해지: 경과 60일(2개월), 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.150% → 세전 이자 2,465원",
+      "formula": [
+       "1개월 이상 ~ 3개월 미만: 연 0.150% (고정)",
+       "이자 = 원금 10,000,000원 × 0.150% × 60일 / 365일 = 2,465원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2026-01-01 신규, 2026-03-02 해지: 경과 60일(2개월), 1개월 이상 ~ 3개월 미만, 중도해지금리 연 0.150% → 세전 이자 2,465원\n  · 1개월 이상 ~ 3개월 미만: 연 0.150% (고정)\n  · 이자 = 원금 10,000,000원 × 0.150% × 60일 / 365일 = 2,465원 (원 미만 절사)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4168,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q056",
+   "category": "calc",
+   "core": true,
+   "question": "1000만원, 2026-01-01 신규, 2027-01-01 만기, 기본금리 3.5%였고 2026-07-20에 해지하면 이자는요?",
+   "res": {
+    "answer": "중도해지 시 세전 이자는 **63,013원**입니다. 계산에 적용된 중도해지금리는 연 **1.150%**이며, 원 미만은 절사했습니다.\n\n계산식: 10,000,000원 × 1.150% × 200일 ÷ 365일 = 63,013원.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5796,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2027-01-01",
+       "termination_date": "2026-07-20",
+       "base_rate": 3.5
+      },
+      "status": "ok",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2026-01-01 신규, 2026-07-20 해지: 경과 200일(6개월), 6개월 이상 ~ 9개월 미만, 중도해지금리 연 1.150% → 세전 이자 63,013원",
+      "formula": [
+       "6개월 이상 ~ 9개월 미만: 중도해지금리 = 기본금리 3.5% × 차등율 60% × 경과율(200일/365일) = 1.150685% → 소수점 넷째 자리 절사 1.150%",
+       "이자 = 원금 10,000,000원 × 1.150% × 200일 / 365일 = 63,013원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)",
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2026-01-01 신규, 2026-07-20 해지: 경과 200일(6개월), 6개월 이상 ~ 9개월 미만, 중도해지금리 연 1.150% → 세전 이자 63,013원\n  · 6개월 이상 ~ 9개월 미만: 중도해지금리 = 기본금리 3.5% × 차등율 60% × 경과율(200일/365일) = 1.150685% → 소수점 넷째 자리 절사 1.150%\n  · 이자 = 원금 10,000,000원 × 1.150% × 200일 / 365일 = 63,013원 (원 미만 절사)\n  · 가정: 입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5796,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q057",
+   "category": "calc",
+   "core": true,
+   "question": "2년 만기(2026-01-01 ~ 2028-01-01)로 1000만원 넣었고 기본금리는 4%예요. 2026-10-28에 깨면 얼마 받아요?",
+   "res": {
+    "answer": "계산 결과 **세전 이자는 94,520원**, 원금과 합한 금액은 **10,094,520원**입니다. 실제 받는 금액은 이자소득세 원천징수로 달라질 수 있습니다.\n\n- 중도해지금리: 기본금리 4% × 차등율 70% × 경과율(300일/730일) = 1.150685% → 소수점 넷째 자리 절사 **연 1.150%**\n- 이자: 10,000,000원 × 1.150% × 300일 / 365일 = **94,520원**(원 미만 절사)\n\n계산은 입력하신 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고, 이자 계산의 나누는 수를 36",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 7326,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2028-01-01",
+       "termination_date": "2026-10-28",
+       "base_rate": 4
+      },
+      "status": "ok",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2026-01-01 신규, 2026-10-28 해지: 경과 300일(9개월), 9개월 이상 ~ 11개월 미만, 중도해지금리 연 1.150% → 세전 이자 94,520원",
+      "formula": [
+       "9개월 이상 ~ 11개월 미만: 중도해지금리 = 기본금리 4% × 차등율 70% × 경과율(300일/730일) = 1.150685% → 소수점 넷째 자리 절사 1.150%",
+       "이자 = 원금 10,000,000원 × 1.150% × 300일 / 365일 = 94,520원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)",
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2026-01-01 신규, 2026-10-28 해지: 경과 300일(9개월), 9개월 이상 ~ 11개월 미만, 중도해지금리 연 1.150% → 세전 이자 94,520원\n  · 9개월 이상 ~ 11개월 미만: 중도해지금리 = 기본금리 4% × 차등율 70% × 경과율(300일/730일) = 1.150685% → 소수점 넷째 자리 절사 1.150%\n  · 이자 = 원금 10,000,000원 × 1.150% × 300일 / 365일 = 94,520원 (원 미만 절사)\n  · 가정: 입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 7326,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q058",
+   "category": "calc",
+   "core": true,
+   "question": "기본금리 연 3.5%, 원금 1천만원, 2026-01-01부터 2027-01-01까지인데 2026-12-07에 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "세전 이자는 **273,304원**입니다.\n\n계산에 적용된 중도해지금리는 연 **2.934%**입니다. 계산식은 원금 10,000,000원 × 2.934% × 340일 ÷ 365일이며, 원 미만은 절사했습니다. 세전 기준이라 실제 지급액은 세금 원천징수에 따라 달라질 수 있습니다.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4538,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2027-01-01",
+       "termination_date": "2026-12-07",
+       "base_rate": 3.5
+      },
+      "status": "ok",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "계산",
+      "summary": "2026-01-01 신규, 2026-12-07 해지: 경과 340일(11개월), 11개월 이상, 중도해지금리 연 2.934% → 세전 이자 273,304원",
+      "formula": [
+       "11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(340일/365일) = 2.934247% → 소수점 넷째 자리 절사 2.934%",
+       "이자 = 원금 10,000,000원 × 2.934% × 340일 / 365일 = 273,304원 (원 미만 절사)"
+      ],
+      "assumptions": [
+       "입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)",
+       "이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)",
+       "경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)",
+       "경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)",
+       "세전 기준이며 원 미만은 절사했습니다"
+      ]
+     },
+     {
+      "kind": "약관",
+      "role": "중도해지금리 규칙(계산에 쓴 구간표)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [계산] 2026-01-01 신규, 2026-12-07 해지: 경과 340일(11개월), 11개월 이상, 중도해지금리 연 2.934% → 세전 이자 273,304원\n  · 11개월 이상: 중도해지금리 = 기본금리 3.5% × 차등율 90% × 경과율(340일/365일) = 2.934247% → 소수점 넷째 자리 절사 2.934%\n  · 이자 = 원금 10,000,000원 × 2.934% × 340일 / 365일 = 273,304원 (원 미만 절사)\n  · 가정: 입력한 기본금리를 신규일 당시 고시된 계약기간별 기본금리로 보고 계산했습니다 (가입 시 앱에 표시된 적용금리와 다를 수 있고, 쿠폰 우대금리는 중도해지 시 적용되지 않습니다)\n  · 가정: 이자 계산의 나누는 수는 365일로 가정했습니다 (문서에 명시 없음)\n  · 가정: 경과 개월 수는 신규일에 n개월을 더한 날(해당 월에 그 날짜가 없으면 말일)이 해지일 이하인 가장 큰 n으로 판정했습니다 (은행 확인 전)\n  · 가정: 경과일수는 해지일 − 신규일, 계약일수는 만기일 − 신규일로 계산했습니다 (문서에 계약일수 정의 없음)\n  · 가정: 세전 기준이며 원 미만은 절사했습니다\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (중도해지금리 규칙(계산에 쓴 구간표))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "calc_value_ok": true,
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4538,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q060",
+   "category": "calc",
+   "core": true,
+   "question": "10만원을 2026-01-01부터 2027-01-01까지 넣었다가 2026-05-31에 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "『하나의 정기예금』은 최소 가입금액이 100만 원이라, 말씀하신 10만 원으로는 이자를 계산할 수 없습니다. 100만 원 이상의 금액으로 다시 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4492,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 100000,
+       "start_date": "2026-01-01",
+       "maturity_date": "2027-01-01",
+       "termination_date": "2026-05-31",
+       "base_rate": 0
+      },
+      "status": "invalid_input",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4492,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q061",
+   "category": "calc_base_rate",
+   "core": true,
+   "question": "2025년 9월 15일에 가입해서 2026년 9월 15일 만기인 700만 원 예금, 7월 말에 해지하면 이자 좀 계산해 주세요.",
+   "res": {
+    "answer": "해지일을 정확한 날짜로 알려주시면 이자를 계산해 드릴게요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected_replies": [
+     {
+      "problem": "ungrounded",
+      "detail": "2026-07-31",
+      "chars": 52,
+      "text": "해지일을 정확한 날짜로 알려주세요. 예를 들어 2026년 7월 31일에 해지하신다는 뜻인가요?"
+     }
+    ],
+    "ms": 7480,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 7000000,
+       "start_date": "2025-09-15",
+       "maturity_date": "2026-09-15",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": false,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 7480,
+    "model_calls": 3,
+    "notes_stripped": 0,
+    "rejected": 1,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q062",
+   "category": "calc_base_rate",
+   "core": true,
+   "question": "4월 2일에 1,000만 원 가입했고 만기는 내년 4월 2일이에요, 10월 15일에 해지하면 얼마 받아요?",
+   "res": {
+    "answer": "가입하신 해의 연도를 알려주시면 계산할게요. 4월 2일에 가입하신 것이 몇 년도인가요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5599,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 1,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {
+       "maturity_date": "2027-04-02",
+       "termination_date": "2026-10-15"
+      },
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": false,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [
+     "omitted_stated:start_date"
+    ],
+    "args_ok": false,
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 5599,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q063",
+   "category": "calc_base_rate",
+   "core": true,
+   "question": "작년 3월에 가입했다가 올해 1월 10일에 자동으로 재예치된 예금이에요. 1000만원이고 만기는 2027-01-10인데 오늘 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "신규일부터 9개월이 지나 중도해지 이자를 계산하려면 **재예치일 당시 홈페이지에 고시된 계약기간별 기본금리(연 %)**가 필요합니다. 앱에 표시된 적용금리(우대금리 포함)와는 다를 수 있어요. 해당 기본금리를 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4822,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "2026-01-10",
+       "maturity_date": "2027-01-10",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "need_base_rate",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "기본금리가 필요한 구간(경과 6개월 이상)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (기본금리가 필요한 구간(경과 6개월 이상))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4822,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q064",
+   "category": "calc_base_rate",
+   "core": true,
+   "question": "2000만원을 2026-03-15에 1년 만기(2027-03-15)로 넣었어요. 오늘 해지하면 이자 얼마예요?",
+   "res": {
+    "answer": "중도해지 세전 이자를 계산하려면 가입일 당시 홈페이지에 고시된 계약기간별 기본금리(연 %)가 필요합니다. 가입 시 앱에 표시된 적용금리(우대금리 포함)와 다를 수 있어요. 그 기본금리가 얼마였나요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 3783,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 20000000,
+       "start_date": "2026-03-15",
+       "maturity_date": "2027-03-15",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "need_base_rate",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [
+     {
+      "kind": "약관",
+      "role": "기본금리가 필요한 구간(경과 6개월 이상)",
+      "chunk_id": "hana-deposit-sheet__early_termination",
+      "chunk_type": "중도해지",
+      "doc_title": "『하나의 정기예금』 요약 상품설명서",
+      "section": "거래 조건 > 중도해지금리",
+      "review_no": "제2025-설명서-199호",
+      "as_of": "2025-09-01"
+     }
+    ],
+    "evidence_text": "근거\n- [약관] 『하나의 정기예금』 요약 상품설명서 · 거래 조건 > 중도해지금리 · 심의 제2025-설명서-199호 · 기준일 2025-09-01 (기본금리가 필요한 구간(경과 6개월 이상))"
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "evidence_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 3783,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q065",
+   "category": "missing",
+   "core": true,
+   "question": "3월 10일에 500만 원 넣었는데 다음 달 20일에 깨면 이자 얼마나 나와요?",
+   "res": {
+    "answer": "계산에 신규일의 연도와 만기일이 필요해요. 3월 10일이 몇 년도인지, 만기일이 언제인지 알려주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 6167,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 5000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {
+       "termination_date": "2026-11-20"
+      },
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [
+     "omitted_stated:start_date"
+    ],
+    "args_ok": false,
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 6167,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q066",
+   "category": "missing",
+   "core": true,
+   "question": "정기예금 2천 넣은 지 5개월쯤 됐어요. 지금 해지하면 이자 얼마 받을까요?",
+   "res": {
+    "answer": "계산하려면 원금, 신규일(가입일), 만기일이 필요해요. “2천”은 정확히 얼마인지 원 단위로 알려주시고, 가입일과 만기일도 날짜로 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5116,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 20000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 20000000,
+       "base_rate": 0
+      },
+      "filled": {
+       "termination_date": "2026-10-28"
+      },
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5116,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q068",
+   "category": "missing",
+   "core": true,
+   "question": "금리 연 3.2%로 1,500만 원 넣었어요. 만기까지 두 달 남았는데 지금 깨면 이자 얼마나 손해예요?",
+   "res": {
+    "answer": "지금 해지할 때의 세전 이자를 계산하려면 **가입일과 만기일**이 필요해요. “만기까지 두 달”만으로는 날짜를 특정할 수 없습니다. 가입일과 만기일을 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 7891,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 15000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [
+     "omitted_stated:base_rate"
+    ],
+    "args_ok": false,
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 7891,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q069",
+   "category": "missing",
+   "core": true,
+   "question": "금리 2.8%짜리 정기예금 3천만 원을 만기 전에 해지하면 이자가 어떻게 돼요?",
+   "res": {
+    "answer": "중도해지 이자를 계산하려면 **신규일, 만기일, 해지일**이 필요합니다. 세 날짜를 알려주시면 세전 이자를 계산해 드릴게요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4500,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 30000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 2.8
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4500,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q070",
+   "category": "missing",
+   "core": true,
+   "question": "500만 원을 연 3%로 1년 예치했는데 6개월 만에 깨면 이자 얼마나 붙어요?",
+   "res": {
+    "answer": "중도해지 이자를 계산하려면 **가입일, 만기일, 해지일**이 필요합니다. 세 날짜를 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 6131,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 5000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 3
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 6131,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q071",
+   "category": "missing",
+   "core": true,
+   "question": "만기 한 달 전인데 지금 해지하는 거랑 만기까지 기다리는 거랑 이자 차이가 많이 나나요?",
+   "res": {
+    "answer": "차이를 보려면 중도해지 세전 이자를 계산해야 해요. **예금 원금, 가입일, 만기일**을 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5678,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 0,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 0,
+       "base_rate": 0
+      },
+      "filled": {
+       "termination_date": "2026-10-28"
+      },
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5678,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q072",
+   "category": "missing",
+   "core": true,
+   "question": "예금 중도해지하면 이자 얼마 받아요?",
+   "res": {
+    "answer": "중도해지 시 세전 이자를 계산하려면 **원금, 신규일, 만기일, 해지일**이 필요합니다. 해당 정보를 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4572,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 0,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 0,
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4572,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q073",
+   "category": "missing",
+   "core": true,
+   "question": "1000만원 넣었는데 지금 깨면 이자 얼마예요?",
+   "res": {
+    "answer": "이자를 계산하려면 가입일(신규일)과 만기일이 필요해요. 두 날짜를 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4378,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 10000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4378,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q075",
+   "category": "missing",
+   "core": true,
+   "question": "5개월 전에 2000만원을 1년짜리로 가입했어요. 지금 해지하면 이자는요?",
+   "res": {
+    "answer": "이자를 계산하려면 정확한 신규일과 만기일이 필요합니다. 가입일과 만기일을 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 5557,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 20000000,
+       "start_date": "",
+       "maturity_date": "",
+       "termination_date": "2026-10-28",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 5557,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q076",
+   "category": "missing",
+   "core": true,
+   "question": "2026-02-01에 신규했고 2026-09-30에 해지하려고 해요. 이자 얼마 나와요?",
+   "res": {
+    "answer": "이자를 계산하려면 **원금과 만기일**이 필요해요. 두 값을 알려주시겠어요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 4499,
+    "trace": [
+     {
+      "name": "calc_interest",
+      "args": {
+       "principal": 0,
+       "start_date": "2026-02-01",
+       "maturity_date": "",
+       "termination_date": "2026-09-30",
+       "base_rate": 0
+      },
+      "status": "missing_info",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {
+       "principal": 0,
+       "base_rate": 0
+      },
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "args_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 4499,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q077",
+   "category": "handoff",
+   "core": true,
+   "question": "사람이랑 얘기하고 싶어요",
+   "res": {
+    "answer": "상담 요청을 저장할까요? 저장을 원하시면 ‘네’라고 답해 주세요.",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 1,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 3561,
+    "trace": [
+     {
+      "name": "request_handoff",
+      "args": {},
+      "status": "needs_confirmation",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": false,
+      "forced_kind": null
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 3561,
+    "model_calls": 2,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q078",
+   "category": "handoff",
+   "core": true,
+   "question": "상담원 연결해줘",
+   "res": {
+    "answer": "상담 요청을 저장했어요. 접수번호는 20261126-0042예요. 이 프로그램에는 상담원 연결 기능이 없어서 담당자가 연락드리거나 연결해 주지는 않아요. 급하시면 하나은행 고객센터나 영업점에 직접 문의해 주세요.",
+    "error": null,
+    "stop_reason": "handoff_saved",
+    "tool_calls": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 3,
+    "trace": [
+     {
+      "name": "request_handoff",
+      "args": {},
+      "status": "saved",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "handoff"
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 3,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q079",
+   "category": "handoff",
+   "core": true,
+   "question": "직원이랑 통화하고 싶어요",
+   "res": {
+    "answer": "상담 요청을 저장했어요. 접수번호는 20261126-0043예요. 이 프로그램에는 상담원 연결 기능이 없어서 담당자가 연락드리거나 연결해 주지는 않아요. 급하시면 하나은행 고객센터나 영업점에 직접 문의해 주세요.",
+    "error": null,
+    "stop_reason": "handoff_saved",
+    "tool_calls": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 2,
+    "trace": [
+     {
+      "name": "request_handoff",
+      "args": {},
+      "status": "saved",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "handoff"
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 2,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q080",
+   "category": "scope",
+   "core": true,
+   "question": "대출 금리는 얼마예요?",
+   "res": {
+    "answer": "죄송해요, 대출 · 카드 · 보험 같은 다른 상품은 여기서 안내해 드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. 다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.",
+    "error": null,
+    "stop_reason": "out_of_scope",
+    "tool_calls": 0,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 1,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q081",
+   "category": "scope",
+   "core": true,
+   "question": "오늘 서울 날씨 어때요?",
+   "res": {
+    "answer": "죄송해요, 그 질문은 도와드릴 수 없어요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. 예를 들어 \"중도해지하면 이자가 어떻게 돼요?\"처럼 물어봐 주세요.",
+    "error": null,
+    "stop_reason": "out_of_scope",
+    "tool_calls": 0,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 1,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "facts_ok": true,
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q082",
+   "category": "scope",
+   "core": true,
+   "question": "상담원 연결하면 수수료가 있나요?",
+   "res": {
+    "answer": "상담 요청을 저장했어요. 접수번호는 20261126-0044예요. 이 프로그램에는 상담원 연결 기능이 없어서 담당자가 연락드리거나 연결해 주지는 않아요. 급하시면 하나은행 고객센터나 영업점에 직접 문의해 주세요.",
+    "error": null,
+    "stop_reason": "handoff_saved",
+    "tool_calls": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 1,
+    "trace": [
+     {
+      "name": "request_handoff",
+      "args": {},
+      "status": "saved",
+      "ms": 0,
+      "retried": false,
+      "duplicate": false,
+      "dropped": {},
+      "filled": {},
+      "ignored": [],
+      "forced": true,
+      "forced_kind": "handoff"
+     }
+    ],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": false,
+    "tools_ok": false,
+    "tools_model_only": false,
+    "say_ok": true,
+    "flags": [],
+    "unsupported": false,
+    "clean": false,
+    "forced": [],
+    "ms": 1,
+    "model_calls": 0,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  },
+  {
+   "id": "Q083",
+   "category": "scope",
+   "core": true,
+   "question": "안녕하세요",
+   "res": {
+    "answer": "안녕하세요. 『하나의 정기예금』 약관이나 중도해지 세전 이자 계산을 도와드릴게요. 무엇이 궁금하신가요?",
+    "error": null,
+    "stop_reason": null,
+    "tool_calls": 0,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected_replies": [],
+    "ms": 2097,
+    "trace": [],
+    "evidence": [],
+    "evidence_text": ""
+   },
+   "grade": {
+    "behavior_ok": true,
+    "tools_ok": true,
+    "tools_model_only": true,
+    "say_ok": true,
+    "flags": [],
+    "unsupported": false,
+    "clean": true,
+    "forced": [],
+    "ms": 2097,
+    "model_calls": 1,
+    "notes_stripped": 0,
+    "rejected": 0,
+    "terms_rejected": 0
+   }
+  }
+ ]
+}
