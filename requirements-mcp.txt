@@ -1,0 +1,2 @@
+# MCP 서버(app/mcp_server.py)용. Docker 이미지의 requirements.txt와 따로 둔다 (의존성이 많이 늘어난다).
+mcp==2.3.0
