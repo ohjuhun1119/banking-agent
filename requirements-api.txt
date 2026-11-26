@@ -1,0 +1,2 @@
+# API 모델(LLM_PROVIDER=openai)용. Docker 이미지의 requirements.txt와 따로 둔다. langchain-core는 requirements.txt의 1.7.0과 맞는 버전이다.
+langchain-openai==1.7.0

@@ -441,7 +441,7 @@ def make_agent_node(get_model):
             elif kind == "search":
                 ai = forced_search_message(state)
         except Exception as e:                                # Ollama 꺼짐, 모델 없음 등
-            return _rollback(state, f"모델 호출 실패 ({tc.TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {tc.TOOL_MODEL}'를 확인하세요.")
+            return _rollback(state, f"모델 호출 실패 ({tc.active_model_name()}): {e}. {tc.model_failure_hint()}")
         if not getattr(ai, "tool_calls", None) and not str(ai.content).strip():
             ai = AIMessage(content=EMPTY_TEXT)                # 도구도 답도 없는 빈 응답
         return {"messages": [ai], "model_calls": state.get("model_calls", 0) + calls, "notes_stripped": state.get("notes_stripped", 0) + stripped,

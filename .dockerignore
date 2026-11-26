@@ -21,3 +21,4 @@ docs
 eval/runs
 eval/tool_runs
 *.md
+.env.llm

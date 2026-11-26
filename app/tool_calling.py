@@ -126,11 +126,60 @@ class ToolCallingError(RuntimeError):
     """모델 호출 실패 (Ollama가 꺼져 있음, 모델 없음 등)."""
 
 
+def llm_provider() -> str:
+    """모델 제공사. 기본은 로컬 Ollama. 'openai'는 질문 · 도구 결과 · 대화가 OpenAI 서버로 나간다 (LLM_ALLOW_EXTERNAL=1이 있어야 켜진다)."""
+    return (os.environ.get("LLM_PROVIDER") or "ollama").strip().lower()
+
+
+def active_model_name() -> str:
+    return (os.environ.get("LLM_MODEL") or "gpt-4.1-mini") if llm_provider() == "openai" else TOOL_MODEL
+
+
+def model_failure_hint() -> str:
+    """모델 호출이 실패했을 때 사용자에게 보여 줄 안내 (제공사에 맞게)."""
+    if llm_provider() == "openai":
+        return "OPENAI_API_KEY · LLM_MODEL · 크레딧 잔액을 확인하세요. 'temperature는 지원하지 않는다'는 오류면 LLM_TEMPERATURE=omit을 설정하세요."
+    return f"'ollama serve'와 'ollama pull {TOOL_MODEL}'를 확인하세요."
+
+
+def _plain_text(msg):
+    """API 모델은 답을 블록 목록([{'type':'text','text':...}])으로 줄 수 있다. 기존 코드가 기대하는 문자열로 바꾼다 (도구 호출은 그대로)."""
+    if isinstance(msg.content, list):
+        text = "".join(b if isinstance(b, str) else b.get("text", "") for b in msg.content if isinstance(b, str) or (isinstance(b, dict) and b.get("type") == "text"))
+        return msg.model_copy(update={"content": text})
+    return msg
+
+
+def _api_temperature() -> float | None:
+    """기본 0(같은 질문에 같은 결과). 추론형 모델처럼 temperature를 받지 않는 모델은 LLM_TEMPERATURE=omit으로 보내지 않는다 (그 경우 같은 질문에도 답이 달라질 수 있다)."""
+    raw = (os.environ.get("LLM_TEMPERATURE") or "0").strip().lower()
+    if raw == "omit":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise ToolCallingError(f"LLM_TEMPERATURE는 숫자 또는 omit이어야 합니다: {raw!r}") from None
+
+
 def get_model(variant: str = DEFAULT_VARIANT, extra_tools=()):
-    """도구가 연결된 ChatOllama. temperature 0으로 같은 질문에 같은 결과가 나오게 한다 (흔들림은 --repeat로 확인). extra_tools: 에이전트가 더 붙이는 도구 정의."""
-    from langchain_ollama import ChatOllama
-    return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX, num_predict=NUM_PREDICT, client_kwargs={"timeout": REQUEST_TIMEOUT}).bind_tools(
-        tool_specs(variant) + list(extra_tools))
+    """도구가 연결된 모델. 기본은 로컬 ChatOllama(temperature 0으로 같은 질문에 같은 결과가 나오게 한다. 흔들림은 --repeat로 확인).
+    LLM_PROVIDER=openai이면 ChatOpenAI: 보내기 전에 개인정보 모양을 가리고(app/redact.py) 답은 문자열로 바꾼다. extra_tools: 에이전트가 더 붙이는 도구 정의."""
+    specs = tool_specs(variant) + list(extra_tools)
+    provider = llm_provider()
+    if provider == "ollama":
+        from langchain_ollama import ChatOllama
+        return ChatOllama(model=TOOL_MODEL, temperature=0, num_ctx=NUM_CTX, num_predict=NUM_PREDICT, client_kwargs={"timeout": REQUEST_TIMEOUT}).bind_tools(specs)
+    if provider == "openai":
+        if os.environ.get("LLM_ALLOW_EXTERNAL") != "1":
+            raise ToolCallingError("LLM_PROVIDER=openai는 질문 · 도구 결과 · 대화를 OpenAI 서버로 보냅니다. 그래도 쓰려면 LLM_ALLOW_EXTERNAL=1을 함께 설정하세요.")
+        if not os.environ.get("OPENAI_API_KEY"):
+            raise ToolCallingError("LLM_PROVIDER=openai에는 OPENAI_API_KEY가 필요합니다.")
+        from langchain_core.runnables import RunnableLambda
+        from langchain_openai import ChatOpenAI
+        from app.redact import mask_messages
+        chat = ChatOpenAI(model=active_model_name(), temperature=_api_temperature(), max_tokens=NUM_PREDICT, timeout=REQUEST_TIMEOUT, max_retries=1).bind_tools(specs)
+        return RunnableLambda(mask_messages) | chat | RunnableLambda(_plain_text)
+    raise ToolCallingError(f"알 수 없는 LLM_PROVIDER: {provider!r} (ollama 또는 openai)")
 
 
 def _to_lc(messages: list[dict]):
@@ -149,7 +198,7 @@ def ask(question: str, variant: str = DEFAULT_VARIANT, today: str | None = None,
     try:
         msg = model.invoke(_to_lc(build_messages(question, today)))
     except Exception as e:                                   # 연결 실패 · 모델 없음 등은 원인을 알 수 있게 감싸서 올린다
-        raise ToolCallingError(f"모델 호출 실패 ({TOOL_MODEL}): {e}. 'ollama serve'와 'ollama pull {TOOL_MODEL}'를 확인하세요.") from e
+        raise ToolCallingError(f"모델 호출 실패 ({active_model_name()}): {e}. {model_failure_hint()}") from e
     ms = int((time.perf_counter() - t0) * 1000)
     calls = [{"name": c["name"], "args": dict(c.get("args") or {})} for c in (getattr(msg, "tool_calls", None) or [])]
     invalid = [{"name": c.get("name"), "args": c.get("args"), "error": c.get("error")}

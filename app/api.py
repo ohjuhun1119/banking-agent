@@ -376,4 +376,4 @@ def chat_reset(session_id: str):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": tool_calling.TOOL_MODEL, "trace_log": traces.enabled()}
+    return {"status": "ok", "provider": tool_calling.llm_provider(), "model": tool_calling.active_model_name(), "trace_log": traces.enabled()}
