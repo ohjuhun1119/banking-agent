@@ -342,7 +342,8 @@ python eval/compare_chatbots.py --rescore eval/runs/compare_cloud_1.json --show 
 | 응답 시간 (Docker, 호스트 Ollama) | 약관 질문 1건 22.3초(검색 1.4초). **한 건이라 로컬 분포(약관 설명 중앙값 16.7초)와 비교할 수 없습니다** |
 | 접근 키 (`compose.host-ollama.yaml`, 2026-11-25) | **확인**: 컨테이너에서 키 없음 · 틀린 키 401, 맞는 키로 `/chat` 정상 응답(31초), `/health`는 키 없이 200 |
 | Caddy 덮개 (`compose.host-ollama.yaml` + `compose.prod.yaml`, 2026-11-26) | **확인**: 플러그인 포함 이미지 빌드, 80으로 접근 키 401 · 200, 큰 본문 413, 같은 IP 21번째부터 429. **미확인**: HTTPS 인증서 자동 발급(도메인이 필요해 VM에서 처음 확인), 429 이후 1분 뒤 복구 |
-| **미확인** | `compose.yaml`(컨테이너 안의 Ollama와 모델 내려받기 흐름), 컨테이너에서 `ingest` 실행, amd64 · 리눅스 · Windows |
+| amd64(x86) 이미지 (맥에서 QEMU 에뮬레이션, 2026-11-26) | **확인**: `--platform linux/amd64` 빌드 성공, 컨테이너 `uname -m`이 `x86_64`, `/health` 200, 접근 키 401, 색인 62개 읽기, `/chat`이 약관 검색(`search_terms`)을 거쳐 31초에 응답, `/api/calc` 정상. 에뮬레이션이라 **응답 시간은 실제 x86 서버와 다릅니다** |
+| **미확인** | `compose.yaml`(컨테이너 안의 Ollama와 모델 내려받기 흐름), 컨테이너에서 `ingest` 실행, 실제 x86 서버 · 리눅스 · Windows |
 
 ## 레포 구조
 
