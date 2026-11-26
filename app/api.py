@@ -376,4 +376,11 @@ def chat_reset(session_id: str):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "provider": tool_calling.llm_provider(), "model": tool_calling.active_model_name(), "trace_log": traces.enabled()}
+    body = {"status": "ok", "provider": tool_calling.llm_provider(), "model": tool_calling.active_model_name(), "trace_log": traces.enabled()}
+    if tool_calling.llm_provider() == "openai":                  # 돈이 나가는 모드에서만 오늘 사용량을 보여 준다
+        from app import usage
+        try:
+            body.update(llm_calls_today=usage.used(), llm_daily_limit=usage.daily_limit())
+        except ValueError as e:
+            body["llm_limit_error"] = str(e)
+    return body

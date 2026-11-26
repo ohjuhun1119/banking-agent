@@ -19,6 +19,7 @@ x-app-env: &app-env
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   LLM_TEMPERATURE: ${LLM_TEMPERATURE:-}         # 비우면 0. temperature를 받지 않는 모델(추론형)은 omit
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}         # 비우면 OpenAI 공식 서버. 중계 서버를 쓸 때만
+  LLM_DAILY_CALL_LIMIT: ${LLM_DAILY_CALL_LIMIT:-}   # API 모드의 하루 모델 호출 상한 (질문 1개 = 약 2회). 비우면 300, 0이면 상한 없음
 
 services:
   ollama:

@@ -20,6 +20,11 @@ def clean(monkeypatch):
         monkeypatch.delenv(k, raising=False)
 
 
+def chat_of(seq):
+    """RunnableSequence 안의 모델(ChatOpenAI)을 단계 위치와 상관없이 찾는다."""
+    return next(s.bound for s in seq.steps if type(getattr(s, "bound", None)).__name__ == "ChatOpenAI")
+
+
 def api_on(monkeypatch, **extra):
     monkeypatch.setenv("LLM_PROVIDER", "openai")
     monkeypatch.setenv("LLM_ALLOW_EXTERNAL", "1")
@@ -57,10 +62,10 @@ def test_an_unknown_provider_is_rejected(monkeypatch):
 def test_api_mode_builds_a_deterministic_openai_model_with_the_default_or_chosen_name(monkeypatch):
     api_on(monkeypatch)
     seq = tc.get_model()
-    chat = seq.steps[1].bound
+    chat = chat_of(seq)
     assert type(chat).__name__ == "ChatOpenAI" and chat.model_name == "gpt-4.1-mini" and chat.temperature == 0
     monkeypatch.setenv("LLM_MODEL", "gpt-4.1")
-    assert tc.get_model().steps[1].bound.model_name == "gpt-4.1" and tc.active_model_name() == "gpt-4.1"
+    assert chat_of(tc.get_model()).model_name == "gpt-4.1" and tc.active_model_name() == "gpt-4.1"
 
 
 class StubChat:
@@ -115,17 +120,17 @@ def test_empty_values_from_compose_fall_back_to_the_defaults(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "")
     assert tc.llm_provider() == "ollama"
     api_on(monkeypatch, LLM_MODEL="")
-    assert tc.active_model_name() == "gpt-4.1-mini" and tc.get_model().steps[1].bound.model_name == "gpt-4.1-mini"
+    assert tc.active_model_name() == "gpt-4.1-mini" and chat_of(tc.get_model()).model_name == "gpt-4.1-mini"
 
 
 def test_temperature_defaults_to_zero_and_can_be_omitted_for_models_that_reject_it(monkeypatch):
     """gpt-6-luna는 temperature를 받지 않아 400 'Unsupported parameter'를 돌려줬다 (실제 호출에서 확인)."""
     api_on(monkeypatch)
-    assert tc.get_model().steps[1].bound.temperature == 0
+    assert chat_of(tc.get_model()).temperature == 0
     monkeypatch.setenv("LLM_TEMPERATURE", "omit")
-    assert tc.get_model().steps[1].bound.temperature is None
+    assert chat_of(tc.get_model()).temperature is None
     monkeypatch.setenv("LLM_TEMPERATURE", "0.3")
-    assert tc.get_model().steps[1].bound.temperature == 0.3
+    assert chat_of(tc.get_model()).temperature == 0.3
     monkeypatch.setenv("LLM_TEMPERATURE", "hot")
     with pytest.raises(tc.ToolCallingError, match="LLM_TEMPERATURE"):
         tc.get_model()
