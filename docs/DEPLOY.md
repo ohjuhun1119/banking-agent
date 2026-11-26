@@ -87,6 +87,24 @@ crontab -e     # 아래 한 줄을 추가
 - **4 OCPU/24GB로 키운 뒤에는 `/chat`이 끝까지 동작하지만 한 질문에 4~5분이 걸린다.** 글자 생성 7.1토큰/초, 입력 처리 약 19토큰/초. 모델이 올라간 상태에서 서버 안에서 직접 부르면 228초, 밖에서 Caddy를 거치면 330초(HTTP 200, 답 정상)였다. 대화형으로 쓰기엔 너무 느려서 "답이 나온다"를 보이는 정도에 맞다. 더 줄이려면 코어가 더 많은 서버나 더 작은 모델이 필요하다.
 - 처음에는 Caddy 대기(300초)에 걸려 밖에서 끊겼다. 그래서 프록시 대기를 600초로 늘렸고(`caddy/Caddyfile`), Ollama가 모델을 내리지 않게 `OLLAMA_KEEP_ALIVE=-1`을 넣었다(`compose.yaml`). 모델을 처음 올리는 데 약 91초가 걸리기 때문이다.
 
+## API 모델로 서버 운영 (2026-11-26, 실제로 적용해 확인함)
+CPU 서버에서 로컬 7B 모델은 한 질문에 4~5분이라, 서버만 OpenAI API 모델(`gpt-6-luna`)로 바꿨다. 질문과 도구 결과가 OpenAI로 나가는 설정이라 **서버 `.env`(권한 600)에만** 둔다.
+```bash
+# 서버 ~/banking-agent/.env에 추가 (키 값은 채팅 · 깃에 올리지 않는다)
+LLM_PROVIDER=openai
+LLM_ALLOW_EXTERNAL=1          # 두 번째 잠금: 이게 없으면 켜지지 않는다
+OPENAI_API_KEY=...
+LLM_MODEL=gpt-6-luna
+LLM_TEMPERATURE=omit          # 이 모델은 temperature를 받지 않는다
+LLM_DAILY_CALL_LIMIT=100      # 하루 모델 호출 상한 (질문 1개 = 약 2회). 넘으면 모델을 부르지 않는다
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+- 이미지가 `requirements-api.txt`(langchain-openai)를 설치해야 한다 (Dockerfile에 반영). 없으면 켜도 `ImportError`다.
+- 확인: `curl http://<공개 IP>/health` → `provider: openai`, `model`, `llm_calls_today`, `llm_daily_limit`.
+- **결과**: 약관 질문 7.7초, 계산 질문 4.5초(서버 밖에서 Caddy를 거쳐, 로컬 모델은 330초), 범위 밖 질문 0.1초(모델 호출 없음). 계산 결과 273,304원 일치. 사용량 카운터가 모델 호출 4회를 정확히 셌다.
+- **끄기(로컬 모델로 복귀)**: `.env`에서 `LLM_PROVIDER` 줄을 지우고 `docker compose ... up -d`. 데모가 끝나면 `OPENAI_API_KEY` 줄도 지우고 키를 폐기하거나 교체한다.
+- 임베딩과 검색은 계속 서버의 로컬 Ollama(bge-m3)가 하고, 모델에 들어가는 입력과 도구 결과만 OpenAI로 나간다 (전화번호 · 이메일 같은 모양은 보내기 전에 가린다).
+
 ## 아직 못 본 것
 - 도메인 인증서 자동 발급
 - 4 OCPU/24GB보다 큰 서버(예: 8코어)에서의 `/chat` 응답 시간
