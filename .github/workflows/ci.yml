@@ -14,5 +14,6 @@ jobs:
           python-version: "3.14"
           cache: pip
       - run: pip install -r requirements.txt
+      - run: pip install -r requirements-mcp.txt   # MCP 서버 시험이 건너뛰어지지 않게
       - run: python -m pytest -q
       - run: python eval/ci_gate.py  # 모델 · 색인 없이 평가 수치가 README와 같은지 확인

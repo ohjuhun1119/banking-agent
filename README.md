@@ -28,7 +28,7 @@
 | 기존 챗봇과의 비교 | 같은 질문 39개와 대화 중 값을 바꾸는 17턴: 계산 0/6 대 5/6, 되묻기 0/15 대 13/15, 값을 바꾼 시나리오 0/17 대 16/17, 응답 시간 중앙값은 3.1초 대 9.1초. **기존 챗봇의 0점은 계산 · 되묻기를 하지 않도록 한 설계의 결과**이고 성능 문제가 아니다 |
 | 프롬프트 인젝션 | 일곱 종류를 가짜 모델 시험(CI)과 실제 모델 공격 19개로 확인하고 시험이 찾은 틈 5곳을 고침. 실제 모델 결과: 속아서 가드가 막은 것 3건, 가드를 지나 통과한 것 첫 실행 1건 → 고친 뒤 0건 (작은 표본, [상세](#프롬프트-인젝션)) |
 | 공개 배포 준비 | 접근 키(헤더 · 로그인 쿠키), Caddy(HTTPS · 1분 20회 · 본문 64KB), 서버 설치 · 백업 스크립트. 맥과 Oracle ARM 서버에서 기동 · 접속 확인. **그 서버(CPU 2코어)에서 7B 채팅은 제한 시간 안에 끝나지 않음** ([배포 순서](docs/DEPLOY.md)) |
-| 시험 | pytest 1729개 (모델 · 색인 불필요), 시험 자체도 코드를 일부러 망가뜨려 잡는지 확인 |
+| 시험 | pytest 1735개 (모델 · 색인 불필요), 시험 자체도 코드를 일부러 망가뜨려 잡는지 확인 |
 
 ## 문제 정의
 
@@ -329,6 +329,26 @@ python eval/compare_chatbots.py --rescore eval/runs/compare_cloud_1.json --show 
 
 한계: 7B 한 모델에 공격 19개뿐인 작은 표본이라 `0건`은 안전하다는 뜻이 아니고, 결과는 실행마다 달라질 수 있습니다. 가짜 모델 시험은 **코드 방어만** 보여 주고 실제 모델이 얼마나 속는지는 모릅니다. 종류 6은 모델이 관여하지 않는 코드 경로라 실제 모델 모음에서 뺐습니다. 상담원이 보는 화면은 이 레포에 없어, 저장된 글이 그 화면에서 어떻게 읽히는지는 확인하지 못했습니다. 공격 문장은 제가 직접 썼고 정답을 보고 고르지 않았지만, 고친 뒤 수치는 고치기 전 같은 문장으로 다시 잰 것이라 일반화 증거가 아닙니다.
 
+## MCP 서버
+
+이자 계산 도구(`calc_interest`)를 MCP 서버(stdio)로 열어, Claude Desktop · Claude Code 같은 MCP 클라이언트가 같은 결정적 계산기를 쓸 수 있습니다. 계산은 에이전트가 쓰는 함수 그대로이고 `app/mcp_server.py`는 얇은 껍데기입니다. 약관 검색은 Ollama와 색인이 필요해 열지 않았습니다.
+
+```bash
+.venv/bin/python -m pip install -r requirements-mcp.txt     # mcp 2.3.0 (Docker 이미지의 requirements.txt와 따로 둠)
+.venv/bin/python -m app.mcp_server                           # stdio로 대기 (직접 쓰기보다 클라이언트가 실행)
+```
+
+Claude Code에 등록: `claude mcp add banking-calc -- <레포 경로>/.venv/bin/python -m app.mcp_server` (`cwd`가 레포 루트여야 합니다). Claude Desktop은 설정 파일의 `mcpServers`에 같은 명령을 넣습니다.
+
+```json
+{"mcpServers": {"banking-calc": {"command": "<레포 경로>/.venv/bin/python", "args": ["-m", "app.mcp_server"], "cwd": "<레포 경로>"}}}
+```
+
+- 인자는 모두 선택입니다. 모르는 값은 비우고 부르면 `status: missing_info`로 필요한 값을 알려 주고, 잘못된 입력도 오류가 아니라 `status`(`invalid_input` · `not_early_termination` 등)로 돌아옵니다.
+- 입력 타입은 JSON 스키마용으로 `principal`은 정수, `base_rate`는 숫자, 날짜는 `YYYY-MM-DD` 문자열입니다(에이전트 경로가 받는 `1000만원` 같은 표기는 열지 않음).
+- 시험(`tests/test_mcp_server.py`)은 도구 목록 · 스키마, 직접 호출과 같은 결과, 잘못된 입력, 실제 stdio 프로세스 호출을 확인하고 변형 확인(결과를 바꾸면 실패)도 했습니다. **실제 Claude Desktop · Claude Code에 등록해 써 본 것은 아닙니다.**
+- 한계: 인증이 없는 로컬 stdio 전용이고 원격(HTTP)으로는 열지 않았습니다. 세전 이자만 계산합니다.
+
 ## 한계
 
 - **7B 모델이 구간표를 잘못 읽는 오류**(개발용 Q023, 검증용 X014)가 독립적으로 두 번 나왔습니다. Q023형(`가입한 지 N개월`)은 코드가 구간을 찾도록 고쳤지만(낱말 규칙이라 다른 표현은 놓칠 수 있음), **X014형(남은 기간만 말한 질문)은 그대로 남았습니다.**
@@ -363,6 +383,7 @@ python eval/compare_chatbots.py --rescore eval/runs/compare_cloud_1.json --show 
 ```text
 app/            에이전트 본체
   api.py          FastAPI (/chat, /health, 확인 화면용 API)
+  mcp_server.py   이자 계산 도구를 MCP 서버(stdio)로 엶 (requirements-mcp.txt)
   graph.py        LangGraph 그래프: 입구 판별 · agent ⇄ tools · 답변 점검 · 근거 카드
   tool_calling.py 도구 정의와 모델 연결, 호출 상한
   answer_check.py 답변 점검 (언어 · 전화번호 · 날짜와 금액 근거 · 도구 문법 · 내부 메모)
