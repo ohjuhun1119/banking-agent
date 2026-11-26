@@ -19,6 +19,8 @@ services:
     image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
     volumes:
       - ollama:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "-1"        # 모델을 메모리에서 내리지 않는다 (CPU 서버에서 처음 올리는 데 약 90초, 기본은 5분 쉬면 내림)
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
