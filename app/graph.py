@@ -49,6 +49,7 @@ from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evide
 from app.elapsed_period import lookup_args  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
+from app.tracing import langfuse_config  # noqa: E402
 from app.tools import handoff as hf  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
 
@@ -610,6 +611,10 @@ class Agent:
             date.fromisoformat(today)                         # 잘못된 날짜는 여기서 ValueError
         cfg = {"configurable": {"thread_id": session_id}, "recursion_limit": RECURSION_LIMIT,
                "run_name": "banking-agent-turn", "tags": ["banking-agent"], "metadata": {"session_id": session_id}}      # LANGSMITH_TRACING=true일 때 구분용 (꺼져 있으면 무시)
+        traced = langfuse_config(session_id)                          # 꺼져 있으면 {}: 로컬 Langfuse 트레이스 (app/tracing.py)
+        if traced:
+            cfg["callbacks"] = traced["callbacks"]
+            cfg["metadata"] = {**cfg["metadata"], **traced["metadata"]}
         t0 = time.perf_counter()
         # confirmed와 messages는 일부러 넣지 않는다: 체크포인터에 저장된 세션 값이 이어진다
         final = self.graph.invoke({"messages": [HumanMessage(question)], "today": today, "tool_calls": 0, "model_calls": 0,
