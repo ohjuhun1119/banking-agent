@@ -261,3 +261,12 @@ def test_the_deploy_doc_names_only_files_and_commands_that_exist():
         assert (ROOT / path).exists(), path
     assert "-f compose.yaml -f compose.prod.yaml" in doc and "--profile build run --rm ingest" in doc
     assert "https://github.com/ohjuhun1119/banking-agent.git" in doc
+
+
+def test_the_deploy_doc_prepares_the_volume_folders_for_the_container_user_before_the_first_start():
+    """서버에서 실제로 겪은 문제: 폴더가 없으면 Docker가 root 소유로 만들어 앱(uid 1000)이 색인 · 상담 요청 DB를 쓰지 못한다. 서버 사용자의 uid가 1000이 아닐 수 있어 chown까지 필요하다."""
+    doc = (ROOT / "docs" / "DEPLOY.md").read_text(encoding="utf-8")
+    prep = "mkdir -p rag/chroma_db data"
+    own = "sudo chown -R 1000:1000 rag/chroma_db data"
+    assert prep in doc and own in doc and doc.index(prep) < doc.index(own) < doc.index("up -d --build")
+    assert re.search(r"useradd --create-home --uid 1000", DOCKERFILE)                              # 문서의 1000은 이미지의 앱 사용자 uid다
