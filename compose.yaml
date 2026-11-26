@@ -17,6 +17,8 @@ x-app-env: &app-env
   LLM_ALLOW_EXTERNAL: ${LLM_ALLOW_EXTERNAL:-}   # API 모드의 두 번째 잠금: 1이어야 켜진다
   LLM_MODEL: ${LLM_MODEL:-}                     # API 모드의 모델 이름 (비우면 gpt-4.1-mini)
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  LLM_TEMPERATURE: ${LLM_TEMPERATURE:-}         # 비우면 0. temperature를 받지 않는 모델(추론형)은 omit
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}         # 비우면 OpenAI 공식 서버. 중계 서버를 쓸 때만
 
 services:
   ollama:

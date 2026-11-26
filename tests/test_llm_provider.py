@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import tool_calling as tc  # noqa: E402
 
-ENV = ("LLM_PROVIDER", "LLM_ALLOW_EXTERNAL", "LLM_MODEL", "OPENAI_API_KEY")
+ENV = ("LLM_PROVIDER", "LLM_ALLOW_EXTERNAL", "LLM_MODEL", "OPENAI_API_KEY", "LLM_TEMPERATURE", "OPENAI_BASE_URL")
 
 
 @pytest.fixture(autouse=True)
@@ -116,3 +116,21 @@ def test_empty_values_from_compose_fall_back_to_the_defaults(monkeypatch):
     assert tc.llm_provider() == "ollama"
     api_on(monkeypatch, LLM_MODEL="")
     assert tc.active_model_name() == "gpt-4.1-mini" and tc.get_model().steps[1].bound.model_name == "gpt-4.1-mini"
+
+
+def test_temperature_defaults_to_zero_and_can_be_omitted_for_models_that_reject_it(monkeypatch):
+    """gpt-6-luna는 temperature를 받지 않아 400 'Unsupported parameter'를 돌려줬다 (실제 호출에서 확인)."""
+    api_on(monkeypatch)
+    assert tc.get_model().steps[1].bound.temperature == 0
+    monkeypatch.setenv("LLM_TEMPERATURE", "omit")
+    assert tc.get_model().steps[1].bound.temperature is None
+    monkeypatch.setenv("LLM_TEMPERATURE", "0.3")
+    assert tc.get_model().steps[1].bound.temperature == 0.3
+    monkeypatch.setenv("LLM_TEMPERATURE", "hot")
+    with pytest.raises(tc.ToolCallingError, match="LLM_TEMPERATURE"):
+        tc.get_model()
+
+
+def test_the_failure_hint_mentions_the_temperature_switch_for_api_mode(monkeypatch):
+    api_on(monkeypatch)
+    assert "LLM_TEMPERATURE=omit" in tc.model_failure_hint()

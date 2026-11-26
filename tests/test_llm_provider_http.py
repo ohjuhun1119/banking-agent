@@ -61,3 +61,10 @@ def test_the_whole_agent_runs_in_api_mode_and_nothing_personal_leaves(fake_opena
     assert all(h.get("authorization") == "Bearer sk-test" for h in headers)
     human = [m for m in a.history("http-1") if m.type == "human"][0]
     assert "010-1234-5678" in human.content                                                    # 그래프 상태의 원본은 바뀌지 않는다
+
+
+def test_with_the_omit_switch_no_temperature_goes_over_the_wire(fake_openai, monkeypatch):
+    bodies, _ = fake_openai
+    monkeypatch.setenv("LLM_TEMPERATURE", "omit")
+    g.Agent(search_fn=tg.search_ok).ask("정기예금 중도해지하면 이자는 어떻게 돼요?", "http-2")
+    assert bodies and all("temperature" not in b for b in bodies)
