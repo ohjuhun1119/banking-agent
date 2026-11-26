@@ -20,6 +20,9 @@ INJECTION = re.compile(r"무시|ignore|시스템|프롬프트|지시|규칙|역�
 FOLLOW_UP = re.compile(r"이거|이건|그거|그건|저거|그럼|그러면|그리고|또|그래서|왜|어떻게|얼마|몇|언제|어디|무엇|뭐|[?？]")
 OFF_TOPIC_THINGS = re.compile(r"먹|밥|메뉴|음식|점심|저녁|아침|날씨|영화|노래|음악|여행|게임|운동|코드|코딩|파이썬|번역|농담|레시피|소설|그림|연애|추천")
 FOLLOW_UP_MAX = 30
+SWITCH = re.compile(r"(?:정기예금|예금|이자\s?계산|계산|이자|중도\s?해지|해지|약관)\s?(?:말고|대신|아니고|빼고|제외하고)\s?(.*)$", re.S)           # '정기예금 말고 ○○': 예금 낱말 바로 뒤의 '말고'만 화제를 바꾸는 말이다 ('통장 말고 카드로'는 받는 방법)
+OFF_TOPIC_REQUEST = re.compile(r"(?:밥|음식|점심|저녁|아침|날씨|영화|노래|음악|여행지|게임|코딩|파이썬|번역|농담|레시피|소설|맛집)[^.?!\n]{0,6}?(?:추천|알려\s?줘|써\s?줘|짜\s?줘|해\s?줘|골라|뭐|어때|할까|먹을|먹지|보여\s?줘|줄래)")   # 예금 낱말이 섞여 있어도 이런 것을 해 달라는 문장이다
+REPLY_SCOPE_WORDS = re.compile(r"예금|약관|이자|이율|금리|해지|중도|만기|원금|세전|세후|계산|상담|접수|저장|신규일|해지일|조항|심의|고객센터|영업점|은행|입금|금액|날짜")
 SHORT_REPLY = 40
 GREETING_MAX = 20
 
@@ -47,9 +50,26 @@ def off_topic(question, awaiting: bool = False, context: bool = False) -> bool:
     q = question.strip()
     if STRONG_OVERRIDE.search(q):
         return True
+    if OFF_TOPIC_REQUEST.search(q):
+        return True
+    m = SWITCH.search(q)
+    if m and len(m.group(1).strip()) >= 2 and not (FINANCE.search(m.group(1)) or VALUE.search(m.group(1))):
+        return True                                                                # '정기예금 말고 밥 뭐먹을까': 말고 뒤가 예금 얘기가 아니다
     if awaiting and len(q) <= SHORT_REPLY and not INJECTION.search(q) and (REPLY_TOKENS.search(q) or FINANCE.search(q) or VALUE.search(q)):
         return False
     if context and len(q) <= FOLLOW_UP_MAX and FOLLOW_UP.search(q) and not OFF_TOPIC_THINGS.search(q):
         return False                                                               # 예금 대화 중의 짧은 이어 묻기 ('이거 몇 퍼센트예요?'). 음식 · 날씨 같은 주제가 붙으면 아니다
     greeting = GREETING.search(q) and len(q) <= GREETING_MAX and not INJECTION.search(q)           # 인사로 시작해도 길거나 지시 무시 낱말이 있으면 인사가 아니다
     return not (FINANCE.search(q) or VALUE.search(q) or greeting)
+
+
+def reply_off_topic(question, answer, awaiting: bool = False, context: bool = False) -> bool:
+    """모델의 최종 답에 예금 안내 낱말이 하나도 없는가 (질문이 어떻게 생겼든 마지막에 거르는 장치: 입력 규칙을 우회한 문장도 여기서 걸린다).
+    인사 · 감사, 에이전트가 되물은 직후의 답, 예금 대화 중의 짧은 이어 묻기는 답에 그런 낱말이 없을 수 있어 보지 않는다."""
+    ans = answer.strip() if isinstance(answer, str) else ""
+    if not ans:
+        return False
+    q = question.strip() if isinstance(question, str) else ""
+    if awaiting or (GREETING.search(q) and len(q) <= GREETING_MAX) or (context and len(q) <= FOLLOW_UP_MAX and FOLLOW_UP.search(q)):
+        return False
+    return not REPLY_SCOPE_WORDS.search(ans)
