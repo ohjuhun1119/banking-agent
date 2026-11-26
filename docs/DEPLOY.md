@@ -1,7 +1,7 @@
 # 서버 배포 순서 (Ubuntu 24.04 · Docker · Caddy)
 
 서버 하나에 API · Ollama · Caddy(HTTPS · 요청 속도 제한)를 올리는 순서입니다. Oracle ARM(4 OCPU · 24GB) 기준이고 다른 서버도 같습니다.
-**이 순서는 실제 서버에서 처음부터 끝까지 돌려 보지 못했습니다.** 맥에서는 각 부분(이미지 빌드, 색인 만들기, Caddy, 접근 키)을 따로 확인했고, 서버에서 처음 확인될 부분은 맨 아래에 적었습니다.
+이 순서는 Oracle ARM 서버(2 OCPU/12GB)에서 실제로 따라 해 보았고, 결과와 아직 못 본 것은 맨 아래에 적었습니다.
 
 ## 0. 준비물
 - 서버의 공개 IP, SSH 개인 키 (아래 예는 `~/.ssh/oracle_banking`, 기본 사용자 `ubuntu`)
@@ -33,6 +33,14 @@ sed -i "s/^API_KEY=.*/API_KEY=$(openssl rand -hex 16)/" .env
 grep API_KEY .env        # 이 값이 접근 키다. 안전한 곳에 적어 둔다.
 ```
 도메인이 있으면 `.env`의 `SITE_ADDRESS=`에 적는다 (예: `mybank.duckdns.org`). 비워 두면 `:80`(HTTP)이다.
+
+## 3-1. 데이터 폴더 준비 (서버에서, 처음 기동 전에 꼭)
+```bash
+cd ~/banking-agent
+mkdir -p rag/chroma_db data
+sudo chown -R 1000:1000 rag/chroma_db data
+```
+컨테이너 안의 앱은 uid 1000으로 돌아서 색인(`rag/chroma_db`)과 상담 요청 DB(`data/`)에 쓸 수 있어야 한다. 폴더가 없으면 Docker가 root 소유로 만들어 `unable to open database file`로 색인 만들기가 실패한다. Oracle Ubuntu의 `ubuntu` 사용자는 uid가 1001이라 `mkdir`만으로는 부족해서 `chown`까지 한다 (실제 서버에서 겪은 문제).
 
 ## 4. 기동
 ```bash
@@ -73,8 +81,11 @@ crontab -e     # 아래 한 줄을 추가
 ## 9. 끝낼 때
 서버를 지우기 전에 `backups/`를 내려받는다. Oracle은 인스턴스를 **Terminate**하면서 부트 볼륨도 함께 지운다. 지운 뒤 콘솔의 Billing에서 요금이 0인지 본다.
 
-## 서버에서 처음 확인될 부분 (아직 못 본 것)
-- `scripts/bootstrap.sh`의 실제 실행 (문법만 확인함)
-- 컨테이너 안의 Ollama가 모델을 내려받는 `compose.yaml` 전체 흐름
+## 서버에서 실제로 확인한 것 (2026-11-26, Oracle ARM 2 OCPU/12GB)
+- `scripts/bootstrap.sh` 실행, `compose.yaml` + `compose.prod.yaml` 전체 기동(Ollama가 모델 2개를 내려받음), 색인 만들기, 밖에서 접속 · 접근 키 401 · 계산 API 0.13초 · 범위 밖 거절(모델 호출 0회)이 동작했다.
+- **`/chat`은 이 크기에서 쓸 수 없었다.** 7B 모델이 CPU 2코어에서 글자 생성 3.7토큰/초, 입력 처리 약 10토큰/초이고 모델을 메모리에 올리는 데 92초가 걸렸다. 한 질문에 모델이 두세 번 불려 앱의 모델 제한 시간(180초)을 넘겼다. 코어가 더 많은 서버나 더 작은 모델이 필요하다.
+
+## 아직 못 본 것
 - 도메인 인증서 자동 발급
-- ARM 서버에서의 `/chat` 응답 시간 (맥의 에뮬레이션 수치와 다르다)
+- 4 OCPU/24GB 이상의 서버에서의 `/chat` 응답 시간
+- 서버에서 상담 요청 저장(`data/` 쓰기)
