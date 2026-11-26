@@ -100,6 +100,14 @@ OUT_OF_SCOPE_TEXT = ("죄송해요, 대출 · 카드 · 보험 같은 다른 상
                      "다른 상품은 하나은행 고객센터나 영업점에 문의해 주세요.")
 
 
+OFF_TOPIC_TEXT = ("죄송해요, 그 질문은 도와드리기 어려워요. 저는 『하나의 정기예금』 약관 안내와 중도해지 이자 계산만 도와드려요. "
+                  "예를 들어 \"중도해지하면 이자가 어떻게 돼요?\"처럼 물어봐 주세요.")      # 다른 상품이 아닌 주제(음식 · 번역 · 날씨 ...)와 지시 무시 공격에 나가는 문구
+
+
+def off_topic_node(state: dict) -> dict:
+    return {"messages": [AIMessage(content=OFF_TOPIC_TEXT)], "stop_reason": "out_of_scope"}
+
+
 def decline_node(state: dict) -> dict:
     """범위 밖 질문(대출 · 카드 등): 모델을 거치지 않고 코드가 정해진 문구로 거절한다 (모델 호출 0회). 모델에게 맡겼더니 질문을 오해하거나(Q080: 대출 금리를 정기예금 금리로 읽음)
     맞지 않는 약관을 이어 붙여 엉뚱한 말을 했다."""
@@ -586,13 +594,19 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
         if handoff_intent(state["messages"]):
             return "handoff"
         last = state["messages"][-1] if state["messages"] else None
-        if isinstance(last, HumanMessage) and (out_of_scope(str(last.content)) or (scope_gate and off_topic(str(last.content), awaiting_reply(state["messages"]), in_conversation(state["messages"], OUT_OF_SCOPE_TEXT)))):
-            return "decline"                                  # 낱말 차단 목록에 걸리거나, 예금 질문 · 인사 · 값을 되물은 뒤의 답이 아니다 (app/scope.py)
+        if isinstance(last, HumanMessage):
+            text = str(last.content)
+            if out_of_scope(text):
+                return "decline"                                  # 낱말 차단 목록: 대출 · 카드 같은 다른 상품 (OUT_OF_SCOPE_TEXT)
+            if scope_gate and off_topic(text, awaiting_reply(state["messages"]), in_conversation(state["messages"], (OUT_OF_SCOPE_TEXT, OFF_TOPIC_TEXT))):
+                return "off_topic"                                # 예금 질문 · 인사 · 값을 되물은 뒤의 답이 아니다 (app/scope.py, OFF_TOPIC_TEXT)
         return "agent"
 
     builder.add_node("handoff", handoff_node)
     builder.add_node("decline", decline_node)
-    builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff", "decline": "decline"})
+    builder.add_node("off_topic", off_topic_node)
+    builder.add_conditional_edges(START, entry, {"agent": "agent", "handoff": "handoff", "decline": "decline", "off_topic": "off_topic"})
+    builder.add_edge("off_topic", END)
     builder.add_edge("handoff", END)
     builder.add_edge("decline", END)
     builder.add_conditional_edges("agent", route, {"tools": "tools", "limit": "limit", "evidence": "evidence", END: END})
