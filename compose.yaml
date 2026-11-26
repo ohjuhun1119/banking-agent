@@ -13,6 +13,10 @@ x-app-env: &app-env
   TOOL_MODEL: ${TOOL_MODEL:-qwen2.5:7b}
   EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
   API_KEY: ${API_KEY:-}                   # 비우면 열려 있다. 공개 배포에서는 꼭 채운다 (X-API-Key 헤더)
+  LLM_PROVIDER: ${LLM_PROVIDER:-ollama}   # 기본은 로컬 모델. openai로 바꾸면 질문 · 도구 결과 · 대화가 OpenAI로 나간다 (README '모델 제공사')
+  LLM_ALLOW_EXTERNAL: ${LLM_ALLOW_EXTERNAL:-}   # API 모드의 두 번째 잠금: 1이어야 켜진다
+  LLM_MODEL: ${LLM_MODEL:-}                     # API 모드의 모델 이름 (비우면 gpt-4.1-mini)
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
 services:
   ollama:
