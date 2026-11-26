@@ -284,3 +284,10 @@ def test_the_proxy_waits_longer_than_a_cold_cpu_answer_takes():
     """서버에서 모델이 올라간 상태의 한 질문이 228초, 모델 로딩 91초를 더하면 300초를 넘겨 Caddy가 끊었다."""
     caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
     assert int(re.search(r"response_header_timeout\s+(\d+)s", caddyfile).group(1)) >= 600
+
+
+def test_the_image_installs_the_api_model_dependency_so_api_mode_works_on_the_server():
+    """서버 컨테이너에서 LLM_PROVIDER=openai를 켜면 langchain-openai가 있어야 한다 (requirements-api.txt를 이미지에 설치하지 않으면 ImportError)."""
+    assert "requirements-api.txt" in DOCKERFILE
+    assert "langchain-openai" in (ROOT / "requirements-api.txt").read_text(encoding="utf-8")
+    assert not ignored("requirements-api.txt")                                                 # .dockerignore가 빌드 문맥에서 빼지 않는다

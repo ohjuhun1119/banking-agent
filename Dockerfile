@@ -9,8 +9,8 @@ ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt requirements-api.txt ./
+RUN pip install -r requirements.txt -r requirements-api.txt      # requirements-api.txt: 서버에서 LLM_PROVIDER=openai를 켤 수 있게 (켜지 않으면 쓰이지 않는다)
 
 # ---- 2단계: 실행 이미지
 FROM python:${PYTHON_VERSION}-slim
