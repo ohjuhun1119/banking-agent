@@ -126,6 +126,10 @@ class ToolCallingError(RuntimeError):
     """모델 호출 실패 (Ollama가 꺼져 있음, 모델 없음 등)."""
 
 
+class BudgetExceeded(ToolCallingError):
+    """오늘 API 모델 호출 상한에 닿았다 (app/usage.py). 모델은 부르지 않았다."""
+
+
 def llm_provider() -> str:
     """모델 제공사. 기본은 로컬 Ollama. 'openai'는 질문 · 도구 결과 · 대화가 OpenAI 서버로 나간다 (LLM_ALLOW_EXTERNAL=1이 있어야 켜진다)."""
     return (os.environ.get("LLM_PROVIDER") or "ollama").strip().lower()
@@ -148,6 +152,18 @@ def _plain_text(msg):
         text = "".join(b if isinstance(b, str) else b.get("text", "") for b in msg.content if isinstance(b, str) or (isinstance(b, dict) and b.get("type") == "text"))
         return msg.model_copy(update={"content": text})
     return msg
+
+
+def _count_call(messages):
+    """API 모델을 부르기 직전에 하루 호출 수를 센다. 상한을 넘으면 부르지 않고 BudgetExceeded를 낸다."""
+    from app import usage
+    try:
+        limit = usage.daily_limit()
+    except ValueError as e:
+        raise ToolCallingError(str(e)) from None
+    if limit is not None and not usage.reserve(limit)[0]:
+        raise BudgetExceeded(f"오늘 모델 사용 한도({limit}회)에 도달했어요. 내일 다시 이용해 주세요.")
+    return messages
 
 
 def _api_temperature() -> float | None:
@@ -178,7 +194,7 @@ def get_model(variant: str = DEFAULT_VARIANT, extra_tools=()):
         from langchain_openai import ChatOpenAI
         from app.redact import mask_messages
         chat = ChatOpenAI(model=active_model_name(), temperature=_api_temperature(), max_tokens=NUM_PREDICT, timeout=REQUEST_TIMEOUT, max_retries=1).bind_tools(specs)
-        return RunnableLambda(mask_messages) | chat | RunnableLambda(_plain_text)
+        return RunnableLambda(_count_call) | RunnableLambda(mask_messages) | chat | RunnableLambda(_plain_text)
     raise ToolCallingError(f"알 수 없는 LLM_PROVIDER: {provider!r} (ollama 또는 openai)")
 
 

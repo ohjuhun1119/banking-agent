@@ -8,3 +8,9 @@ def _temporary_handoff_db(tmp_path, monkeypatch):
     monkeypatch.setattr(handoff, "DB_PATH", tmp_path / "handoff.sqlite3")
     from app import traces
     monkeypatch.setattr(traces, "DB_PATH", tmp_path / "traces.sqlite3")
+
+
+@pytest.fixture(autouse=True)
+def _temporary_llm_usage_db(tmp_path, monkeypatch):
+    from app import usage
+    monkeypatch.setattr(usage, "DB_PATH", tmp_path / "llm_usage.sqlite3")
