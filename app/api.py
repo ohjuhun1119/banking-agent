@@ -10,11 +10,12 @@ import json
 import os
 import sys
 import threading
+from urllib.parse import parse_qs
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
 
@@ -61,14 +62,49 @@ app = FastAPI(title="금융 상담 Agent 확인 화면", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
+LOGIN_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>접근 키</title>
+<form method="post" action="/login" style="max-width:320px;margin:20vh auto;font-family:sans-serif">
+<h3>접근 키를 입력하세요</h3><input name="key" type="password" autofocus required style="width:100%;padding:8px;box-sizing:border-box">
+<button style="margin-top:12px;padding:8px 16px">입력</button>@@MSG@@</form>"""
+
+
+def _key_ok(given: str, key: str) -> bool:
+    return hmac.compare_digest(given.encode(), key.encode())
+
+
 @app.middleware("http")
 async def require_api_key(request, call_next):
-    """API_KEY 환경변수가 있으면 /health 말고는 X-API-Key 헤더가 같아야 통과한다 (공개 배포용). 없으면 열려 있다 (로컬 개발).
-    shortcut: 키 하나를 모두가 나눠 쓴다. 사용자별 키 · 폐기가 필요하면 그때 바꾼다."""
+    """API_KEY 환경변수가 있으면 /health · /login 말고는 X-API-Key 헤더 또는 로그인으로 받은 쿠키가 같아야 통과한다 (공개 배포용). 없으면 열려 있다 (로컬 개발).
+    브라우저는 헤더를 못 보내서 /login이 키를 쿠키로 바꿔 준다. 주소창 키(?api_key=)는 기록에 남아 받지 않는다.
+    shortcut: 키 하나를 모두가 나눠 쓴다 (쿠키 값도 그 키). 사용자별 키 · 폐기가 필요하면 그때 바꾼다."""
     key = os.environ.get("API_KEY")
-    if key and request.url.path != "/health" and not hmac.compare_digest(request.headers.get("x-api-key", "").encode(), key.encode()):
-        return JSONResponse({"detail": "접근 키가 필요합니다"}, status_code=401)
+    if key and request.url.path not in ("/health", "/login"):
+        given = request.headers.get("x-api-key") or request.cookies.get("api_key", "")
+        if not _key_ok(given, key):
+            if request.url.path == "/":
+                return RedirectResponse("/login", status_code=303)                # 브라우저로 처음 연 사람은 로그인 화면으로
+            return JSONResponse({"detail": "접근 키가 필요합니다"}, status_code=401)
     return await call_next(request)
+
+
+@app.get("/login")
+def login_page():
+    if not os.environ.get("API_KEY"):
+        return RedirectResponse("/", status_code=303)
+    return HTMLResponse(LOGIN_PAGE.replace("@@MSG@@", ""))
+
+
+@app.post("/login")
+async def login(request: Request):
+    key = os.environ.get("API_KEY")
+    if not key:
+        return RedirectResponse("/", status_code=303)
+    given = parse_qs((await request.body()).decode("utf-8", "replace")).get("key", [""])[0]
+    if not _key_ok(given, key):
+        return HTMLResponse(LOGIN_PAGE.replace("@@MSG@@", "<p style='color:#c00'>키가 맞지 않습니다</p>"), status_code=401)
+    res = RedirectResponse("/", status_code=303)
+    res.set_cookie("api_key", key, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 7)
+    return res
 
 
 def load_chunks() -> list[dict]:
