@@ -49,6 +49,7 @@ from app.evidence import LOOKUP_QUERY, build_evidence, calc_intent, format_evide
 from app.elapsed_period import lookup_args  # noqa: E402
 from app.grounding import FIELD_LABELS, describe_dropped, ground_calc_args  # noqa: E402
 from app.slots import fill_missing_from_text  # noqa: E402
+from app.scope import awaiting_reply, in_conversation, off_topic  # noqa: E402
 from app.tracing import langfuse_config  # noqa: E402
 from app.tools import handoff as hf  # noqa: E402
 from app.state import AgentState, accepted_values, describe_confirmed  # noqa: E402
@@ -556,8 +557,8 @@ def limit_node(state: dict) -> dict:
 
 
 def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, max_tool_calls: int | None = None,
-                variant: str | None = None, checkpointer=None):
-    """agent ⇄ tools 그래프. model은 invoke(messages)를 가진 객체 (시험용 가짜 모델), 없으면 첫 호출 때 ChatOllama를 만든다."""
+                variant: str | None = None, checkpointer=None, scope_gate: bool = True):
+    """agent ⇄ tools 그래프. model은 invoke(messages)를 가진 객체 (시험용 가짜 모델), 없으면 첫 호출 때 설정된 모델을 만든다. scope_gate=False는 예금 질문 관문(app/scope.py)을 끈다: 그 아래층 방어를 따로 시험할 때만 쓴다."""
     cache: dict = {}
     limit = MAX_TOOL_CALLS if max_tool_calls is None else max_tool_calls
 
@@ -585,7 +586,9 @@ def build_graph(model=None, search_fn=None, tool_timeout: float | None = None, m
         if handoff_intent(state["messages"]):
             return "handoff"
         last = state["messages"][-1] if state["messages"] else None
-        return "decline" if isinstance(last, HumanMessage) and out_of_scope(str(last.content)) else "agent"
+        if isinstance(last, HumanMessage) and (out_of_scope(str(last.content)) or (scope_gate and off_topic(str(last.content), awaiting_reply(state["messages"]), in_conversation(state["messages"], OUT_OF_SCOPE_TEXT)))):
+            return "decline"                                  # 낱말 차단 목록에 걸리거나, 예금 질문 · 인사 · 값을 되물은 뒤의 답이 아니다 (app/scope.py)
+        return "agent"
 
     builder.add_node("handoff", handoff_node)
     builder.add_node("decline", decline_node)
