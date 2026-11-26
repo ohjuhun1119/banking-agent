@@ -13,8 +13,8 @@ try:
 except Exception as e:
     pytest.skip(f"app.api를 불러오지 못했습니다: {e}", allow_module_level=True)
 
-client = TestClient(api.app)
-PROTECTED = [("get", "/"), ("get", "/api/chunks"), ("post", "/chat"), ("post", "/api/agent/ask"), ("delete", "/chat/s1")]
+client = TestClient(api.app, follow_redirects=False)
+PROTECTED = [("get", "/api/chunks"), ("post", "/chat"), ("post", "/api/agent/ask"), ("delete", "/chat/s1")]
 
 
 def hit(method, path, **kw):
@@ -48,3 +48,49 @@ def test_a_key_in_the_query_string_is_not_accepted(monkeypatch):
     """주소창 키는 로그와 기록에 남는다."""
     monkeypatch.setenv("API_KEY", "secret-1")
     assert hit("get", "/api/chunks?api_key=secret-1").status_code == 401
+
+
+# ---------- 브라우저 로그인: 키를 쿠키로 받는다 (브라우저는 X-API-Key 헤더를 못 보낸다) ----------
+def fresh():
+    return TestClient(api.app, follow_redirects=False)                         # 쿠키 통을 시험마다 새로 쓴다
+
+
+def login(client, key, **kw):
+    return client.post("/login", content=f"key={key}", headers={"content-type": "application/x-www-form-urlencoded"}, **kw)
+
+
+def test_the_login_page_is_open_and_the_home_page_sends_a_browser_there(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret-1")
+    client = fresh()
+    page = client.get("/login")
+    assert page.status_code == 200 and "<form" in page.text and 'type="password"' in page.text
+    home = client.get("/")
+    assert home.status_code == 303 and home.headers["location"] == "/login"
+
+
+def test_the_right_key_sets_an_http_only_cookie_that_opens_the_gate(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret-1")
+    client = fresh()
+    res = login(client, "secret-1")
+    assert res.status_code == 303 and res.headers["location"] == "/"
+    cookie = res.headers["set-cookie"].lower()
+    assert "api_key=secret-1" in cookie and "httponly" in cookie and "samesite=strict" in cookie
+    assert client.get("/api/chunks").status_code != 401                              # 응답의 쿠키를 클라이언트가 보관해 다음 요청에 보낸다
+    assert fresh().get("/api/chunks").status_code == 401                              # 쿠키 없는 다른 브라우저는 그대로 막힌다
+
+
+def test_a_wrong_key_gets_no_cookie_and_a_wrong_cookie_does_not_pass(monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret-1")
+    client = fresh()
+    res = login(client, "nope")
+    assert res.status_code == 401 and "set-cookie" not in res.headers
+    client.cookies.set("api_key", "nope")
+    assert client.get("/api/chunks").status_code == 401
+    assert client.post("/chat", json={"question": "x"}).status_code == 401
+
+
+def test_the_login_page_does_nothing_without_a_configured_key(monkeypatch):
+    monkeypatch.delenv("API_KEY", raising=False)
+    client = fresh()
+    assert client.get("/login").status_code == 303                                   # 열려 있으니 로그인이 필요 없다
+    assert client.get("/").status_code == 200
