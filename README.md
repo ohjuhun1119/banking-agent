@@ -28,7 +28,7 @@
 | 기존 챗봇과의 비교 | 같은 질문 39개와 대화 중 값을 바꾸는 17턴: 계산 0/6 대 5/6, 되묻기 0/15 대 13/15, 값을 바꾼 시나리오 0/17 대 16/17, 응답 시간 중앙값은 3.1초 대 9.1초. **기존 챗봇의 0점은 계산 · 되묻기를 하지 않도록 한 설계의 결과**이고 성능 문제가 아니다 |
 | 프롬프트 인젝션 | 일곱 종류를 가짜 모델 시험(CI)과 실제 모델 공격 19개로 확인하고 시험이 찾은 틈 5곳을 고침. 실제 모델 결과: 속아서 가드가 막은 것 3건, 가드를 지나 통과한 것 첫 실행 1건 → 고친 뒤 0건 (작은 표본, [상세](#프롬프트-인젝션)) |
 | 공개 배포 준비 | 접근 키(헤더 · 로그인 쿠키), Caddy(HTTPS · 1분 20회 · 본문 64KB), 서버 설치 · 백업 스크립트. 맥과 Oracle ARM 서버에서 기동 · 접속 확인. **그 서버(CPU)에서 7B 채팅은 2코어/12GB에서 실패, 4코어/24GB에서 한 질문에 4~5분** ([배포 순서](docs/DEPLOY.md)) |
-| 시험 | pytest 1771개 (모델 · 색인 불필요), 시험 자체도 코드를 일부러 망가뜨려 잡는지 확인 |
+| 시험 | pytest 1794개 (모델 · 색인 불필요), 시험 자체도 코드를 일부러 망가뜨려 잡는지 확인 |
 
 ## 문제 정의
 
@@ -380,6 +380,26 @@ export LLM_PROVIDER=openai LLM_ALLOW_EXTERNAL=1 OPENAI_API_KEY=...    # 세 개�
   - 실패한 7문항(Q040 · Q061 · Q065 · Q069 · Q070 · Q081 · Q082) 중 Q082(`상담원 연결하면 수수료가 있나요`가 상담 요청으로 저장됨)는 로컬 모델 때 이미 한계로 적은 **코드의 낱말 규칙 문제**이고 모델과 무관합니다. Q065 · Q069 · Q070은 사용자가 말한 값을 모델이 빠뜨린 표시(`omitted_stated`)입니다.
   - 한계: 개발용 46문항 한 번 실행이고 API 쪽은 온도를 못 고정해 다시 돌리면 달라질 수 있습니다. 검증용(고정) 문항은 돌리지 않았습니다. 질문 46개가 OpenAI로 나갔습니다(전부 가상의 값).
 - **아직 안 한 것**: Oracle 서버에 적용. 입력 마스킹은 코드로 확인했을 뿐 개인정보 보호를 보장하지 않습니다.
+
+## 트레이스 (Langfuse, 내 컴퓨터에서)
+
+질문마다 LangGraph 실행 전체(입구 판별 → 모델 호출 → 도구 → 근거 카드)를 [Langfuse](https://langfuse.com)에 남겨 단계별 입출력과 시간을 봅니다. 기존 로컬 트레이스(`app/traces.py`, SQLite)는 도구 선택만 남기지만 이쪽은 모델 호출과 그래프 단계까지 보입니다.
+**데이터가 컴퓨터 밖으로 나가지 않게** 했습니다: 직접 띄운 Langfuse(`compose.langfuse.yaml`)만 쓰고, 모든 포트는 `127.0.0.1`에만 열며, Langfuse의 익명 사용 통계도 끕니다. 기본은 꺼짐이고 호스트가 로컬이 아니면 켜지지 않습니다(`LANGFUSE_ALLOW_REMOTE=1`이 있어야 함).
+
+```bash
+scripts/langfuse_env.sh                                                   # .env.langfuse: 무작위 비밀값과 API 키 (한 번, 깃 제외)
+docker compose -f compose.langfuse.yaml --env-file .env.langfuse up -d    # 이미지 합계 수 GB
+pip install -r requirements-tracing.txt                                   # langfuse 5.2.0 (Docker 이미지의 requirements.txt와 따로)
+export LANGFUSE_PUBLIC_KEY=... LANGFUSE_SECRET_KEY=...                    # .env.langfuse의 값. 이 둘이 있으면 켜짐 (LANGFUSE_TRACING=0이면 끔)
+python scripts/langfuse_verify.py                                         # 시험 질문 3개를 보내고 올라온 트레이스를 API로 확인
+```
+
+화면은 `http://localhost:3000` (`admin@banking.local`, 비밀번호는 `.env.langfuse`의 `LANGFUSE_ADMIN_PASSWORD`).
+
+- **확인한 것 (2026-11-26, 실제 모델 qwen2.5:7b, Langfuse 서버 4.x + SDK 5.2.0)**: 시험 질문 3개가 트레이스 3개로 올라오고 세션 ID가 맞습니다. 계산 · 약관 질문은 `entry → route → agent → ChatOllama(모델 호출 2번) → tools → evidence`, 범위 밖 질문은 `entry → decline`만 있어 **모델 호출이 없는 코드 거절 경로**와 일치합니다.
+- Langfuse 4.x 서버는 옛 `/api/public/traces`를 열지 않아(`events_only` 모드) 확인은 `/api/public/v2/observations`로 했습니다.
+- 시험(`tests/test_tracing.py` · `tests/test_langfuse_config.py`, Langfuse 서버 불필요)은 기본 꺼짐, 원격 호스트 거부, 호스트가 비었을 때 SDK 기본값(클라우드)으로 가지 않게 로컬 주소를 채우는 것, 핸들러 실패가 답을 막지 않음, 포트가 로컬에만 열림을 확인하고 변형 확인도 했습니다.
+- 한계: 트레이스에 질문 · 답 · 도구 결과(약관 본문 포함)가 그대로 들어가 로컬 볼륨에 쌓입니다(밖으로는 안 나감). Oracle 서버에는 올리지 않았습니다. 이미지는 주 버전(4)만 고정했습니다. LangSmith는 클라우드로 데이터가 나가서 쓰지 않았습니다(`LANGSMITH_TRACING` 환경변수를 켜면 이 코드의 실행 설정이 그쪽으로도 갈 수 있으니 켜지 마세요).
 
 ## 한계
 

@@ -22,3 +22,4 @@ eval/runs
 eval/tool_runs
 *.md
 .env.llm
+.env.langfuse

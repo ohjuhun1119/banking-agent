@@ -21,3 +21,4 @@ eval/heldout/runs/after_day9.json
 eval/heldout/runs/after_evidence.json
 eval/heldout/runs/after_fix.jsonbackups/
 .env.llm
+.env.langfuse
