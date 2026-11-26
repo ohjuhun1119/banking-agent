@@ -33,9 +33,10 @@ def awaiting_reply(messages) -> bool:
     return False
 
 
-def in_conversation(messages, declined_text: str) -> bool:
-    """이미 예금 대화가 진행 중인가: 앞에 (범위 밖 안내가 아닌) 어시스턴트 답이 있다. 첫 질문이 거절됐다면 대화로 보지 않는다."""
-    return any(isinstance(m, AIMessage) and not getattr(m, "tool_calls", None) and isinstance(m.content, str) and m.content.strip() and m.content != declined_text
+def in_conversation(messages, declined_texts) -> bool:
+    """이미 예금 대화가 진행 중인가: 앞에 (범위 밖 안내가 아닌) 어시스턴트 답이 있다. 첫 질문이 거절됐다면 대화로 보지 않는다. declined_texts: 거절 문구(하나 또는 여러 개)."""
+    declined = (declined_texts,) if isinstance(declined_texts, str) else tuple(declined_texts)
+    return any(isinstance(m, AIMessage) and not getattr(m, "tool_calls", None) and isinstance(m.content, str) and m.content.strip() and m.content not in declined
                for m in list(messages)[:-1])
 
 
