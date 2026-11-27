@@ -230,3 +230,15 @@ def test_the_request_list_can_be_cleared_from_the_handoff_tab():
     assert 'id="handoff-clear"' in panel(html, "panel-handoff") and "기록 지우기" in panel(html, "panel-handoff")
     body = js[js.index('$("handoff-clear")'):]
     assert "removeItem(REQUEST_KEY)" in body[:300] and "renderHandoffLog()" in body[:300]
+
+
+def test_both_clear_buttons_sit_at_the_top_right_of_their_box_in_bold():
+    html = PAGE.read_text(encoding="utf-8")
+    css = (PAGE.parent / "service.css").read_text(encoding="utf-8")
+    for pid, bid in (("panel-history", "history-clear"), ("panel-handoff", "handoff-clear")):
+        box = panel(html, pid)
+        assert f'id="{bid}" class="clear"' in box
+        inner = box[box.index('<div class="history">'):]
+        assert inner.index(bid) < inner.index("help")                         # 박스의 맨 앞에 두어 오른쪽 위에 뜬다
+    rule = css[css.index(".clear{"):].split("}")[0]
+    assert "float:right" in rule and "font-weight:700" in rule

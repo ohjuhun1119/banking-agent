@@ -77,6 +77,7 @@ textarea:focus{outline:1px solid #1f4e9c;border-color:#1f4e9c}
 .secondary{border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;font-size:15px;height:44px;padding:0 18px}
 .history{margin:16px 20px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:4px}
 .history[hidden]{display:none}
+.clear{float:right;margin:0 0 4px 8px;border:0;background:none;color:#111827;font-size:14px;font-weight:700;padding:2px 0}
 .history details{border-top:1px solid #e5e7eb;padding:8px 0;font-size:13px}
 .history summary{cursor:pointer;color:#374151}
 .history .q{margin:8px 0 2px;font-weight:700}
