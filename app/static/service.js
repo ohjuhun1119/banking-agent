@@ -132,17 +132,25 @@
     question.focus();
   });
 
-  var tabs = [["tab-chat", "panel-chat"], ["tab-calc", "panel-calc"]];
+  var tabs = [["tab-home", "panel-home"], ["tab-chat", "panel-chat"], ["tab-calc", "panel-calc"], ["tab-handoff", "panel-handoff"]];
   function selectTab(index) {
     tabs.forEach(function (pair, i) {
       $(pair[0]).setAttribute("aria-selected", i === index ? "true" : "false");
       $(pair[1]).hidden = i !== index;
     });
+    window.scrollTo(0, 0);
   }
   tabs.forEach(function (pair, i) {
     $(pair[0]).addEventListener("click", function () { selectTab(i); });
     $(pair[0]).addEventListener("keydown", function (ev) {
       if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") { var next = (i + 1) % tabs.length; selectTab(next); $(tabs[next][0]).focus(); }
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-go]"), function (button) {
+    button.addEventListener("click", function () {
+      var target = button.getAttribute("data-go");
+      tabs.forEach(function (pair, i) { if (pair[0] === target) selectTab(i); });
     });
   });
 
@@ -186,5 +194,58 @@
         out.appendChild(el("p", "alert", r.message || "입력값을 확인해 주세요."));
       }
     }, function () { out.appendChild(el("p", "alert", "계산하지 못했어요. 잠시 후 다시 시도해 주세요.")); });
+  });
+
+  var HANDOFF_PREFIX = "상담원 연결을 요청합니다. 문의 내용: ";
+  var handoffConfirm = $("handoff-confirm");
+  var handoffStart = $("handoff-start");
+  var handoffText = $("handoff-text");
+  var handoffResult = $("handoff-result");
+  var handoffBusy = false;
+
+  function handoffMessage(cls, text) {
+    handoffResult.textContent = "";
+    handoffResult.appendChild(el("p", cls, text));
+  }
+
+  handoffStart.addEventListener("click", function () {
+    var note = handoffText.value.trim();
+    handoffResult.textContent = "";
+    if (!note) {
+      handoffMessage("alert", "상담받고 싶은 내용을 입력해 주세요.");
+      handoffText.focus();
+      return;
+    }
+    $("handoff-preview").textContent = note;
+    handoffConfirm.hidden = false;
+    handoffStart.hidden = true;
+  });
+
+  $("handoff-cancel").addEventListener("click", function () {
+    handoffConfirm.hidden = true;
+    handoffStart.hidden = false;
+  });
+
+  $("handoff-save").addEventListener("click", function () {
+    var note = handoffText.value.trim();
+    if (!note || handoffBusy) return;
+    handoffBusy = true;
+    handoffMessage("guide", "저장하고 있어요");
+    call("/chat", { method: "POST", body: JSON.stringify({ question: HANDOFF_PREFIX + note, session_id: sessionId() }) }).then(function (res) {
+      var d = res && res.data;
+      handoffResult.textContent = "";
+      if (res && res.status === 200 && d && d.answer) {
+        rich(handoffResult, d.answer);
+        if (/접수번호/.test(d.answer)) handoffText.value = "";
+      } else {
+        handoffMessage("alert", "저장하지 못했어요. 하나은행 고객센터나 영업점에 직접 문의해 주세요.");
+      }
+    }, function () {
+      handoffMessage("alert", "저장하지 못했어요. 하나은행 고객센터나 영업점에 직접 문의해 주세요.");
+    }).then(function () {
+      handoffBusy = false;
+      handoffConfirm.hidden = true;
+      handoffStart.hidden = false;
+    });
   });
 })();
