@@ -135,7 +135,7 @@ docker compose -f compose.yaml -f compose.prod.yaml exec api python -m app.histo
 
 ## 서버 트레이스 보기 (선택, Langfuse)
 
-같은 서버에 Langfuse를 따로 띄우고(`compose.langfuse.yaml`), api가 `compose.tracing.yaml`로 그쪽에 트레이스를 보낸다. 질문과 모델 입출력(약관 본문 포함)이 서버 밖으로 나가지 않는다. Langfuse 포트는 서버의 `127.0.0.1`에만 열린다. 컨테이너가 6개 늘고 이미지가 수 GB다.
+같은 서버에 Langfuse를 따로 띄우고(`compose.langfuse.yaml`), api가 `compose.tracing.yaml`로 그쪽에 트레이스를 보낸다. 질문과 모델 입출력(약관 본문 포함)이 서버 밖으로 나가지 않는다. Langfuse 포트는 서버의 `127.0.0.1`에만 열린다. 저장되기 전에 전화번호 · 이메일 · 계좌번호 모양은 가린다(이름 · 주소 같은 서술형 정보는 못 가린다). 컨테이너가 6개 늘고 이미지가 수 GB다.
 
 ```bash
 scripts/langfuse_env.sh                                                      # .env.langfuse 만들기 (한 번)

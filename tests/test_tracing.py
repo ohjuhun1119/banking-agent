@@ -104,3 +104,33 @@ def test_when_on_the_graph_run_reaches_the_callback_and_the_answer_is_unchanged(
     a_on, _ = tg.agent(fake)
     traced = a_on.ask("안녕하세요", "s1")
     assert rec.started and traced["answer"] == plain["answer"] and traced["stop_reason"] == plain["stop_reason"]
+
+
+# ---------- 개인정보 가리기: Langfuse에 저장되기 전에 ----------
+REAL_MAKE_HANDLER = tracing._make_handler
+
+
+def test_the_trace_masker_hides_personal_numbers_anywhere_in_the_data_and_keeps_money_and_dates():
+    data = {"input": [{"role": "user", "content": "전화 010-1234-5678, 계좌 110-123-456789, 1000만원 2026-10-01"}], "meta": ("a@b.com", 3, None, True)}
+    out = tracing.mask_trace(data)
+    text = str(out)
+    assert "010-1234-5678" not in text and "110-123-456789" not in text and "a@b.com" not in text
+    assert "[전화번호]" in text and "[계좌번호]" in text and "[이메일]" in text and "1000만원" in text and "2026-10-01" in text
+    assert out["meta"][1:] == [3, None, True] or out["meta"][1:] == (3, None, True)
+
+
+def test_the_trace_masker_also_masks_message_objects_and_never_raises_on_odd_values():
+    out = tracing.mask_trace({"m": AIMessage(content="연락처 010-9999-8888"), "o": object()})
+    assert "010-9999-8888" not in str(out)
+
+
+def test_the_langfuse_client_is_created_once_with_the_masker_before_the_handler(monkeypatch):
+    import langfuse
+    import langfuse.langchain as lc
+    made = []
+    monkeypatch.setattr(langfuse, "Langfuse", lambda **kw: made.append(kw))
+    monkeypatch.setattr(lc, "CallbackHandler", lambda: object())
+    monkeypatch.setattr(tracing, "_client_ready", False)
+    REAL_MAKE_HANDLER()
+    REAL_MAKE_HANDLER()
+    assert len(made) == 1 and made[0]["mask"] is tracing.mask_trace
