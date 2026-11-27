@@ -6,11 +6,13 @@ ARG PYTHON_VERSION=3.14
 # ---- 1단계: 의존성 설치 (미리 빌드된 설치 파일이 없는 패키지를 대비해 빌드 도구를 여기에만 둔다)
 FROM python:${PYTHON_VERSION}-slim AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+ARG INSTALL_TRACING=0                                              # 1이면 Langfuse SDK도 넣는다 (compose.tracing.yaml). 기본은 안 넣는다
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-COPY requirements.txt requirements-api.txt ./
+COPY requirements.txt requirements-api.txt requirements-tracing.txt ./
 RUN pip install -r requirements.txt -r requirements-api.txt      # requirements-api.txt: 서버에서 LLM_PROVIDER=openai를 켤 수 있게 (켜지 않으면 쓰이지 않는다)
+RUN if [ "$INSTALL_TRACING" = "1" ]; then pip install -r requirements-tracing.txt; fi
 
 # ---- 2단계: 실행 이미지
 FROM python:${PYTHON_VERSION}-slim

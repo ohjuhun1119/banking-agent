@@ -131,3 +131,19 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ```bash
 docker compose -f compose.yaml -f compose.prod.yaml exec api python -m app.history 20
 ```
+
+
+## 서버 트레이스 보기 (선택, Langfuse)
+
+같은 서버에 Langfuse를 따로 띄우고(`compose.langfuse.yaml`), api가 `compose.tracing.yaml`로 그쪽에 트레이스를 보낸다. 질문과 모델 입출력(약관 본문 포함)이 서버 밖으로 나가지 않는다. Langfuse 포트는 서버의 `127.0.0.1`에만 열린다. 컨테이너가 6개 늘고 이미지가 수 GB다.
+
+```bash
+scripts/langfuse_env.sh                                                      # .env.langfuse 만들기 (한 번)
+grep -E '^LANGFUSE_(PUBLIC|SECRET)_KEY=' .env.langfuse >> .env               # api에 넘길 키 두 줄만 .env에 붙인다
+docker compose -f compose.langfuse.yaml --env-file .env.langfuse up -d
+docker compose -f compose.yaml -f compose.prod.yaml -f compose.tracing.yaml up -d --build
+```
+
+보기: 내 컴퓨터에서 `ssh -L 3000:localhost:3000 <서버>`를 열어 두고 `http://localhost:3000`에 로그인한다 (`admin@banking.local`, 비밀번호는 서버 `.env.langfuse`의 `LANGFUSE_ADMIN_PASSWORD`).
+끄기: 위 마지막 명령에서 `-f compose.tracing.yaml`을 빼고 다시 올린다.
+이 뒤로는 배포할 때도 `-f compose.tracing.yaml`을 계속 붙여야 트레이스가 유지된다.
