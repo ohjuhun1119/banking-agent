@@ -63,6 +63,7 @@ services:
     environment: *app-env
     volumes:
       - ./rag/chroma_db:/app/rag/chroma_db
+      - ./rag/chunks:/app/rag/chunks:ro
       - ./data:/app/data
     ports:
       - "127.0.0.1:8000:8000"

@@ -71,6 +71,8 @@ def test_the_volumes_land_exactly_where_the_code_reads_and_writes(name):
     services = load(name)["services"]
     api_volumes = services["api"]["volumes"]
     assert f"./rag/chroma_db:{chroma}" in api_volumes and "./data:/app/data" in api_volumes
+    from app import api as api_module
+    assert f"./rag/chunks:/app/{api_module.CHUNKS.parent.relative_to(ROOT).as_posix()}:ro" in api_volumes        # 화면의 조항 본문 보기(/api/chunks)가 읽는다. 이미지에는 청크가 없어서 빠지면 서버에서만 404
     ingest = services["ingest"]["volumes"]
     import ingest as ingest_module
     chunks_dir = "/app/" + Path(ingest_module.CHUNKS).parent.as_posix()
