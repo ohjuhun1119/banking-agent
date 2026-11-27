@@ -70,7 +70,8 @@ curl -s -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 ## 7. 도메인과 HTTPS (선택)
 `.env`의 `SITE_ADDRESS`를 도메인으로 바꾸고 `docker compose -f compose.yaml -f compose.prod.yaml up -d caddy`를 다시 실행하면 Caddy가 인증서를 자동으로 받고 갱신한다 (80 · 443이 열려 있어야 한다). `http`로 들어오면 `https`로 자동 이동한다(308).
 - **가입 없이 쓰는 방법**: IP를 이름에 넣은 `sslip.io` 주소. 서버 IP가 `168.110.40.247`이면 `SITE_ADDRESS=168-110-40-247.sslip.io`. 이 이름은 그 IP로 연결되고(`python3 -c "import socket; print(socket.gethostbyname('168-110-40-247.sslip.io'))"`로 확인) 서버 쪽 설정은 위 한 줄이 전부다.
-- **고정된 내 이름을 쓰려면**: DuckDNS 같은 무료 서비스에 가입해 서브도메인을 만들고 A 레코드를 서버 IP로 맞춘다 (가입은 직접 해야 한다).
+- **고정된 내 이름을 쓰려면**: DuckDNS 같은 무료 서비스에 가입해 서브도메인을 만들고 서버 IP를 연결한다 (가입은 직접 해야 하고, 인증서는 서버의 Caddy가 받으므로 DuckDNS 토큰은 필요 없다). 이름 여러 개를 함께 열려면 따옴표로 묶어 쉼표로 잇는다: `SITE_ADDRESS="banking-agent.duckdns.org, 168-110-40-247.sslip.io"` (이름마다 인증서를 따로 받는다).
+- **DuckDNS로 확인함** (2026-11-27): `banking-agent.duckdns.org`가 서버 IP로 연결됨을 확인한 뒤 위 두 이름을 함께 넣자 두 이름 모두 Let's Encrypt 인증서가 발급되어 `https`가 정상이다. 서버 IP가 바뀌면 DuckDNS 화면에서 IP를 다시 입력해야 한다.
 - **실제로 확인한 것** (2026-11-27, Oracle 서버): `SITE_ADDRESS=168-110-40-247.sslip.io`로 Let's Encrypt 인증서가 한 번에 발급됐다(`certificate obtained successfully`, 유효기간 2027-02-25까지, Caddy가 만료 전에 갱신). `https://.../health` 200, 인증서 검증 정상, `http`는 `https`로 이동. 로그인 쿠키는 HTTPS에서 `Secure`가 붙는다.
 - **한계**: `sslip.io`는 외부 무료 서비스라 그 서비스의 DNS에 의존한다. 같은 이름 아래 인증서를 받는 사용자가 많아 발급 한도에 걸릴 수 있다 (Caddy가 다른 발급처로 넘어가 재시도한다). 오래 쓸 서비스라면 내 도메인을 권한다. HSTS(브라우저가 항상 https로만 접속하게 기억시키는 헤더)는 인증서 문제가 생기면 접속이 막힐 수 있어 일부러 넣지 않았다.
 

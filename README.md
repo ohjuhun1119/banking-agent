@@ -162,6 +162,7 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ```
 
 - 한 IP당 1분에 20번(`/chat` 한 번이 CPU에서 수십 초라 그 이상은 서버가 감당하지 못합니다), 요청 본문 64KB까지, 넘으면 429 · 413입니다. 속도 제한은 기본 Caddy에 없어 플러그인(`caddy-ratelimit`)을 넣어 직접 빌드합니다.
+- **서비스 주소**: `https://banking-agent.duckdns.org` (DuckDNS 무료 서브도메인, 아래 sslip.io 주소도 함께 열려 있음).
 - **HTTPS 확인함** (2026-11-27): 서버에 `SITE_ADDRESS=168-110-40-247.sslip.io`(IP를 이름에 넣은 무료 주소, 가입 없음)를 넣자 Let's Encrypt 인증서가 한 번에 발급되어 `https://168-110-40-247.sslip.io`로 접속됩니다(`http`는 자동 이동, 로그인 쿠키는 `Secure`). 외부 서비스(sslip.io)에 의존하는 임시 이름이라 오래 쓸 서비스라면 내 도메인을 권합니다([docs/DEPLOY.md](docs/DEPLOY.md) 7절).
 - `SITE_ADDRESS`가 도메인이면 인증서를 자동으로 받습니다. 비우면 `:80`(HTTP)이라 **접근 키가 평문으로 오갑니다** (시험용). 공개할 때는 도메인을 씁니다.
 - API 포트(8000)는 여전히 `127.0.0.1`에만 열리고, 바깥은 80 · 443(Caddy)만 받습니다.
