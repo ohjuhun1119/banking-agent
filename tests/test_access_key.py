@@ -94,3 +94,14 @@ def test_the_login_page_does_nothing_without_a_configured_key(monkeypatch):
     client = fresh()
     assert client.get("/login").status_code == 303                                   # 열려 있으니 로그인이 필요 없다
     assert client.get("/").status_code == 200
+
+
+def test_the_login_cookie_is_marked_secure_only_when_the_request_came_over_https(monkeypatch):
+    """Caddy(HTTPS 종료)가 X-Forwarded-Proto를 붙여 넘긴다. 로컬 개발(http)에서는 Secure를 붙이면 쿠키가 안 가므로 붙이지 않는다."""
+    monkeypatch.setenv("API_KEY", "secret-1")
+    form = {"content-type": "application/x-www-form-urlencoded"}
+    plain = client.post("/login", content="key=secret-1", headers=form)
+    secure = client.post("/login", content="key=secret-1", headers={**form, "x-forwarded-proto": "https"})
+    assert "secure" not in plain.headers["set-cookie"].lower()
+    cookie = secure.headers["set-cookie"].lower()
+    assert "secure" in cookie and "httponly" in cookie and "samesite=strict" in cookie

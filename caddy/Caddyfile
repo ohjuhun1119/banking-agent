@@ -4,6 +4,10 @@
 }
 
 {$SITE_ADDRESS::80} {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
 	request_body {
 		max_size 64KB
 	}

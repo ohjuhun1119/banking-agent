@@ -291,3 +291,8 @@ def test_the_image_installs_the_api_model_dependency_so_api_mode_works_on_the_se
     assert "requirements-api.txt" in DOCKERFILE
     assert "langchain-openai" in (ROOT / "requirements-api.txt").read_text(encoding="utf-8")
     assert not ignored("requirements-api.txt")                                                 # .dockerignore가 빌드 문맥에서 빼지 않는다
+
+
+def test_the_caddyfile_sets_basic_security_headers_for_the_https_site():
+    caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
+    assert "X-Content-Type-Options nosniff" in caddyfile and "Referrer-Policy no-referrer" in caddyfile

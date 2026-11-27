@@ -6,7 +6,7 @@
 ## 0. 준비물
 - 서버의 공개 IP, SSH 개인 키 (아래 예는 `~/.ssh/oracle_banking`, 기본 사용자 `ubuntu`)
 - 내 맥의 `rag/chunks/chunks.jsonl` (약관 청크, 깃에 없는 파일)
-- (선택) HTTPS용 도메인. 없으면 HTTP로 먼저 확인하고 나중에 붙인다.
+- (선택) HTTPS용 도메인. 없으면 HTTP로 먼저 확인하고 나중에 붙인다 (가입 없이 `sslip.io` 주소를 쓰는 방법은 7절).
 - 서버의 보안 목록(Oracle 콘솔)에서 80 · 443이 열려 있어야 한다. 8000은 열지 않는다.
 
 ## 1. 접속해서 도구 설치
@@ -68,7 +68,11 @@ curl -s -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 브라우저는 `http://<공개 IP>` (도메인이면 `https://<도메인>`)를 열고 접근 키를 입력한다.
 
 ## 7. 도메인과 HTTPS (선택)
-도메인의 A 레코드를 공개 IP로 맞추고 `.env`의 `SITE_ADDRESS`를 그 도메인으로 바꾼 뒤 `docker compose -f compose.yaml -f compose.prod.yaml up -d`를 다시 실행한다. Caddy가 인증서를 자동으로 받는다 (80 · 443이 열려 있어야 한다).
+`.env`의 `SITE_ADDRESS`를 도메인으로 바꾸고 `docker compose -f compose.yaml -f compose.prod.yaml up -d caddy`를 다시 실행하면 Caddy가 인증서를 자동으로 받고 갱신한다 (80 · 443이 열려 있어야 한다). `http`로 들어오면 `https`로 자동 이동한다(308).
+- **가입 없이 쓰는 방법**: IP를 이름에 넣은 `sslip.io` 주소. 서버 IP가 `168.110.40.247`이면 `SITE_ADDRESS=168-110-40-247.sslip.io`. 이 이름은 그 IP로 연결되고(`python3 -c "import socket; print(socket.gethostbyname('168-110-40-247.sslip.io'))"`로 확인) 서버 쪽 설정은 위 한 줄이 전부다.
+- **고정된 내 이름을 쓰려면**: DuckDNS 같은 무료 서비스에 가입해 서브도메인을 만들고 A 레코드를 서버 IP로 맞춘다 (가입은 직접 해야 한다).
+- **실제로 확인한 것** (2026-11-27, Oracle 서버): `SITE_ADDRESS=168-110-40-247.sslip.io`로 Let's Encrypt 인증서가 한 번에 발급됐다(`certificate obtained successfully`, 유효기간 2027-02-25까지, Caddy가 만료 전에 갱신). `https://.../health` 200, 인증서 검증 정상, `http`는 `https`로 이동. 로그인 쿠키는 HTTPS에서 `Secure`가 붙는다.
+- **한계**: `sslip.io`는 외부 무료 서비스라 그 서비스의 DNS에 의존한다. 같은 이름 아래 인증서를 받는 사용자가 많아 발급 한도에 걸릴 수 있다 (Caddy가 다른 발급처로 넘어가 재시도한다). 오래 쓸 서비스라면 내 도메인을 권한다. HSTS(브라우저가 항상 https로만 접속하게 기억시키는 헤더)는 인증서 문제가 생기면 접속이 막힐 수 있어 일부러 넣지 않았다.
 
 ## 8. 백업
 상담 요청과 트레이스(`data/*.sqlite3`)는 서버에만 있다. 매일 새벽에 복사하고 최근 14개를 남긴다.
@@ -106,6 +110,5 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 - 임베딩과 검색은 계속 서버의 로컬 Ollama(bge-m3)가 하고, 모델에 들어가는 입력과 도구 결과만 OpenAI로 나간다 (전화번호 · 이메일 같은 모양은 보내기 전에 가린다).
 
 ## 아직 못 본 것
-- 도메인 인증서 자동 발급
 - 4 OCPU/24GB보다 큰 서버(예: 8코어)에서의 `/chat` 응답 시간
 - 서버에서 상담 요청 저장(`data/` 쓰기)

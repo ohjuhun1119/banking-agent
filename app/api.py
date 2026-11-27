@@ -98,7 +98,8 @@ async def login(request: Request):
     if not _key_ok(given, key):
         return HTMLResponse(render_login(error=True), status_code=401, headers=SECURITY_HEADERS)
     res = RedirectResponse("/", status_code=303)
-    res.set_cookie("api_key", key, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 7)
+    res.set_cookie("api_key", key, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 7,
+                   secure=request.headers.get("x-forwarded-proto") == "https")        # Caddy가 HTTPS를 끝내고 넘기면 Secure (로컬 http 개발에서는 붙이지 않는다)
     return res
 
 
