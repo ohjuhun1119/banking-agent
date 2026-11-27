@@ -1,0 +1,23 @@
+# 서버 트레이스: 같은 서버에 띄운 Langfuse(compose.langfuse.yaml)로 api가 트레이스를 보낸다. 질문과 답이 서버 밖으로 나가지 않는다.
+#
+#   scripts/langfuse_env.sh                                               # .env.langfuse (한 번). 그 안의 LANGFUSE_PUBLIC_KEY · LANGFUSE_SECRET_KEY 두 줄을 .env에도 붙인다
+#   docker compose -f compose.langfuse.yaml --env-file .env.langfuse up -d
+#   docker compose -f compose.yaml -f compose.prod.yaml -f compose.tracing.yaml up -d --build
+#   ssh -L 3000:localhost:3000 <서버>   →  http://localhost:3000   (Langfuse 포트는 서버의 127.0.0.1에만 열려 있다)
+#
+# api에는 키 두 개와 주소만 넘긴다 (.env.langfuse 통째로 넘기면 DB · 저장소 비밀번호까지 들어간다).
+services:
+  api:
+    build:
+      args:
+        INSTALL_TRACING: "1"
+    environment:
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?.env에 LANGFUSE_PUBLIC_KEY가 필요합니다}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?.env에 LANGFUSE_SECRET_KEY가 필요합니다}
+    networks: [default, langfuse]
+
+networks:
+  langfuse:
+    external: true
+    name: banking-langfuse_default

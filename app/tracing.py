@@ -3,6 +3,7 @@
 데이터가 컴퓨터 밖으로 나가지 않게 한다: 기본은 꺼짐, 호스트가 로컬이 아니면 LANGFUSE_ALLOW_REMOTE=1이 없는 한 켜지 않는다.
 (Langfuse SDK는 호스트를 정하지 않으면 기본값이 Langfuse 클라우드라서, 비어 있으면 로컬 주소를 직접 채운다.)
 켜는 조건: LANGFUSE_PUBLIC_KEY · LANGFUSE_SECRET_KEY가 있고 LANGFUSE_TRACING이 0이 아님.  설정은 compose.langfuse.yaml · scripts/langfuse_env.sh.
+저장되기 전에 전화번호 · 이메일 · 계좌번호 모양을 가린다 (mask_trace, 이름 · 주소 같은 서술형 정보는 못 가린다).
 트레이스 연결이 실패해도 답변은 그대로 나간다 (경고만).
 """
 from __future__ import annotations
@@ -11,9 +12,12 @@ import os
 import sys
 from urllib.parse import urlparse
 
+from app.redact import mask
+
 DEFAULT_HOST = "http://localhost:3000"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "host.docker.internal", "langfuse-web"}
 _warned: set[str] = set()
+_client_ready = False
 
 
 def _warn(key: str, message: str) -> None:
@@ -22,8 +26,33 @@ def _warn(key: str, message: str) -> None:
         print(f"[tracing] {message}", file=sys.stderr)
 
 
+def mask_trace(data):
+    """Langfuse에 저장되기 전에 글 속 전화번호 · 이메일 · 계좌번호 모양을 가린다 (app/redact.py와 같은 규칙, 금액 · 날짜는 그대로).
+    메시지 같은 객체는 펼쳐서 가리고, 알 수 없는 값은 글로 바꿔 가린다 (가리지 못한 채 저장되는 것보다 낫다)."""
+    if isinstance(data, str):
+        return mask(data)
+    if data is None or isinstance(data, (bool, int, float)):
+        return data
+    if isinstance(data, dict):
+        return {k: mask_trace(v) for k, v in data.items()}
+    if isinstance(data, (list, tuple)):
+        return [mask_trace(v) for v in data]
+    dump = getattr(data, "model_dump", None)
+    if callable(dump):
+        try:
+            return mask_trace(dump())
+        except Exception:
+            pass
+    return mask(str(data))
+
+
 def _make_handler():
+    global _client_ready
+    from langfuse import Langfuse
     from langfuse.langchain import CallbackHandler          # 켜졌을 때만 불러온다 (패키지는 requirements-tracing.txt)
+    if not _client_ready:
+        Langfuse(mask=mask_trace)                            # 핸들러가 쓰는 클라이언트를 가리기 함수와 함께 한 번만 만든다
+        _client_ready = True
     return CallbackHandler()
 
 

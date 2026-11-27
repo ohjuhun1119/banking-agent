@@ -314,3 +314,24 @@ def test_the_caddy_access_log_is_on_and_filters_out_every_credential():
 def test_the_caddy_container_log_has_a_size_limit_so_a_scanner_cannot_fill_the_disk():
     opts = load("compose.prod.yaml")["services"]["caddy"]["logging"]["options"]
     assert opts["max-size"] and int(opts["max-file"]) >= 2
+
+
+# ---------- 서버 트레이스: 서버에 Langfuse를 따로 띄우고, api만 같은 서버의 Langfuse로 보낸다 ----------
+def test_the_image_installs_the_langfuse_sdk_only_when_asked():
+    assert "ARG INSTALL_TRACING=0" in DOCKERFILE and "requirements-tracing.txt" in DOCKERFILE
+    assert re.search(r'if \[ "\$INSTALL_TRACING" = "1" \]; then pip install -r requirements-tracing\.txt; fi', DOCKERFILE)
+
+
+def test_the_tracing_overlay_sends_traces_to_the_langfuse_on_the_same_server_over_a_private_network():
+    from urllib.parse import urlparse
+    from app import tracing
+    cfg = load("compose.tracing.yaml")
+    api = cfg["services"]["api"]
+    host = api["environment"]["LANGFUSE_HOST"]
+    assert urlparse(host).hostname in tracing.LOCAL_HOSTS                      # app/tracing.py가 '밖으로 안 나간다'고 받아들이는 주소여야 켜진다
+    assert "LANGFUSE_ALLOW_REMOTE" not in api["environment"]
+    assert str(api["build"]["args"]["INSTALL_TRACING"]) == "1"
+    net = cfg["networks"]["langfuse"]
+    assert net["external"] is True and net["name"] == "banking-langfuse_default" and "langfuse" in api["networks"] and "default" in api["networks"]
+    assert "env_file" not in api                                               # DB · 저장소 비밀번호까지 api에 넘기지 않는다
+    assert set(api["environment"]) == {"LANGFUSE_HOST", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"}
