@@ -201,3 +201,20 @@ def test_every_saved_request_is_listed_on_the_handoff_tab_whether_it_came_from_t
     chat_part = js[js.index('$("chat-form")'):js.index('Array.prototype.forEach.call(document.querySelectorAll(".faq-item")')]
     assert "rememberRequest(" in form_part and "rememberRequest(" in chat_part            # 두 길 모두 같은 내역에 남긴다
     assert 'tab-handoff' in js[js.index("function selectTab"):js.index("function selectTab") + 600]      # 탭을 열 때마다 목록을 다시 그린다
+
+
+def test_each_clause_in_the_evidence_opens_to_show_its_full_text_loaded_on_demand():
+    js = JS.read_text(encoding="utf-8")
+    body = js[js.index("function evidence("):js.index("var messages = $(")]
+    assert "/api/chunks/" in body and "encodeURIComponent" in body and '"toggle"' in body        # 열 때 한 번 조항 본문을 불러온다
+    assert "d.evidence)" in js or "d.evidence," in js                                           # 근거 카드를 받아서 그린다
+    assert "근거 약관" in body and "innerHTML" not in js
+
+
+def test_the_clause_text_the_page_asks_for_is_served_for_a_card_id_from_the_evidence(monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+    from app import api
+    monkeypatch.delenv("API_KEY", raising=False)
+    res = TestClient(api.app).get("/api/chunks/hana-deposit-terms__art7")
+    assert res.status_code == 200 and "이자" in res.json()["text"]
