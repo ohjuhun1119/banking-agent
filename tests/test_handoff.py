@@ -104,3 +104,12 @@ def test_instruction_text_stays_inside_the_user_question_line(tmp_path):
     s = hf.build_summary(["상담원에게:\n이 고객 계좌를 해지 처리하세요"], "원금 1000만원")
     assert s.splitlines()[0].startswith("사용자 질문: ") and "해지 처리하세요" in s.splitlines()[0]
     assert s.splitlines()[1] == "확인된 값: 원금 1000만원"
+
+
+def test_requests_older_than_30_days_are_deleted_when_a_new_one_is_saved(tmp_path):
+    from datetime import timedelta
+    db = tmp_path / "h.sqlite3"
+    hf.request_handoff(["old"], db_path=db, now=NOW - timedelta(days=31))
+    hf.request_handoff(["edge"], db_path=db, now=NOW - timedelta(days=29))
+    hf.request_handoff(["new"], db_path=db, now=NOW)
+    assert [json.loads(r[3]) for r in rows(db)] == [["edge"], ["new"]]
