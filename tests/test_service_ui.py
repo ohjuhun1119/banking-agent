@@ -170,3 +170,14 @@ def test_the_script_guards_an_empty_note_and_confirms_before_saving():
     assert "상담받고 싶은 내용을 입력해 주세요" in js and "handoff-confirm" in js and "handoff-save" in js
     assert js.index("handoff-confirm") < js.index("handoff-save")                              # 저장 전에 확인 단계를 먼저 거친다
     assert "data-go" in js                                                                      # 메인의 항목을 누르면 그 메뉴로 간다
+
+
+def test_past_conversations_are_kept_in_this_browser_only_and_can_be_cleared():
+    html = PAGE.read_text(encoding="utf-8")
+    js = (PAGE.parent / "service.js").read_text(encoding="utf-8")
+    chat = panel(html, "panel-chat")
+    for needle in ('id="history-open"', 'id="history-box"', 'id="history-list"', 'id="history-clear"', "지난 문의", "이 기기에만"):
+        assert needle in chat, needle
+    assert re.search(r'id="history-box"[^>]*\bhidden\b', chat)
+    assert "localStorage" in js and "chat_history" in js and "innerHTML" not in js
+    assert "지난 문의가 없어요" in js

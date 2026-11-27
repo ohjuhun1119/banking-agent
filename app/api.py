@@ -33,6 +33,7 @@ from search import DEFAULT_MODE, DEFAULT_RERANK, search_terms  # noqa: E402
 from app import chat  # noqa: E402
 from app import tool_calling  # noqa: E402
 from app import graph as agent_graph  # noqa: E402
+from app import history  # noqa: E402
 from app import traces  # noqa: E402
 from app.login_page import SECURITY_HEADERS, render as render_login  # noqa: E402
 from app.tools import interest as interest_tool  # noqa: E402
@@ -362,6 +363,10 @@ def chat_endpoint(req: PublicChatRequest):
     except ValueError as e:
         raise HTTPException(status_code=422, detail=f"today가 올바른 날짜가 아닙니다: {e}")
     body = chat_payload(res, traces.record(res, question))
+    try:
+        history.record(req.session_id, question, res.get("answer") or "", res.get("stop_reason"), res.get("ms"))
+    except Exception:                                        # 기록이 안 돼도 답은 돌려준다
+        pass
     return JSONResponse(body, status_code=503 if res["error"] else 200)
 
 

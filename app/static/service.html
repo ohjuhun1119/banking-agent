@@ -40,7 +40,12 @@
   </section>
 
   <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
-    <div class="panel-head"><span>궁금한 점을 문의하세요</span><button type="button" id="reset" class="plain">새 문의</button></div>
+    <div class="panel-head"><span>궁금한 점을 문의하세요</span><span><button type="button" id="history-open" class="plain">지난 문의</button> <button type="button" id="reset" class="plain">새 문의</button></span></div>
+    <div id="history-box" class="history" hidden>
+      <p class="help">지난 문의는 이 기기에만 저장돼요. 다른 기기에서는 볼 수 없어요.</p>
+      <div id="history-list"></div>
+      <button type="button" id="history-clear" class="plain">기록 지우기</button>
+    </div>
     <div id="messages" class="messages" aria-live="polite">
       <div id="faq" class="faq">
         <p class="faq-title">무엇이 궁금하세요?</p>

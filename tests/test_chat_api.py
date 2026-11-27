@@ -190,3 +190,15 @@ def test_an_out_of_scope_chat_is_declined_without_the_model_and_traced(fresh):
     assert body["stop_reason"] == "out_of_scope" and body["answer"] == g.OUT_OF_SCOPE_TEXT and body["tools"] == [] and body["evidence"] == [] and body["model_calls"] == 0
     (row,) = traces.list_traces()
     assert row["stop_reason"] == "out_of_scope" and "out_of_scope" in row["signals"] and row["answer"] == g.OUT_OF_SCOPE_TEXT
+
+
+# ---------- 운영자용 상담 기록 ----------
+def test_chat_records_the_exchange_when_the_log_is_on_and_still_answers_when_it_breaks(fresh, monkeypatch, tmp_path):
+    from app import history
+    fresh(lambda m, n: AIMessage(content="해지하면 세전 이자만 계산해요."))
+    monkeypatch.setenv("CHAT_LOG_DB", str(tmp_path / "log.sqlite3"))
+    assert chat(question="중도해지 이자가 궁금해요", session_id="u9").status_code == 200
+    rows = history.recent()
+    assert len(rows) == 1 and rows[0]["session_id"] == "u9" and rows[0]["question"] == "중도해지 이자가 궁금해요" and "세전" in rows[0]["answer"]
+    monkeypatch.setenv("CHAT_LOG_DB", str(tmp_path))                 # 폴더를 DB 경로로 주면 열 수 없다
+    assert chat(question="또 질문", session_id="u9").status_code == 200
