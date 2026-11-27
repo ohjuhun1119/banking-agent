@@ -81,3 +81,4 @@ textarea:focus{outline:1px solid #1f4e9c;border-color:#1f4e9c}
 .history summary{cursor:pointer;color:#374151}
 .history .q{margin:8px 0 2px;font-weight:700}
 .history .a p{margin:2px 0;color:#4b5563;line-height:1.6}
+.notice{margin:8px 20px 0}

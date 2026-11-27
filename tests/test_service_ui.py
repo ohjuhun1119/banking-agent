@@ -182,3 +182,10 @@ def test_past_conversations_have_their_own_tab_next_to_chat_and_stay_in_this_bro
     assert 'id="history-open"' not in html and 'id="history-box"' not in html          # 문의 화면 안의 버튼은 없어졌다
     assert "localStorage" in js and "chat_history" in js and "innerHTML" not in js
     assert "지난 문의가 없어요" in js and 'tab-history' in js
+
+
+def test_the_screen_tells_visitors_that_questions_are_stored_and_not_to_enter_personal_data():
+    html = PAGE.read_text(encoding="utf-8")
+    for pid in ("panel-home", "panel-chat"):
+        text = re.sub(r"<[^>]+>", " ", panel(html, pid))
+        assert "30일" in text and "저장" in text and "개인정보" in text, pid
