@@ -156,3 +156,30 @@ def test_a_label_written_after_the_date_is_not_reused_as_the_next_dates_label():
 ])
 def test_termination_date_labels_with_the_word_date(text, role):
     assert date_mentions(text, TODAY)[0].role == role
+
+
+# ---------- 두 자리 연도 ('26년 7월 1일' = 2026-07-01) ----------
+@pytest.mark.parametrize("text,expected", [
+    ("26년 7월 1일에 넣었어요", [date(2026, 7, 1)]),
+    ("26년7월1일", [date(2026, 7, 1)]),
+    ("26년 7월 1일 시작 27년 7월 1일 만기", [date(2026, 7, 1), date(2027, 7, 1)]),
+    ("시작 일자 26년 7월 1일 마감 일자 27년 7월 1일이야27년 5월1일에 중도해지하면", [date(2026, 7, 1), date(2027, 7, 1), date(2027, 5, 1)]),
+])
+def test_a_two_digit_year_is_read_as_a_full_date_in_the_2000s(text, expected):
+    assert dates(text) == expected
+
+
+@pytest.mark.parametrize("text", ["1년 7월 1일", "3년 만기로 7월 1일에", "100년 7월 1일", "126년 7월 1일", "5년 3월 5일에 가입"])
+def test_a_term_or_an_unlikely_year_is_not_taken_for_a_two_digit_year(text):
+    assert [m.kind for m in find_mentions(text, TODAY)] in ([], ["monthday"])
+
+
+def test_the_start_end_and_cancel_words_of_the_failing_question_give_each_date_its_role():
+    q = "원금 천만원, 시작 일자 26년 7월 1일 마감 일자 27년 7월 1일이야27년 5월1일에 중도해지하면 이자 얼마야?"
+    roles = {m.date: m.role for m in date_mentions(q, TODAY)}
+    assert roles == {date(2026, 7, 1): "start", date(2027, 7, 1): "maturity", date(2027, 5, 1): "termination"}
+
+
+def test_a_bare_start_word_after_a_date_is_not_the_label_of_the_next_date():
+    roles = [m.role for m in date_mentions("2026-07-01 시작 2027-07-01 만기", TODAY)]
+    assert roles != ["start", "start"] and roles[1] == "maturity"

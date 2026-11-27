@@ -22,6 +22,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 
 _FULL_SEP = re.compile(r"(?<!\d)(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})(?:\s*일)?(?!\d)")        # 뒤따르는 공백 · 줄바꿈은 날짜에 넣지 않는다
+_TWO_YEAR = re.compile(r"(?<!\d)([23]\d)\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일")      # '26년 7월 1일' = 2026-07-01. shortcut: 20~39년만 2000년대로 읽는다 ('5년 3월 5일'은 기간으로 둔다), 더 넓힐 일이 생기면 범위를 늘린다
 _EIGHT = re.compile(r"(?<!\d)(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?!\d)(?!\s?원)")
 _YEAR_MD = re.compile(r"(올해|금년|작년|지난해|내년|명년)\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일")
 _MONTH_REL = re.compile(r"(다음\s?달|이번\s?달|지난\s?달|저번\s?달)\s*(\d{1,2})\s*일")
@@ -86,6 +87,7 @@ def find_mentions(text: str, today: date | None = None) -> list[Mention]:
                 rest = _blank_out(rest, m)
 
     take(_FULL_SEP, lambda m: (lambda d: Mention(d, 0, 0, "full") if d else None)(_safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
+    take(_TWO_YEAR, lambda m: (lambda d: Mention(d, 0, 0, "full") if d else None)(_safe_date(2000 + int(m.group(1)), int(m.group(2)), int(m.group(3)))))
     take(_EIGHT, lambda m: (lambda d: Mention(d, 0, 0, "full") if d else None)(_safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
     take(_YEAR_MD, lambda m: (lambda d: Mention(d, 0, 0, "relative") if d else None)(
         _safe_date(today.year + _YEAR_SHIFT[m.group(1)], int(m.group(2)), int(m.group(3)))))
@@ -113,8 +115,8 @@ def mask_mentions(text: str, mentions: list[Mention]) -> str:
 
 
 # 날짜 바로 앞의 라벨('신규일은 2026-01-01', '만기 2027-01-01', '해지: 2026-05-31')
-_LABELS = (("start", re.compile(r"(?:신규일|신규|가입일|가입|시작일|개설일|예치일)\s*(?:은|는|이|가|:)?\s*(\()?\s*$")),
-           ("maturity", re.compile(r"(?:만기일|만기)\s*(?:은|는|이|가|:)?\s*(\()?\s*$")),
+_LABELS = (("start", re.compile(r"(?:신규일|신규|가입일|가입|시작\s?일자|시작\s?일|개설일|예치일)\s*(?:은|는|이|가|:)?\s*(\()?\s*$")),
+           ("maturity", re.compile(r"(?:만기\s?일자|만기일|만기|마감\s?일자|마감\s?일)\s*(?:은|는|이|가|:)?\s*(\()?\s*$")),
            ("termination", re.compile(r"(?:해지\s?날짜|해약\s?날짜|해지\s?날|해지일|해지|해약일|해약)\s*(?:은|는|이|가|을|를|:)?\s*(\()?\s*$")))
 # 날짜 바로 뒤에 붙은 키워드 ('2026-02-01에 가입하고', '2026-06-01 만기인데', '10월 15일에 해지하면')
 _AFTER = (("maturity", re.compile(r"만기")), ("termination", re.compile(r"해지|해약|깨|중도|인출|찾")),
