@@ -5,6 +5,7 @@
   - 요약은 코드가 만든다: 사용자가 한 질문 몇 개와 확인된 값. 모델이 요약을 쓰면 지어낼 수 있다.
   - 이름 · 연락처 · 계좌번호는 받지 않는다. 사용자가 질문에 적은 글자와 확인된 금융 값만 저장한다 (로컬 파일, git 제외).
   - 실제 상담원에게 전달되지는 않는다 (이 프로젝트에는 상담원 시스템이 없다). 안내 문구가 이를 밝힌다.
+접수 기록은 30일이 지나면 다음 접수 때 지운다.
 저장 위치: data/handoff.sqlite3 (환경변수 HANDOFF_DB로 바꿀 수 있다). 시험은 임시 경로를 쓴다.
 """
 from __future__ import annotations
@@ -13,13 +14,14 @@ import json
 import os
 import sqlite3
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = Path(os.environ.get("HANDOFF_DB", ROOT / "data" / "handoff.sqlite3"))
 MAX_MESSAGES = 3                    # 요약에 넣는 최근 질문 수
 MAX_MESSAGE_CHARS = 200             # 질문 하나당 글자 수 상한
+RETENTION_DAYS = 30                 # 새 요청을 저장할 때 이보다 오래된 접수 기록은 지운다
 SCHEMA = """CREATE TABLE IF NOT EXISTS handoff_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL, session_id TEXT, summary TEXT NOT NULL,
     messages TEXT NOT NULL, confirmed TEXT, status TEXT NOT NULL DEFAULT 'open')"""
@@ -50,6 +52,7 @@ def request_handoff(user_messages, confirmed_text: str = "", session_id: str = "
         path.parent.mkdir(parents=True, exist_ok=True)
         with closing(sqlite3.connect(path, timeout=5)) as con:
             con.execute(SCHEMA)
+            con.execute("DELETE FROM handoff_requests WHERE created_at < ?", ((now - timedelta(days=RETENTION_DAYS)).isoformat(timespec="seconds"),))
             cur = con.execute("INSERT INTO handoff_requests (created_at, session_id, summary, messages, confirmed) VALUES (?, ?, ?, ?, ?)",
                               (now.isoformat(timespec="seconds"), session_id or "", summary, json.dumps(msgs, ensure_ascii=False), confirmed_text or ""))
             con.commit()

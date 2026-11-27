@@ -157,6 +157,10 @@
       box.appendChild(row);
     });
   }
+  $("handoff-clear").addEventListener("click", function () {
+    try { localStorage.removeItem(REQUEST_KEY); } catch (e) { /* 지울 게 없다 */ }
+    renderHandoffLog();
+  });
   // 상담 문의에서 남긴 요청도, 상담원 연결 화면에서 남긴 요청도 답변에 접수번호가 있으면 같은 내역에 쌓는다
   function rememberRequest(answer, note) {
     var m = /접수번호는\s*(\d{8}-\d+)/.exec(String(answer || ""));

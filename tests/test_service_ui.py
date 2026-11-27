@@ -222,3 +222,11 @@ def test_the_clause_text_the_page_asks_for_is_served_for_a_card_id_from_the_evid
     res = client.get("/api/chunks/doc__art7")
     assert res.status_code == 200 and "이자" in res.json()["text"]
     assert client.get("/api/chunks/missing").status_code == 404
+
+
+def test_the_request_list_can_be_cleared_from_the_handoff_tab():
+    html = PAGE.read_text(encoding="utf-8")
+    js = JS.read_text(encoding="utf-8")
+    assert 'id="handoff-clear"' in panel(html, "panel-handoff") and "기록 지우기" in panel(html, "panel-handoff")
+    body = js[js.index('$("handoff-clear")'):]
+    assert "removeItem(REQUEST_KEY)" in body[:300] and "renderHandoffLog()" in body[:300]
