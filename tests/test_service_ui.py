@@ -211,10 +211,14 @@ def test_each_clause_in_the_evidence_opens_to_show_its_full_text_loaded_on_deman
     assert "근거 약관" in body and "innerHTML" not in js
 
 
-def test_the_clause_text_the_page_asks_for_is_served_for_a_card_id_from_the_evidence(monkeypatch):
-    pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-    from app import api
+def test_the_clause_text_the_page_asks_for_is_served_for_a_card_id_from_the_evidence(monkeypatch, tmp_path):
+    """약관 파일은 저장소에 없으므로(비공개) 임시 파일로 시험한다. 없는 ID는 404다."""
+    import json
+    chunks = tmp_path / "chunks.jsonl"
+    chunks.write_text(json.dumps({"chunk_id": "doc__art7", "text": "제7조 이자계산 이 예금의 이자 계산은 일단위로 합니다.", "metadata": {}}, ensure_ascii=False) + "\n", encoding="utf-8")
+    monkeypatch.setattr(api, "CHUNKS", chunks)
     monkeypatch.delenv("API_KEY", raising=False)
-    res = TestClient(api.app).get("/api/chunks/hana-deposit-terms__art7")
+    client = TestClient(api.app)
+    res = client.get("/api/chunks/doc__art7")
     assert res.status_code == 200 and "이자" in res.json()["text"]
+    assert client.get("/api/chunks/missing").status_code == 404
