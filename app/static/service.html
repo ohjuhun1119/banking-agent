@@ -10,14 +10,37 @@
 <div class="app">
   <header class="top">
     <span class="brand">정기예금 상담</span>
-    <button type="button" id="reset" class="plain">새 대화</button>
   </header>
   <div class="tabs" role="tablist" aria-label="메뉴">
-    <button type="button" role="tab" id="tab-chat" aria-selected="true" aria-controls="panel-chat">상담</button>
+    <button type="button" role="tab" id="tab-home" aria-selected="true" aria-controls="panel-home">메인</button>
+    <button type="button" role="tab" id="tab-chat" aria-selected="false" aria-controls="panel-chat">상담 문의</button>
     <button type="button" role="tab" id="tab-calc" aria-selected="false" aria-controls="panel-calc">이자 계산</button>
+    <button type="button" role="tab" id="tab-handoff" aria-selected="false" aria-controls="panel-handoff">상담원 연결</button>
   </div>
 
-  <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
+  <section id="panel-home" role="tabpanel" aria-labelledby="tab-home">
+    <div class="home">
+      <p class="eyebrow">하나의 정기예금</p>
+      <h1>중도해지 이자와 약관을<br>한 곳에서 확인하세요</h1>
+      <p class="lead">정기예금을 만기 전에 해지하면 얼마를 받는지 계산하고, 약관 내용을 문의할 수 있어요.</p>
+      <ul class="menu">
+        <li><button type="button" data-go="tab-calc"><span class="t">이자 계산</span><span class="d">원금과 날짜를 입력하면 중도해지 세전 이자를 바로 계산해요.</span></button></li>
+        <li><button type="button" data-go="tab-chat"><span class="t">상담 문의</span><span class="d">중도해지, 일부해지, 세금 같은 약관 내용을 물어보세요. 근거가 있으면 근거 약관도 함께 보여 드려요.</span></button></li>
+        <li><button type="button" data-go="tab-handoff"><span class="t">상담원 연결</span><span class="d">상담받고 싶은 내용을 남기면 접수번호를 안내해 드려요.</span></button></li>
+      </ul>
+      <div class="info">
+        <p class="info-title">이용 전에 알아 두세요</p>
+        <ul>
+          <li>하나의 정기예금 한 상품만 안내해요.</li>
+          <li>이자는 세전 금액만 계산해요. 세후 금액은 계산하지 않아요.</li>
+          <li>실제 이자는 은행의 해지예상조회로 확인해 주세요.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+    <div class="panel-head"><span>궁금한 점을 문의하세요</span><button type="button" id="reset" class="plain">새 문의</button></div>
     <div id="messages" class="messages" aria-live="polite">
       <div id="faq" class="faq">
         <p class="faq-title">무엇이 궁금하세요?</p>
@@ -52,6 +75,28 @@
       <button type="submit" class="primary wide">계산하기</button>
     </form>
     <div id="calc-result" class="result" aria-live="polite"></div>
+  </section>
+
+  <section id="panel-handoff" role="tabpanel" aria-labelledby="tab-handoff" hidden>
+    <div class="form">
+      <p class="title">상담 요청 남기기</p>
+      <p class="guide">상담받고 싶은 내용을 남기면 접수번호를 안내해 드려요. 실시간 상담원 연결은 지원하지 않고 담당자가 연락드리지도 않아요. 급하시면 하나은행 고객센터나 영업점에 직접 문의해 주세요.</p>
+      <div class="field">
+        <label for="handoff-text">상담받고 싶은 내용</label>
+        <textarea id="handoff-text" name="handoff-text" rows="4" maxlength="150" placeholder="예) 중도해지 후 재가입 조건이 궁금해요"></textarea>
+        <p class="help">개인정보(전화번호, 계좌번호 등)는 적지 마세요. 지금까지 문의한 내용 중 최근 몇 개도 함께 저장돼요.</p>
+      </div>
+      <button type="button" id="handoff-start" class="primary wide">상담 요청 남기기</button>
+      <div id="handoff-confirm" class="confirm" hidden>
+        <p class="confirm-title">상담 요청을 저장할까요?</p>
+        <p id="handoff-preview" class="preview"></p>
+        <div class="confirm-actions">
+          <button type="button" id="handoff-cancel" class="secondary">취소</button>
+          <button type="button" id="handoff-save" class="primary">저장하기</button>
+        </div>
+      </div>
+    </div>
+    <div id="handoff-result" class="result" aria-live="polite"></div>
   </section>
 
   <footer class="note">실제 금융 상담이 아니며 참고용입니다.<br>실제 이자는 은행의 해지예상조회로 확인해 주세요.</footer>

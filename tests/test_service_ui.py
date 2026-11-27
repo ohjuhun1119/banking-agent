@@ -65,9 +65,11 @@ def test_the_screen_is_undecorated_and_self_contained():
     assert not re.search("[\U0001F300-\U0001FAFF☀-➿]", css + page + js)                           # 이모지 없음
 
 
-def test_the_two_tabs_the_form_labels_and_the_disclaimer_are_present():
+def test_the_four_menu_tabs_the_form_labels_and_the_disclaimer_are_present():
     html = PAGE.read_text(encoding="utf-8")
-    for needle in ('role="tablist"', "상담", "이자 계산", 'id="chat-form"', 'id="calc-form"', "원금", "신규일", "만기일", "해지일", "기본금리", "계산하기", "보내기", "새 대화", "참고용"):
+    labels = re.findall(r'<button[^>]*role="tab"[^>]*>([^<]+)</button>', html)
+    assert labels == ["메인", "상담 문의", "이자 계산", "상담원 연결"], labels
+    for needle in ('role="tablist"', 'id="chat-form"', 'id="calc-form"', "원금", "신규일", "만기일", "해지일", "기본금리", "계산하기", "보내기", "새 문의", "참고용"):
         assert needle in html, needle
     assert html.count('type="date"') == 3
 
@@ -100,3 +102,71 @@ def test_tapping_a_suggestion_sends_it_and_a_new_conversation_brings_the_buttons
 def test_the_wait_message_counts_the_elapsed_seconds_without_animation():
     js = JS.read_text(encoding="utf-8")
     assert "setInterval" in js and "clearInterval" in js and "초)" in js
+
+
+# ---------- 메뉴 4개: 메인(서비스 소개) · 상담 문의 · 이자 계산 · 상담원 연결 ----------
+def panel(html: str, pid: str) -> str:
+    m = re.search(r'<section id="%s".*?</section>' % pid, html, re.S)
+    assert m, pid
+    return m.group(0)
+
+
+def test_the_main_tab_is_the_one_open_on_arrival_and_the_others_start_hidden():
+    html = PAGE.read_text(encoding="utf-8")
+    assert re.search(r'id="tab-home"[^>]*aria-selected="true"', html)
+    for tab in ("chat", "calc", "handoff"):
+        assert re.search(r'id="tab-%s"[^>]*aria-selected="false"' % tab, html), tab
+        assert re.search(r'<section id="panel-%s"[^>]*\bhidden\b' % tab, html), tab
+    assert not re.search(r'<section id="panel-home"[^>]*\bhidden\b', html)
+
+
+def test_the_main_screen_says_what_the_service_does_and_links_to_the_three_features():
+    home = panel(PAGE.read_text(encoding="utf-8"), "panel-home")
+    text = re.sub(r"<[^>]+>", " ", home)
+    for needle in ("하나의 정기예금", "중도해지", "이자", "약관", "세전", "참고용"):
+        assert needle in text + PAGE.read_text(encoding="utf-8"), needle
+    targets = re.findall(r'data-go="(tab-[a-z]+)"', home)
+    assert targets == ["tab-calc", "tab-chat", "tab-handoff"], targets
+    assert "세후" in text and "계산하지 않" in text                                          # 못 하는 것도 미리 알린다 (세후 금액)
+
+
+def test_the_handoff_screen_is_honest_that_it_only_leaves_a_request_and_asks_before_saving():
+    box = panel(PAGE.read_text(encoding="utf-8"), "panel-handoff")
+    text = re.sub(r"<[^>]+>", " ", box)
+    assert "접수번호" in text and "실시간" in text and "연락" in text and "개인정보" in text      # 연결도 연락도 없다는 것, 개인정보를 적지 말라는 것
+    assert re.search(r'<textarea[^>]*id="handoff-text"[^>]*maxlength="150"', box)
+    for ident in ("handoff-start", "handoff-confirm", "handoff-save", "handoff-cancel", "handoff-result"):
+        assert 'id="%s"' % ident in box, ident
+    assert re.search(r'id="handoff-confirm"[^>]*\bhidden\b', box)                           # 저장 확인은 누르기 전까지 숨겨져 있다
+
+
+def handoff_prefix():
+    m = re.search(r'HANDOFF_PREFIX = "([^"]+)"', JS.read_text(encoding="utf-8"))
+    assert m
+    return m.group(1)
+
+
+def test_the_sentence_the_screen_sends_is_recognized_as_a_handoff_request_even_with_a_short_note():
+    """문의 내용이 짧아도(예: '재가입') 서버가 '짧은 상담원 연결 요청'(20자 이하)으로 보고 내용을 버리면 '저장할 질문이 없어요'가 된다."""
+    from app.answer_check import handoff_request
+    prefix = handoff_prefix()
+    assert len(prefix) > 20
+    for note in ("재가입", "중도해지 후 재가입 조건이 궁금해요", "가" * 150):
+        question = prefix + note
+        assert handoff_request(question) and len(question) <= 2000
+
+
+def test_the_handoff_screen_saves_the_note_and_returns_a_ticket_without_calling_the_model(monkeypatch):
+    from app.tools import handoff as hf
+    monkeypatch.delenv("API_KEY", raising=False)
+    res = client.post("/chat", json={"question": handoff_prefix() + "재가입 조건이 궁금해요", "session_id": "nav-1"})
+    body = res.json()
+    assert res.status_code == 200 and body["model_calls"] == 0 and "접수번호" in body["answer"] and "연락드리거나 연결해 주지는 않아요" in body["answer"]
+    assert hf.count_requests() == 1
+
+
+def test_the_script_guards_an_empty_note_and_confirms_before_saving():
+    js = JS.read_text(encoding="utf-8")
+    assert "상담받고 싶은 내용을 입력해 주세요" in js and "handoff-confirm" in js and "handoff-save" in js
+    assert js.index("handoff-confirm") < js.index("handoff-save")                              # 저장 전에 확인 단계를 먼저 거친다
+    assert "data-go" in js                                                                      # 메인의 항목을 누르면 그 메뉴로 간다
