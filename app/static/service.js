@@ -72,6 +72,50 @@
   function addUser(text) { clearEmpty(); var m = el("div", "msg-user", text); messages.appendChild(m); scrollDown(); return m; }
   function addBot(cls) { clearEmpty(); var m = el("div", "msg-bot" + (cls ? " " + cls : "")); messages.appendChild(m); scrollDown(); return m; }
 
+  var HISTORY_KEY = "chat_history";
+  function loadHistory() {
+    try { var v = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 20))); } catch (e) { /* 저장소를 못 쓰면 이번 기록만 건너뛴다 */ }
+  }
+  function remember(q, a) {
+    var sid = sessionId();
+    var list = loadHistory();
+    var conv = list.filter(function (c) { return c.id === sid; })[0];
+    if (!conv) { conv = { id: sid, at: Date.now(), items: [] }; list.unshift(conv); }
+    conv.items = conv.items.concat([{ q: q, a: a }]).slice(-50);
+    saveHistory(list);
+  }
+  function renderHistory() {
+    var box = $("history-list");
+    box.textContent = "";
+    var past = loadHistory().filter(function (c) { return c.id !== sessionId() && c.items && c.items.length; });
+    if (!past.length) { box.appendChild(el("p", "help", "지난 문의가 없어요.")); return; }
+    past.forEach(function (c) {
+      var d = el("details");
+      var when = new Date(c.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      var first = String(c.items[0].q);
+      d.appendChild(el("summary", "", when + " · " + (first.length > 24 ? first.slice(0, 24) + "…" : first)));
+      c.items.forEach(function (it) {
+        d.appendChild(el("p", "q", String(it.q)));
+        var a = el("div", "a");
+        rich(a, it.a);
+        d.appendChild(a);
+      });
+      box.appendChild(d);
+    });
+  }
+  $("history-open").addEventListener("click", function () {
+    var box = $("history-box");
+    box.hidden = !box.hidden;
+    if (!box.hidden) renderHistory();
+  });
+  $("history-clear").addEventListener("click", function () {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* 지울 게 없다 */ }
+    renderHistory();
+  });
+
   function failureText(result) {
     var err = result && result.data && result.data.error;
     if (typeof err === "string" && err.indexOf("한도") !== -1) return err;
@@ -102,6 +146,7 @@
       if (res && res.status === 200 && d && d.answer) {
         rich(bot, d.answer);
         evidence(bot, d.evidence_text);
+        remember(q, d.answer);
       } else {
         bot.className = "msg-bot problem";
         bot.textContent = failureText(res);

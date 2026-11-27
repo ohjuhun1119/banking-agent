@@ -75,3 +75,9 @@ textarea:focus{outline:1px solid #1f4e9c;border-color:#1f4e9c}
 .preview{margin:0 0 14px;padding:10px 12px;background:#f1f3f5;border-radius:4px;font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .confirm-actions{display:flex;gap:8px;justify-content:flex-end}
 .secondary{border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;font-size:15px;height:44px;padding:0 18px}
+.history{margin:10px 20px 0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:4px}
+.history[hidden]{display:none}
+.history details{border-top:1px solid #e5e7eb;padding:8px 0;font-size:13px}
+.history summary{cursor:pointer;color:#374151}
+.history .q{margin:8px 0 2px;font-weight:700}
+.history .a p{margin:2px 0;color:#4b5563;line-height:1.6}

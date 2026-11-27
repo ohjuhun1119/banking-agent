@@ -110,6 +110,7 @@ OPENAI_API_KEY=...
 LLM_MODEL=gpt-6-luna
 LLM_TEMPERATURE=omit          # 이 모델은 temperature를 받지 않는다
 LLM_DAILY_CALL_LIMIT=100      # 하루 모델 호출 상한 (질문 1개 = 약 2회). 넘으면 모델을 부르지 않는다
+CHAT_LOG_DB=/app/data/chat_log.sqlite3   # (선택) 운영자용 상담 기록. 개인정보를 가려 저장하고 30일 뒤 지운다. 비우면 저장하지 않는다
 docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ```
 - 이미지가 `requirements-api.txt`(langchain-openai)를 설치해야 한다 (Dockerfile에 반영). 없으면 켜도 `ImportError`다.
@@ -121,3 +122,12 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ## 아직 못 본 것
 - 4 OCPU/24GB보다 큰 서버(예: 8코어)에서의 `/chat` 응답 시간
 - 서버에서 상담 요청 저장(`data/` 쓰기)
+
+
+## 상담 기록 확인 (선택)
+
+`.env`에 `CHAT_LOG_DB`를 넣고 다시 올리면 질문과 답이 서버 `data/chat_log.sqlite3`에 남는다 (전화번호 · 이메일 · 계좌번호 등은 가려서 저장, 기본 30일 보관 → `CHAT_LOG_DAYS`). 화면에는 보이지 않고 서버에서만 본다.
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml exec api python -m app.history 20
+```
