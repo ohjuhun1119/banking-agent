@@ -76,7 +76,7 @@ async def require_api_key(request, call_next):
     if key and request.url.path not in ("/health", "/login"):
         given = request.headers.get("x-api-key") or request.cookies.get("api_key", "")
         if not _key_ok(given, key):
-            if request.url.path == "/":
+            if request.url.path in ("/", "/debug"):
                 return RedirectResponse("/login", status_code=303)                # 브라우저로 처음 연 사람은 로그인 화면으로
             return JSONResponse({"detail": "접근 키가 필요합니다"}, status_code=401)
     return await call_next(request)
@@ -114,7 +114,12 @@ def _label(meta: dict) -> str:
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "service.html")                 # 사용자용 화면 (상담 · 이자 계산)
+
+
+@app.get("/debug")
+def debug_screen():
+    return FileResponse(STATIC / "index.html")                   # 기존 개발용 확인 화면 (도구 호출 · 트레이스 · 검색 비교). 접근 키로 막힌다
 
 
 @app.get("/api/status")
