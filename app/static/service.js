@@ -111,6 +111,33 @@
     renderHistory();
   });
 
+  var REQUEST_KEY = "handoff_requests";
+  function loadRequests() {
+    try { var v = JSON.parse(localStorage.getItem(REQUEST_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function renderHandoffLog() {
+    var box = $("handoff-log");
+    box.textContent = "";
+    var list = loadRequests();
+    if (!list.length) { box.appendChild(el("p", "help", "남긴 요청이 없어요.")); return; }
+    list.forEach(function (r) {
+      var when = new Date(r.at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      var row = el("div", "req");
+      row.appendChild(el("p", "q", "접수번호 " + r.ticket + " · " + when));
+      row.appendChild(el("p", "", String(r.note)));
+      box.appendChild(row);
+    });
+  }
+  // 상담 문의에서 남긴 요청도, 상담원 연결 화면에서 남긴 요청도 답변에 접수번호가 있으면 같은 내역에 쌓는다
+  function rememberRequest(answer, note) {
+    var m = /접수번호는\s*(\d{8}-\d+)/.exec(String(answer || ""));
+    if (!m) return;
+    var list = loadRequests().filter(function (r) { return r.ticket !== m[1]; });
+    list.unshift({ ticket: m[1], at: Date.now(), note: String(note).slice(0, 150) });
+    try { localStorage.setItem(REQUEST_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) { /* 저장소를 못 쓰면 이번 기록만 건너뛴다 */ }
+    renderHandoffLog();
+  }
+
   function failureText(result) {
     var err = result && result.data && result.data.error;
     if (typeof err === "string" && err.indexOf("한도") !== -1) return err;
@@ -142,6 +169,7 @@
         rich(bot, d.answer);
         evidence(bot, d.evidence_text);
         remember(q, d.answer);
+        rememberRequest(d.answer, q);
       } else {
         bot.className = "msg-bot problem";
         bot.textContent = failureText(res);
@@ -179,6 +207,7 @@
       $(pair[1]).hidden = i !== index;
     });
     if (tabs[index][0] === "tab-history") renderHistory();
+    if (tabs[index][0] === "tab-handoff") renderHandoffLog();
     window.scrollTo(0, 0);
   }
   tabs.forEach(function (pair, i) {
@@ -277,6 +306,7 @@
       handoffResult.textContent = "";
       if (res && res.status === 200 && d && d.answer) {
         rich(handoffResult, d.answer);
+        rememberRequest(d.answer, note);
         if (/접수번호/.test(d.answer)) handoffText.value = "";
       } else {
         handoffMessage("alert", "저장하지 못했어요. 하나은행 고객센터나 영업점에 직접 문의해 주세요.");

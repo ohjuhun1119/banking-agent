@@ -189,3 +189,15 @@ def test_the_screen_tells_visitors_that_questions_are_stored_and_not_to_enter_pe
     for pid in ("panel-home", "panel-chat"):
         text = re.sub(r"<[^>]+>", " ", panel(html, pid))
         assert "30일" in text and "저장" in text and "개인정보" in text, pid
+
+
+def test_every_saved_request_is_listed_on_the_handoff_tab_whether_it_came_from_the_form_or_from_the_chat():
+    html = PAGE.read_text(encoding="utf-8")
+    js = JS.read_text(encoding="utf-8")
+    hand = panel(html, "panel-handoff")
+    assert 'id="handoff-log"' in hand and "요청 내역" in hand and "이 기기에만" in hand
+    assert "handoff_requests" in js and "접수번호는" in js
+    form_part = js[js.index('$("handoff-save")'):]
+    chat_part = js[js.index('$("chat-form")'):js.index('Array.prototype.forEach.call(document.querySelectorAll(".faq-item")')]
+    assert "rememberRequest(" in form_part and "rememberRequest(" in chat_part            # 두 길 모두 같은 내역에 남긴다
+    assert 'tab-handoff' in js[js.index("function selectTab"):js.index("function selectTab") + 600]      # 탭을 열 때마다 목록을 다시 그린다
