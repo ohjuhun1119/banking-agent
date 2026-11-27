@@ -14,6 +14,7 @@
   <div class="tabs" role="tablist" aria-label="메뉴">
     <button type="button" role="tab" id="tab-home" aria-selected="true" aria-controls="panel-home">메인</button>
     <button type="button" role="tab" id="tab-chat" aria-selected="false" aria-controls="panel-chat">상담 문의</button>
+    <button type="button" role="tab" id="tab-history" aria-selected="false" aria-controls="panel-history">상담 이력</button>
     <button type="button" role="tab" id="tab-calc" aria-selected="false" aria-controls="panel-calc">이자 계산</button>
     <button type="button" role="tab" id="tab-handoff" aria-selected="false" aria-controls="panel-handoff">상담원 연결</button>
   </div>
@@ -40,12 +41,7 @@
   </section>
 
   <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
-    <div class="panel-head"><span>궁금한 점을 문의하세요</span><span><button type="button" id="history-open" class="plain">지난 문의</button> <button type="button" id="reset" class="plain">새 문의</button></span></div>
-    <div id="history-box" class="history" hidden>
-      <p class="help">지난 문의는 이 기기에만 저장돼요. 다른 기기에서는 볼 수 없어요.</p>
-      <div id="history-list"></div>
-      <button type="button" id="history-clear" class="plain">기록 지우기</button>
-    </div>
+    <div class="panel-head"><span>궁금한 점을 문의하세요</span><button type="button" id="reset" class="plain">새 문의</button></div>
     <div id="messages" class="messages" aria-live="polite">
       <div id="faq" class="faq">
         <p class="faq-title">무엇이 궁금하세요?</p>
@@ -59,6 +55,14 @@
       <input id="question" name="question" type="text" maxlength="2000" placeholder="궁금한 점을 입력하세요" aria-label="질문">
       <button type="submit" class="primary">보내기</button>
     </form>
+  </section>
+
+  <section id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <div class="history">
+      <p class="help">지난 문의는 이 기기에만 저장돼요. 다른 기기에서는 볼 수 없어요.</p>
+      <div id="history-list"></div>
+      <button type="button" id="history-clear" class="plain">기록 지우기</button>
+    </div>
   </section>
 
   <section id="panel-calc" role="tabpanel" aria-labelledby="tab-calc" hidden>

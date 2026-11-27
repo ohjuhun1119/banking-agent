@@ -68,7 +68,7 @@ def test_the_screen_is_undecorated_and_self_contained():
 def test_the_four_menu_tabs_the_form_labels_and_the_disclaimer_are_present():
     html = PAGE.read_text(encoding="utf-8")
     labels = re.findall(r'<button[^>]*role="tab"[^>]*>([^<]+)</button>', html)
-    assert labels == ["메인", "상담 문의", "이자 계산", "상담원 연결"], labels
+    assert labels == ["메인", "상담 문의", "상담 이력", "이자 계산", "상담원 연결"], labels
     for needle in ('role="tablist"', 'id="chat-form"', 'id="calc-form"', "원금", "신규일", "만기일", "해지일", "기본금리", "계산하기", "보내기", "새 문의", "참고용"):
         assert needle in html, needle
     assert html.count('type="date"') == 3
@@ -114,7 +114,7 @@ def panel(html: str, pid: str) -> str:
 def test_the_main_tab_is_the_one_open_on_arrival_and_the_others_start_hidden():
     html = PAGE.read_text(encoding="utf-8")
     assert re.search(r'id="tab-home"[^>]*aria-selected="true"', html)
-    for tab in ("chat", "calc", "handoff"):
+    for tab in ("chat", "history", "calc", "handoff"):
         assert re.search(r'id="tab-%s"[^>]*aria-selected="false"' % tab, html), tab
         assert re.search(r'<section id="panel-%s"[^>]*\bhidden\b' % tab, html), tab
     assert not re.search(r'<section id="panel-home"[^>]*\bhidden\b', html)
@@ -172,12 +172,13 @@ def test_the_script_guards_an_empty_note_and_confirms_before_saving():
     assert "data-go" in js                                                                      # 메인의 항목을 누르면 그 메뉴로 간다
 
 
-def test_past_conversations_are_kept_in_this_browser_only_and_can_be_cleared():
+def test_past_conversations_have_their_own_tab_next_to_chat_and_stay_in_this_browser():
     html = PAGE.read_text(encoding="utf-8")
-    js = (PAGE.parent / "service.js").read_text(encoding="utf-8")
-    chat = panel(html, "panel-chat")
-    for needle in ('id="history-open"', 'id="history-box"', 'id="history-list"', 'id="history-clear"', "지난 문의", "이 기기에만"):
-        assert needle in chat, needle
-    assert re.search(r'id="history-box"[^>]*\bhidden\b', chat)
+    js = JS.read_text(encoding="utf-8")
+    assert html.index('id="tab-chat"') < html.index('id="tab-history"') < html.index('id="tab-calc"')
+    hist = panel(html, "panel-history")
+    for needle in ('id="history-list"', 'id="history-clear"', "이 기기에만"):
+        assert needle in hist, needle
+    assert 'id="history-open"' not in html and 'id="history-box"' not in html          # 문의 화면 안의 버튼은 없어졌다
     assert "localStorage" in js and "chat_history" in js and "innerHTML" not in js
-    assert "지난 문의가 없어요" in js
+    assert "지난 문의가 없어요" in js and 'tab-history' in js

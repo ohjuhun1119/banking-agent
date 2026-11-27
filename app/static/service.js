@@ -90,7 +90,7 @@
   function renderHistory() {
     var box = $("history-list");
     box.textContent = "";
-    var past = loadHistory().filter(function (c) { return c.id !== sessionId() && c.items && c.items.length; });
+    var past = loadHistory().filter(function (c) { return c.items && c.items.length; });
     if (!past.length) { box.appendChild(el("p", "help", "지난 문의가 없어요.")); return; }
     past.forEach(function (c) {
       var d = el("details");
@@ -106,11 +106,6 @@
       box.appendChild(d);
     });
   }
-  $("history-open").addEventListener("click", function () {
-    var box = $("history-box");
-    box.hidden = !box.hidden;
-    if (!box.hidden) renderHistory();
-  });
   $("history-clear").addEventListener("click", function () {
     try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* 지울 게 없다 */ }
     renderHistory();
@@ -177,12 +172,13 @@
     question.focus();
   });
 
-  var tabs = [["tab-home", "panel-home"], ["tab-chat", "panel-chat"], ["tab-calc", "panel-calc"], ["tab-handoff", "panel-handoff"]];
+  var tabs = [["tab-home", "panel-home"], ["tab-chat", "panel-chat"], ["tab-history", "panel-history"], ["tab-calc", "panel-calc"], ["tab-handoff", "panel-handoff"]];
   function selectTab(index) {
     tabs.forEach(function (pair, i) {
       $(pair[0]).setAttribute("aria-selected", i === index ? "true" : "false");
       $(pair[1]).hidden = i !== index;
     });
+    if (tabs[index][0] === "tab-history") renderHistory();
     window.scrollTo(0, 0);
   }
   tabs.forEach(function (pair, i) {
