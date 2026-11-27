@@ -34,6 +34,7 @@ from app import chat  # noqa: E402
 from app import tool_calling  # noqa: E402
 from app import graph as agent_graph  # noqa: E402
 from app import traces  # noqa: E402
+from app.login_page import SECURITY_HEADERS, render as render_login  # noqa: E402
 from app.tools import interest as interest_tool  # noqa: E402
 from app.tools import interest_cases  # noqa: E402
 
@@ -62,12 +63,6 @@ app = FastAPI(title="금융 상담 Agent 확인 화면", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
-LOGIN_PAGE = """<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>접근 키</title>
-<form method="post" action="/login" style="max-width:320px;margin:20vh auto;font-family:sans-serif">
-<h3>접근 키를 입력하세요</h3><input name="key" type="password" autofocus required style="width:100%;padding:8px;box-sizing:border-box">
-<button style="margin-top:12px;padding:8px 16px">입력</button>@@MSG@@</form>"""
-
-
 def _key_ok(given: str, key: str) -> bool:
     return hmac.compare_digest(given.encode(), key.encode())
 
@@ -91,7 +86,7 @@ async def require_api_key(request, call_next):
 def login_page():
     if not os.environ.get("API_KEY"):
         return RedirectResponse("/", status_code=303)
-    return HTMLResponse(LOGIN_PAGE.replace("@@MSG@@", ""))
+    return HTMLResponse(render_login(), headers=SECURITY_HEADERS)
 
 
 @app.post("/login")
@@ -101,7 +96,7 @@ async def login(request: Request):
         return RedirectResponse("/", status_code=303)
     given = parse_qs((await request.body()).decode("utf-8", "replace")).get("key", [""])[0]
     if not _key_ok(given, key):
-        return HTMLResponse(LOGIN_PAGE.replace("@@MSG@@", "<p style='color:#c00'>키가 맞지 않습니다</p>"), status_code=401)
+        return HTMLResponse(render_login(error=True), status_code=401, headers=SECURITY_HEADERS)
     res = RedirectResponse("/", status_code=303)
     res.set_cookie("api_key", key, httponly=True, samesite="strict", max_age=60 * 60 * 24 * 7)
     return res
