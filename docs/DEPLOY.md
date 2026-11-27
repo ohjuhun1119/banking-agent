@@ -75,6 +75,14 @@ curl -s -H "X-API-Key: $KEY" -H "Content-Type: application/json" \
 - **실제로 확인한 것** (2026-11-27, Oracle 서버): `SITE_ADDRESS=168-110-40-247.sslip.io`로 Let's Encrypt 인증서가 한 번에 발급됐다(`certificate obtained successfully`, 유효기간 2027-02-25까지, Caddy가 만료 전에 갱신). `https://.../health` 200, 인증서 검증 정상, `http`는 `https`로 이동. 로그인 쿠키는 HTTPS에서 `Secure`가 붙는다.
 - **한계**: `sslip.io`는 외부 무료 서비스라 그 서비스의 DNS에 의존한다. 같은 이름 아래 인증서를 받는 사용자가 많아 발급 한도에 걸릴 수 있다 (Caddy가 다른 발급처로 넘어가 재시도한다). 오래 쓸 서비스라면 내 도메인을 권한다. HSTS(브라우저가 항상 https로만 접속하게 기억시키는 헤더)는 인증서 문제가 생기면 접속이 막힐 수 있어 일부러 넣지 않았다.
 
+## 7-1. 접근 로그와 스캐너 확인
+Caddy가 요청마다 접근 로그를 남긴다 (`caddy/Caddyfile`의 `log`). **접근 키(`X-API-Key`) · 쿠키 · `Authorization` · 주소창 키(`?api_key=`)는 로그에서 지운다**: Caddy가 기본으로 가리는 것은 Cookie와 Authorization뿐이라 `X-API-Key`는 따로 지우지 않으면 그대로 남는다. 가짜 비밀 값 5개로 보내 모두 지워지고 경로 · User-Agent는 남는 것을 서버에서 확인했다. 로그는 컨테이너 로그에만 쌓이고 10MB × 3개로 돌려 쓴다(`compose.prod.yaml`). 방문자 IP가 들어 있으니 밖으로 내보내지 않는다.
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml logs caddy | python3 scripts/access_report.py --me <내 IP>
+```
+- **확인한 결과** (2026-11-27, 로그를 켠 뒤 약 5분): 외부 요청은 7개 IP에서 19건이었고 경로는 `/` · `/login` · `/favicon.ico` · `/robots.txt`뿐이었다 (`/chat` · `/api` · `/.env` 같은 공격용 경로 없음). Host는 전부 `banking-agent.duckdns.org`였다. 새 인증서를 받은 이름은 공개 인증서 기록(Certificate Transparency)에 올라 크롤러가 몇 분 안에 찾아오는 것으로 보인다 (이 부분은 추정이고 확인하지 못했다). 상태는 303(로그인 이동), 200, 401(키 없이 `favicon.ico` 등), 308(http→https)이었다.
+- 접근 키는 무작위 32자리 16진수이고 한 IP당 1분 20번으로 제한해서 무차별 대입은 현실적이지 않다. 로그인 시도(`POST /login`의 401)가 한 IP에서 몰리면 이 보고서의 IP별 요청 수에 나타난다.
+
 ## 8. 백업
 상담 요청과 트레이스(`data/*.sqlite3`)는 서버에만 있다. 매일 새벽에 복사하고 최근 14개를 남긴다.
 ```bash

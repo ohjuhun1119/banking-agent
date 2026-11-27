@@ -296,3 +296,18 @@ def test_the_image_installs_the_api_model_dependency_so_api_mode_works_on_the_se
 def test_the_caddyfile_sets_basic_security_headers_for_the_https_site():
     caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
     assert "X-Content-Type-Options nosniff" in caddyfile and "Referrer-Policy no-referrer" in caddyfile
+
+
+# ---------- Caddy 접근 로그: 켜되 접근 키 · 쿠키가 남지 않게 ----------
+def test_the_caddy_access_log_is_on_and_filters_out_every_credential():
+    """접근 키는 X-API-Key 헤더로 오간다: Caddy가 기본으로 가리는 것은 Cookie · Authorization뿐이라 따로 지우지 않으면 로그에 그대로 남는다."""
+    caddyfile = (ROOT / "caddy" / "Caddyfile").read_text(encoding="utf-8")
+    assert re.search(r"\blog \{", caddyfile) and "output stdout" in caddyfile and "format filter" in caddyfile
+    for needle in ("request>headers>X-Api-Key delete", "request>headers>Cookie delete", "request>headers>Authorization delete", "request>headers>Set-Cookie delete", "resp_headers>Set-Cookie delete"):
+        assert needle in caddyfile, needle
+    assert re.search(r"request>uri query \{[^}]*delete api_key", caddyfile, re.S)              # 주소창 키(?api_key=)도 지운다 (받지는 않지만 시도는 로그에 남는다)
+
+
+def test_the_caddy_container_log_has_a_size_limit_so_a_scanner_cannot_fill_the_disk():
+    opts = load("compose.prod.yaml")["services"]["caddy"]["logging"]["options"]
+    assert opts["max-size"] and int(opts["max-file"]) >= 2

@@ -4,6 +4,25 @@
 }
 
 {$SITE_ADDRESS::80} {
+	# 접근 로그: 누가 어떤 경로를 불렀는지 보려고 켠다. 접근 키(X-API-Key) · 쿠키 · 주소창 키는 남기지 않는다 (Caddy가 기본으로 가리는 것은 Cookie · Authorization뿐).
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>headers>X-Api-Key delete
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>Set-Cookie delete
+				resp_headers>Set-Cookie delete
+				request>uri query {
+					delete api_key
+					delete key
+					delete token
+				}
+			}
+		}
+	}
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
