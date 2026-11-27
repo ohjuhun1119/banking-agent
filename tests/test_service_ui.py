@@ -242,3 +242,15 @@ def test_both_clear_buttons_sit_at_the_top_right_of_their_box_in_bold():
         assert inner.index(bid) < inner.index("help")                         # 박스의 맨 앞에 두어 오른쪽 위에 뜬다
     rule = css[css.index(".clear{"):].split("}")[0]
     assert "float:right" in rule and "font-weight:700" in rule
+
+
+def test_the_handoff_screen_intro_is_the_softer_wording_without_the_urgent_line():
+    text = panel(PAGE.read_text(encoding="utf-8"), "panel-handoff")
+    assert "상담받고 싶은 내용을 남기면 접수번호를 안내해 드려요. 실시간 상담원 연결은 지원하지 않으며 담당자 연락은 가지 않습니다." in text
+    assert "급하시면" not in text
+
+
+def test_the_handoff_form_privacy_note_uses_the_same_wording_as_the_chat_notice():
+    text = panel(PAGE.read_text(encoding="utf-8"), "panel-handoff")
+    assert "질문은 서비스 개선을 위해 30일간 저장돼요. 이름, 연락처, 계좌번호 같은 개인정보는 입력하지 마세요." in text
+    assert "적지 마세요" not in text
