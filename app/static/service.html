@@ -19,7 +19,13 @@
 
   <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat">
     <div id="messages" class="messages" aria-live="polite">
-      <p class="empty">궁금한 점을 입력해 주세요.<br>예) 중도해지하면 이자는 어떻게 돼요?</p>
+      <div id="faq" class="faq">
+        <p class="faq-title">무엇이 궁금하세요?</p>
+        <button type="button" class="faq-item" data-q="중도해지하면 이자는 어떻게 계산돼요?">중도해지하면 이자는 어떻게 계산돼요?</button>
+        <button type="button" class="faq-item" data-q="일부해지는 몇 번까지 할 수 있어요?">일부해지는 몇 번까지 할 수 있어요?</button>
+        <button type="button" class="faq-item" data-q="세금이 붙나요?">세금이 붙나요?</button>
+        <button type="button" class="faq-item" data-q="예금자보호가 되나요?">예금자보호가 되나요?</button>
+      </div>
     </div>
     <form id="chat-form" class="composer" autocomplete="off">
       <input id="question" name="question" type="text" maxlength="2000" placeholder="궁금한 점을 입력하세요" aria-label="질문">

@@ -67,7 +67,8 @@
   var busy = false;
 
   function scrollDown() { window.scrollTo(0, document.body.scrollHeight); }
-  function clearEmpty() { var e = messages.querySelector(".empty"); if (e) e.remove(); }
+  var faq = $("faq");
+  function clearEmpty() { faq.remove(); }
   function addUser(text) { clearEmpty(); var m = el("div", "msg-user", text); messages.appendChild(m); scrollDown(); return m; }
   function addBot(cls) { clearEmpty(); var m = el("div", "msg-bot" + (cls ? " " + cls : "")); messages.appendChild(m); scrollDown(); return m; }
 
@@ -87,8 +88,14 @@
     question.value = "";
     addUser(q);
     var bot = addBot("pending");
+    var started = Date.now();
     bot.textContent = "답변을 준비하고 있어요";
+    var timer = setInterval(function () {
+      var sec = Math.floor((Date.now() - started) / 1000);
+      if (sec >= 1) bot.textContent = "답변을 준비하고 있어요 (" + sec + "초)";
+    }, 1000);
     call("/chat", { method: "POST", body: JSON.stringify({ question: q, session_id: sessionId() }) }).then(function (res) {
+      clearInterval(timer);
       bot.className = "msg-bot";
       bot.textContent = "";
       var d = res && res.data;
@@ -100,9 +107,19 @@
         bot.textContent = failureText(res);
       }
     }, function () {
+      clearInterval(timer);
       bot.className = "msg-bot problem";
       bot.textContent = failureText(null);
     }).then(function () { busy = false; scrollDown(); question.focus(); });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".faq-item"), function (button) {
+    button.addEventListener("click", function () {
+      question.value = button.getAttribute("data-q");
+      var form = $("chat-form");
+      if (form.requestSubmit) form.requestSubmit();
+      else form.dispatchEvent(new Event("submit", { cancelable: true }));
+    });
   });
 
   $("reset").addEventListener("click", function () {
@@ -110,11 +127,7 @@
     call("/chat/" + encodeURIComponent(old), { method: "DELETE" }).then(function () {}, function () {});
     newSession();
     messages.textContent = "";
-    var empty = el("p", "empty");
-    empty.appendChild(document.createTextNode("궁금한 점을 입력해 주세요."));
-    empty.appendChild(document.createElement("br"));
-    empty.appendChild(document.createTextNode("예) 중도해지하면 이자는 어떻게 돼요?"));
-    messages.appendChild(empty);
+    messages.appendChild(faq);
     $("calc-result").textContent = "";
     question.focus();
   });

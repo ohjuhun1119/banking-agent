@@ -70,3 +70,33 @@ def test_the_two_tabs_the_form_labels_and_the_disclaimer_are_present():
     for needle in ('role="tablist"', "상담", "이자 계산", 'id="chat-form"', 'id="calc-form"', "원금", "신규일", "만기일", "해지일", "기본금리", "계산하기", "보내기", "새 대화", "참고용"):
         assert needle in html, needle
     assert html.count('type="date"') == 3
+
+
+# ---------- 채팅 화면 다듬기: 자주 묻는 질문 버튼 · 경과 시간 ----------
+def faq_questions():
+    html = PAGE.read_text(encoding="utf-8")
+    return re.findall(r'<button[^>]*class="faq-item"[^>]*data-q="([^"]+)"', html)
+
+
+def test_the_first_screen_offers_a_few_frequently_asked_questions_as_buttons():
+    qs = faq_questions()
+    assert 3 <= len(qs) <= 4 and len(set(qs)) == len(qs) and all(len(q) <= 30 for q in qs), qs
+    assert "무엇이 궁금하세요?" in PAGE.read_text(encoding="utf-8")
+
+
+def test_every_suggested_question_passes_the_scope_gate_so_a_tap_never_ends_in_a_refusal():
+    from app.graph import out_of_scope
+    from app.scope import off_topic
+    for q in faq_questions():
+        assert not out_of_scope(q) and not off_topic(q), q
+
+
+def test_tapping_a_suggestion_sends_it_and_a_new_conversation_brings_the_buttons_back():
+    js = JS.read_text(encoding="utf-8")
+    assert "faq-item" in js and "data-q" in js and "requestSubmit" in js
+    assert "faq.remove()" in js and "messages.appendChild(faq)" in js                      # 첫 질문 뒤에는 사라지고 '새 대화'에서 돌아온다
+
+
+def test_the_wait_message_counts_the_elapsed_seconds_without_animation():
+    js = JS.read_text(encoding="utf-8")
+    assert "setInterval" in js and "clearInterval" in js and "초)" in js
