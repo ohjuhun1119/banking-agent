@@ -125,6 +125,7 @@ def test_the_trace_masker_also_masks_message_objects_and_never_raises_on_odd_val
 
 
 def test_the_langfuse_client_is_created_once_with_the_masker_before_the_handler(monkeypatch):
+    pytest.importorskip("langfuse")                                 # CI에는 설치하지 않는다 (requirements-tracing.txt)
     import langfuse
     import langfuse.langchain as lc
     made = []
