@@ -49,16 +49,45 @@
     });
   }
 
-  function evidence(parent, text) {
-    var lines = String(text || "").split("\n").map(function (s) { return s.trim(); })
-      .filter(function (s) { return s && s !== "근거"; })
-      .map(function (s) { return s.replace(/^-\s*/, ""); });
-    if (!lines.length) return;
-    var box = el("details");
-    box.appendChild(el("summary", "", "근거 약관 " + lines.length + "건"));
-    var list = el("ul");
-    lines.forEach(function (l) { list.appendChild(el("li", "", l)); });
-    box.appendChild(list);
+  function clauseLabel(c) {
+    return [c.doc_title, c.article, c.page ? "쪽 " + c.page : ""].filter(Boolean).join(" · ");
+  }
+
+  // 근거 카드: 조항은 열 때 한 번만 본문을 불러와 보여 주고, 계산은 계산식을 바로 보여 준다
+  function evidence(parent, cards) {
+    var items = (cards || []).filter(function (c) { return c && (c.kind === "계산" || c.kind === "약관"); });
+    if (!items.length) return;
+    var clauses = items.filter(function (c) { return c.kind === "약관"; }).length;
+    var box = el("details", "evidence");
+    box.appendChild(el("summary", "", clauses ? "근거 약관 " + clauses + "건" : "계산 근거"));
+    items.forEach(function (c) {
+      if (c.kind === "계산") {
+        box.appendChild(el("p", "calc", c.summary || "계산 결과"));
+        var steps = el("ul");
+        (c.formula || []).concat((c.assumptions || []).map(function (a) { return "가정: " + a; }), (c.warnings || []).map(function (w) { return "주의: " + w; }))
+          .forEach(function (line) { steps.appendChild(el("li", "", line)); });
+        box.appendChild(steps);
+      } else if (c.chunk_id) {
+        var clause = el("details", "clause");
+        clause.appendChild(el("summary", "", clauseLabel(c)));
+        var text = el("div", "clause-text");
+        clause.appendChild(text);
+        var loaded = false;
+        clause.addEventListener("toggle", function () {
+          if (!clause.open || loaded) return;
+          loaded = true;
+          text.textContent = "불러오는 중";
+          call("/api/chunks/" + encodeURIComponent(c.chunk_id), { method: "GET" }).then(function (res) {
+            text.textContent = "";
+            if (res && res.status === 200 && res.data && res.data.text) rich(text, res.data.text);
+            else { text.textContent = "내용을 불러오지 못했어요."; loaded = false; }
+          }, function () { text.textContent = "내용을 불러오지 못했어요."; loaded = false; });
+        });
+        box.appendChild(clause);
+      } else if (c.role) {
+        box.appendChild(el("p", "calc", c.role));
+      }
+    });
     parent.appendChild(box);
   }
 
@@ -167,7 +196,7 @@
       var d = res && res.data;
       if (res && res.status === 200 && d && d.answer) {
         rich(bot, d.answer);
-        evidence(bot, d.evidence_text);
+        evidence(bot, d.evidence);
         remember(q, d.answer);
         rememberRequest(d.answer, q);
       } else {

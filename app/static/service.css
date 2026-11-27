@@ -82,3 +82,8 @@ textarea:focus{outline:1px solid #1f4e9c;border-color:#1f4e9c}
 .history .q{margin:8px 0 2px;font-weight:700}
 .history .a p{margin:2px 0;color:#4b5563;line-height:1.6}
 .notice{margin:8px 20px 0}
+.evidence .calc{margin:8px 0 2px;font-weight:700}
+.evidence ul{margin:2px 0 6px;padding-left:18px}
+.clause{border-top:1px solid #e5e7eb;margin-top:6px;padding-top:6px}
+.clause summary{cursor:pointer}
+.clause-text{margin:6px 0 2px;padding:10px 12px;background:#f1f3f5;border-radius:4px;font-size:13px;line-height:1.7;color:#374151}
