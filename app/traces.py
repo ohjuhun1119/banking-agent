@@ -11,13 +11,14 @@
   calc_on_rule_question         방법 · 규칙 질문에 모델이 계산 도구를 불렀는데 읽을 수 있는 값이 없다 (검증용 H14 · H17)
   search_on_amount_question     금액을 묻는 질문에 모델이 계산 없이 검색만 했다 (H19 유형)
   tool_error / retried / invalid_input / duplicate_call / handoff_confirmation / tool_limit / model_error / error
-명령줄: python -m app.traces list [--signals] | mark ID 라벨 [--note 메모] | export [--label wrong_tool]
+명령줄: python -m app.traces list [--signals] | mark ID 라벨 [--note 메모] | export [--label wrong_tool] | stats (응답 시간 · 모델 호출 요약)
 설정: TRACE_LOG=0이면 저장하지 않는다. TRACE_DB로 파일 위치를 바꾼다.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sqlite3
 import sys
@@ -160,16 +161,46 @@ def export_markdown(label: str = "wrong_tool", db_path=None) -> str:
     return "\n".join(lines)
 
 
+def _pct(sorted_ms: list[int], q: float) -> int | None:
+    """가장 가까운 순위 방식 백분위 (표본이 작아도 실제로 있었던 값만 돌려준다)."""
+    if not sorted_ms:
+        return None
+    return sorted_ms[max(0, math.ceil(q * len(sorted_ms)) - 1)]
+
+
+def stats(db_path=None) -> dict:
+    """응답 시간과 모델 호출 요약. 모델 호출 0회(코드가 직접 답한 질문)와 1회 이상을 나눠서 본다: 둘의 시간이 크게 달라 섞으면 평균이 의미가 없다."""
+    out = {"total": 0, "avg_model_calls": None, "code_only": {"count": 0, "p50_ms": None, "p90_ms": None}, "with_model": {"count": 0, "p50_ms": None, "p90_ms": None}}
+    if not Path(db_path or DB_PATH).exists():
+        return out
+    with closing(_connect(db_path)) as con:
+        rows = con.execute("SELECT ms, model_calls FROM traces WHERE ms IS NOT NULL AND model_calls IS NOT NULL").fetchall()
+    out["total"] = len(rows)
+    if rows:
+        out["avg_model_calls"] = sum(r[1] for r in rows) / len(rows)
+    for key, picked in (("code_only", [r[0] for r in rows if r[1] == 0]), ("with_model", [r[0] for r in rows if r[1] > 0])):
+        picked.sort()
+        out[key] = {"count": len(picked), "p50_ms": _pct(picked, 0.5), "p90_ms": _pct(picked, 0.9)}
+    return out
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="요청 트레이스 보기 · 라벨 · 내보내기")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("list"); p.add_argument("--signals", action="store_true", help="신호가 있는 것만"); p.add_argument("--limit", type=int, default=20); p.add_argument("--label")
     p = sub.add_parser("mark"); p.add_argument("id", type=int); p.add_argument("label", choices=LABELS); p.add_argument("--note", default="")
+    sub.add_parser("stats")
     p = sub.add_parser("export"); p.add_argument("--label", default="wrong_tool", choices=LABELS)
     a = ap.parse_args(argv)
     if a.cmd == "list":
         for r in list_traces(a.limit, a.signals, a.label):
             print(f"#{r['id']} {r['created_at']} [{r['label'] or '-'}] {r['question'][:50]} | 도구 {len(r['tools'])} | 신호: {', '.join(r['signals']) or '-'}")
+    elif a.cmd == "stats":
+        st = stats()
+        print(f"질문 {st['total']}건, 질문당 모델 호출 평균 {st['avg_model_calls'] or 0:.2f}회")
+        for key, name in (("code_only", "코드가 직접 답함(모델 0회)"), ("with_model", "모델 호출 있음")):
+            v = st[key]
+            print(f"- {name}: {v['count']}건, 중앙값 {v['p50_ms']}ms, 90번째 백분위 {v['p90_ms']}ms")
     elif a.cmd == "mark":
         print("라벨을 붙였어요." if mark(a.id, a.label, a.note) else "붙이지 못했어요 (없는 번호이거나 저장소가 없어요).")
     else:

@@ -1,7 +1,7 @@
 """이자 계산 도구를 MCP 서버(stdio)로 연다. 계산은 app/tools/interest.py의 함수가 하고 여기는 얇은 껍데기다.
 
 실행: 레포 루트에서  python -m app.mcp_server      (pip install -r requirements-mcp.txt 필요)
-Claude Desktop 등록 예시는 README의 'MCP 서버' 절.
+Claude Desktop 등록 예시는 docs/DETAILS.md의 'MCP 서버' 절.
 """
 import sys
 from pathlib import Path

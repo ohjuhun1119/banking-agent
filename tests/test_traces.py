@@ -141,3 +141,19 @@ def test_the_same_signal_from_several_calls_is_listed_once():
              t("calc_interest", "missing_info", dropped={"principal": 1}), t("calc_interest", "missing_info", dropped={"principal": 2})]
     s = traces.signals_of(result(twice), AMOUNT_Q)                                  # 금액 질문이라 다른 신호는 붙지 않는다
     assert s == ["forced_search", "dropped:principal"]
+
+
+# ---------- 통계: 질문당 응답 시간과 모델 호출 ----------
+def test_stats_split_questions_answered_by_code_from_those_that_called_the_model(tmp_path, monkeypatch):
+    monkeypatch.delenv("TRACE_LOG", raising=False)
+    db = tmp_path / "t.sqlite3"
+    for ms, calls in [(100, 0), (300, 0), (4000, 2), (6000, 2), (8000, 2), (10000, 4)]:
+        traces.record(result(ms=ms, model_calls=calls), "q", db, NOW)
+    s = traces.stats(db_path=db)
+    assert s["total"] == 6 and s["avg_model_calls"] == pytest.approx(10 / 6, abs=0.01)
+    assert s["code_only"] == {"count": 2, "p50_ms": 100, "p90_ms": 300}              # 가장 가까운 순위 방식: 50번째 = 첫째, 90번째 = 마지막
+    assert s["with_model"] == {"count": 4, "p50_ms": 6000, "p90_ms": 10000}
+
+
+def test_stats_of_a_missing_or_empty_store_is_zero_not_an_error(tmp_path):
+    assert traces.stats(db_path=tmp_path / "none.sqlite3")["total"] == 0
